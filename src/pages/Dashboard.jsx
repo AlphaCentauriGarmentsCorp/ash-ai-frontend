@@ -1,110 +1,84 @@
 import { useAuth } from '../context/AuthContext'
+import DashboardLayout from "../components/Layout/DashboardLayout"
+import { LayoutDashboard } from "lucide-react"
+import ChecklistCard from '../components/Dashboard/ChecklistCard'
+import ExternalOperationsCard from '../components/Dashboard/ExternalOperationsCard'
+import ManufacturingCard from '../components/Dashboard/ManufacturingCard'
+import QuickActionCard from '../components/Dashboard/QuickActionCard'
+import StatCard from '../components/Dashboard/StatCard'
+import TopSellingCard from '../components/Dashboard/TopSellingCard'
+import WorkDistributionCard from '../components/Dashboard/WorkDistributionCard'
 import './Dashboard.css'
 
 export default function Dashboard() {
   const { user, userType } = useAuth()
 
-  const roleName = userType?.replace(/_/g, ' ').toUpperCase() || 'User'
-
   return (
-    <div className="dashboard">
-      <div className="dashboard-header">
-        <h1 className="dashboard-title">Dashboard</h1>
-        <p className="dashboard-subtitle">
-          Welcome back, {user?.profile?.first_name || 'User'}! 👋
-        </p>
-      </div>
-
-      <div className="dashboard-cards">
-        {/* Role Card */}
-        <div className="dashboard-card">
-          <div className="card-icon">
-            <iconify-icon icon="mdi:account-circle"></iconify-icon>
+    <DashboardLayout
+      title="Dashboard"
+      breadcrumb="Home / Dashboard"
+      icon={<LayoutDashboard size={18} />}
+    >
+      <div className="dashboard">
+        {/* Quick Actions - Row 1 */}
+        <div className="row g-3 mb-4">
+          <div className="col-md-6 col-lg-3">
+            <QuickActionCard title="Orders" type="orders" />
           </div>
-          <div className="card-content">
-            <h3 className="card-title">Your Role</h3>
-            <p className="card-value">{roleName}</p>
-            <p className="card-subtitle">Department Assignment</p>
+          <div className="col-md-6 col-lg-3">
+            <QuickActionCard title="Clients" type="clients" />
           </div>
-        </div>
-
-        {/* Status Card */}
-        <div className="dashboard-card">
-          <div className="card-icon success">
-            <iconify-icon icon="mdi:check-circle"></iconify-icon>
+          <div className="col-md-6 col-lg-3">
+            <QuickActionCard title="Payroll" type="payroll" />
           </div>
-          <div className="card-content">
-            <h3 className="card-title">Status</h3>
-            <p className="card-value">Active</p>
-            <p className="card-subtitle">System Status: Operational</p>
+          <div className="col-md-6 col-lg-3">
+            <QuickActionCard title="Finance" type="finance" />
           </div>
         </div>
 
-        {/* User Info Card */}
-        <div className="dashboard-card">
-          <div className="card-icon info">
-            <iconify-icon icon="mdi:information"></iconify-icon>
+        {/* Stats - Row 2 */}
+        <div className="row g-3 mb-4">
+          <div className="col-md-6 col-lg-3">
+            <StatCard title="Total Orders" value="1,234" color="green" badgeValue="+12%" badgeLabel="this week" />
           </div>
-          <div className="card-content">
-            <h3 className="card-title">Profile</h3>
-            <p className="card-value">{user?.profile?.last_name}, {user?.profile?.first_name}</p>
-            <p className="card-subtitle">{user?.email}</p>
+          <div className="col-md-6 col-lg-3">
+            <StatCard title="Pending Tasks" value="24" color="orange" badgeValue="+4" badgeLabel="today" />
+          </div>
+          <div className="col-md-6 col-lg-3">
+            <StatCard title="Revenue" value="₱45.2K" color="green" badgeValue="+8.2%" badgeLabel="this month" />
+          </div>
+          <div className="col-md-6 col-lg-3">
+            <StatCard title="Issues" value="3" color="red" badgeValue="2" badgeLabel="critical" />
           </div>
         </div>
 
-        {/* Quick Actions Card */}
-        <div className="dashboard-card">
-          <div className="card-icon warning">
-            <iconify-icon icon="mdi:lightning-bolt"></iconify-icon>
+        {/* Main Content - Row 3 */}
+        <div className="row g-3 mb-4">
+          <div className="col-lg-6">
+            <TopSellingCard />
           </div>
-          <div className="card-content">
-            <h3 className="card-title">Quick Start</h3>
-            <p className="card-subtitle">Access your role-specific features from the sidebar</p>
-            <div className="quick-actions">
-              <button className="quick-action-btn">
-                <iconify-icon icon="mdi:help-circle"></iconify-icon>
-              </button>
-              <button className="quick-action-btn">
-                <iconify-icon icon="mdi:cog"></iconify-icon>
-              </button>
-            </div>
+          <div className="col-lg-6">
+            <ChecklistCard />
           </div>
         </div>
-      </div>
 
-      {/* Activities Section */}
-      <div className="dashboard-section">
-        <h2 className="section-title">Recent Activities</h2>
-        <div className="activity-list">
-          <div className="activity-item">
-            <div className="activity-icon">
-              <iconify-icon icon="mdi:login"></iconify-icon>
-            </div>
-            <div className="activity-content">
-              <p className="activity-title">System Login</p>
-              <p className="activity-time">Just now</p>
-            </div>
+        {/* Manufacturing & Operations - Row 4 */}
+        <div className="row g-3 mb-4">
+          <div className="col-lg-6">
+            <ManufacturingCard />
           </div>
-          <div className="activity-item">
-            <div className="activity-icon">
-              <iconify-icon icon="mdi:check"></iconify-icon>
-            </div>
-            <div className="activity-content">
-              <p className="activity-title">Navigation Structure Loaded</p>
-              <p className="activity-time">Moments ago</p>
-            </div>
+          <div className="col-lg-6">
+            <ExternalOperationsCard />
           </div>
-          <div className="activity-item">
-            <div className="activity-icon">
-              <iconify-icon icon="mdi:bell"></iconify-icon>
-            </div>
-            <div className="activity-content">
-              <p className="activity-title">Dashboard Ready</p>
-              <p className="activity-time">System initialized</p>
-            </div>
+        </div>
+
+        {/* Work Distribution - Row 5 */}
+        <div className="row">
+          <div className="col-12">
+            <WorkDistributionCard />
           </div>
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useLocation } from 'react-router-dom'
+import { ChevronDown } from 'lucide-react'
 import { useSidebar } from '../../context/SidebarContext'
 import { useAuth } from '../../context/AuthContext'
 import { getMenuByRole } from '../../utils/menuConfig'
@@ -10,9 +11,30 @@ export default function AppSidebar() {
   const { user, userType } = useAuth()
   const location = useLocation()
   const [openSubmenus, setOpenSubmenus] = useState({})
+  const [roleOpen, setRoleOpen] = useState(false)
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 })
   const subMenuRefs = useRef({})
+  const userSectionRef = useRef(null)
 
   const menu = getMenuByRole(userType)
+
+  const roles = [
+    "Warehouse Manager",
+    "General Manager",
+    "Graphic Artists",
+  ]
+
+  const handleRoleClick = () => {
+    if (userSectionRef.current && !roleOpen) {
+      const rect = userSectionRef.current.getBoundingClientRect()
+      setDropdownPos({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+      })
+    }
+    setRoleOpen(!roleOpen)
+  }
 
   const isActive = (path) => location.pathname === path
 
@@ -174,8 +196,12 @@ export default function AppSidebar() {
         onMouseLeave={() => setIsHovered(false)}
       >
         {/* User Section */}
-        <div className="sidebar-user-section">
-          <Link to="/profile" className="sidebar-user-link">
+        <div className="sidebar-user-section" ref={userSectionRef}>
+          <button 
+            onClick={handleRoleClick}
+            className="sidebar-user-link"
+            style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', width: '100%', textAlign: 'left' }}
+          >
             {(isExpanded || isHovered || isMobileOpen) && user ? (
               <>
                 <div className="user-avatar">
@@ -183,7 +209,10 @@ export default function AppSidebar() {
                 </div>
                 <div className="user-info">
                   <div className="user-name">{user.profile?.last_name}, {user.profile?.first_name}</div>
-                  <div className="user-type">{(userType || 'Unknown').replace(/_/g, ' ')}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span className="user-type">{(userType || 'Unknown').replace(/_/g, ' ')}</span>
+                    <ChevronDown size={14} style={{ color: '#64748b' }} />
+                  </div>
                 </div>
               </>
             ) : (
@@ -191,7 +220,33 @@ export default function AppSidebar() {
                 <iconify-icon icon="mdi:account-circle"></iconify-icon>
               </div>
             )}
-          </Link>
+          </button>
+
+          {/* Role dropdown */}
+          {roleOpen && (isExpanded || isHovered || isMobileOpen) && (
+            <div 
+              className="position-fixed bg-white border rounded-2 shadow" 
+              style={{ 
+                top: dropdownPos.top, 
+                left: dropdownPos.left, 
+                width: dropdownPos.width,
+                zIndex: 9999
+              }}
+            >
+              {roles.map((role) => (
+                <button 
+                  key={role} 
+                  className="btn btn-link w-100 text-start text-dark text-decoration-none p-2"
+                  style={{ borderBottom: "1px solid #e2e8f0", fontSize: '0.85rem' }}
+                  onClick={() => {
+                    setRoleOpen(false)
+                  }}
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Navigation */}

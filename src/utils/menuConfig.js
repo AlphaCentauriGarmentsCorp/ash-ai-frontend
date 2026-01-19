@@ -18,6 +18,16 @@ export const getMenuByRole = (userType) => {
         section: 'ADMIN MENU',
         items: [
           {
+            name: 'Orders',
+            icon: 'mdi:file-document-multiple',
+            path: '/admin/orders',
+          },
+          {
+            name: 'Clients',
+            icon: 'mdi:account-multiple',
+            path: '/admin/clients',
+          },
+          {
             name: 'User & Roles',
             icon: 'mdi:account-multiple',
             subItems: [
