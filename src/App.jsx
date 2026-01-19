@@ -1,4 +1,3 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import { SidebarProvider } from './context/SidebarContext'
 import { AuthProvider } from './context/AuthContext'
