@@ -1,220 +1,178 @@
 .dashboard {
-  padding: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-
-.dashboard-header {
-  margin-bottom: 3rem;
-}
-
-.dashboard-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0;
-}
-
-.dashboard-subtitle {
-  font-size: 1rem;
-  color: #6b7280;
-  margin: 0.5rem 0 0 0;
-}
-
-.dashboard-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 3rem;
-}
-
-.dashboard-card {
-  display: flex;
-  gap: 1.5rem;
+  width: 100%;
+  height: auto;
   padding: 1.5rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s ease;
-}
-
-.dashboard-card:hover {
-  border-color: #0066cc;
-  box-shadow: 0 4px 12px rgba(0, 102, 204, 0.15);
-  transform: translateY(-2px);
-}
-
-.card-icon {
-  font-size: 2.5rem;
-  color: #0066cc;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  width: 60px;
-  height: 60px;
-  background: #eff6ff;
-  border-radius: 8px;
-}
-
-.card-icon.success {
-  color: #10b981;
-  background: #ecfdf5;
-}
-
-.card-icon.info {
-  color: #8b5cf6;
-  background: #f5f3ff;
-}
-
-.card-icon.warning {
-  color: #f59e0b;
-  background: #fffbeb;
-}
-
-.card-content {
-  flex: 1;
-  min-width: 0;
-}
-
-.card-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #6b7280;
-  text-transform: uppercase;
   margin: 0;
-  letter-spacing: 0.05em;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.card-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0.5rem 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.dashboard::-webkit-scrollbar {
+  display: none;
 }
 
-.card-subtitle {
-  font-size: 0.875rem;
-  color: #9ca3af;
-  margin: 0;
+/* Bootstrap grid adjustments */
+.dashboard .row {
+  margin-left: -0.75rem;
+  margin-right: -0.75rem;
 }
 
-.quick-actions {
-  display: flex;
-  gap: 0.5rem;
-  margin-top: 1rem;
+.dashboard .col-md-6,
+.dashboard .col-lg-3,
+.dashboard .col-lg-6,
+.dashboard .col-12 {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  margin-bottom: 0;
 }
 
-.quick-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: #f3f4f6;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  cursor: pointer;
-  color: #4b5563;
-  font-size: 1rem;
-  transition: all 0.3s ease;
+/* =========================================================
+   CARD STYLING
+   ========================================================= */
+.dashboard .card {
+  border: 2px solid #001C34;
+  border-radius: 1rem;
+  box-shadow: none;
+  height: 100%;
 }
 
-.quick-action-btn:hover {
-  background: #0066cc;
+.dashboard .card.bg-dark {
+  background: #001C34 !important;
   color: white;
-  border-color: #0066cc;
 }
 
-/* Section */
-.dashboard-section {
-  margin-bottom: 2rem;
+.dashboard .card.bg-info {
+  background: #EBF6FF !important;
 }
 
-.section-title {
-  font-size: 1.25rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 1.5rem 0;
+/* =========================================================
+   BADGE STYLING
+   ========================================================= */
+.dashboard .badge {
+  font-size: 0.7rem;
+  padding: 0.35rem 0.6rem;
+  border-radius: 999px;
 }
 
-.activity-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
+.dashboard .badge.bg-success {
+  background: #dcfce7 !important;
+  color: #14532d;
 }
 
-.activity-item {
-  display: flex;
-  gap: 1rem;
-  padding: 1rem;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  transition: all 0.3s ease;
+.dashboard .badge.bg-warning {
+  background: #fff7e0 !important;
+  color: #b45309;
 }
 
-.activity-item:hover {
-  border-color: #0066cc;
-  background: #f9fafb;
+.dashboard .badge.bg-danger {
+  background: #fee2e2 !important;
+  color: #7f1d1d;
 }
 
-.activity-icon {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  background: #eff6ff;
-  color: #0066cc;
-  border-radius: 6px;
-  flex-shrink: 0;
-  font-size: 1.25rem;
+/* =========================================================
+   BUTTON STYLING
+   ========================================================= */
+.dashboard .btn-dark {
+  background: #001C34 !important;
+  border-color: #001C34 !important;
+  color: white;
+  border-radius: 0.5rem;
 }
 
-.activity-content {
-  flex: 1;
-  min-width: 0;
+.dashboard .btn-dark:hover {
+  background: #0d2d4a !important;
+  border-color: #0d2d4a !important;
 }
 
-.activity-title {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
+.dashboard .btn-outline-dark {
+  border-color: #001C34 !important;
+  color: #001C34 !important;
 }
 
-.activity-time {
-  font-size: 0.8125rem;
-  color: #9ca3af;
-  margin: 0.25rem 0 0 0;
+.dashboard .btn-outline-dark:hover {
+  background: #001C34 !important;
+  color: white !important;
 }
 
-/* Responsive */
+/* =========================================================
+   TABLE STYLING
+   ========================================================= */
+.dashboard .table {
+  font-size: 0.8rem;
+  margin-bottom: 0;
+}
+
+.dashboard .table td {
+  padding: 0.6rem 0.4rem;
+  vertical-align: middle;
+  border: none;
+}
+
+.dashboard .table tbody tr {
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* =========================================================
+   FORM ELEMENTS
+   ========================================================= */
+.dashboard .form-control,
+.dashboard .form-select {
+  border-radius: 0.5rem;
+  border: 1px solid #d1d5db;
+  font-size: 0.85rem;
+}
+
+.dashboard .form-control:focus {
+  border-color: #001C34;
+  box-shadow: 0 0 0 0.2rem rgba(0, 28, 52, 0.25);
+}
+
+/* =========================================================
+   TEXT UTILITIES
+   ========================================================= */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.dashboard .text-muted {
+  color: #64748b !important;
+}
+
+/* =========================================================
+   UTILITY CLASSES
+   ========================================================= */
+.dashboard .bg-opacity-10 {
+  opacity: 1 !important;
+}
+
+/* =========================================================
+   RESPONSIVE ADJUSTMENTS
+   ========================================================= */
 @media (max-width: 768px) {
   .dashboard {
     padding: 1rem;
   }
 
-  .dashboard-title {
-    font-size: 1.5rem;
+  .dashboard .col-lg-3 {
+    flex: 0 0 50%;
+    max-width: 50%;
   }
 
-  .dashboard-cards {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+  .dashboard .col-lg-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
   }
 
-  .dashboard-card {
-    flex-direction: column;
-    text-align: center;
+  .dashboard .row {
+    margin-left: -0.5rem;
+    margin-right: -0.5rem;
   }
 
-  .card-icon {
-    margin: 0 auto;
+  .dashboard .col-md-6,
+  .dashboard .col-lg-3,
+  .dashboard .col-lg-6,
+  .dashboard .col-12 {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
   }
 }
