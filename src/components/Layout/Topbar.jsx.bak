@@ -1,0 +1,28 @@
+import UserProfile from "./UserProfile"
+
+export default function Topbar() {
+  return (
+<<<<<<< HEAD
+    <header className="sticky-top p-3" style={{ background: "#001C34" }}>
+=======
+    <header className="bg-dark sticky-top p-3">
+>>>>>>> 80dbc93e07df40a9da3937fdf8dc6b9f7b4eff93
+      <div className="d-flex justify-content-between align-items-center">
+        <div className="d-flex align-items-center gap-3">
+          <input 
+            className="form-control rounded-pill" 
+            placeholder="Search for pages..." 
+            style={{ width: "820px" }}
+          />
+          <div 
+            className="bg-light rounded-circle d-flex align-items-center justify-content-center" 
+            style={{ width: "42px", height: "42px", cursor: "pointer" }}
+          >
+            🔔
+          </div>
+        </div>
+        <UserProfile />
+      </div>
+    </header>
+  )
+}
