@@ -1,47 +1,28 @@
-import { createContext, useContext, useState } from 'react'
+import { createContext, useState, useEffect } from "react";
 
-const SidebarContext = createContext()
+export const SidebarContext = createContext();
 
 export const SidebarProvider = ({ children }) => {
-  const [isExpanded, setIsExpanded] = useState(true)
-  const [isMobileOpen, setIsMobileOpen] = useState(false)
-  const [isHovered, setIsHovered] = useState(false)
+  const [activeLink, setActiveLink] = useState(
+    () => localStorage.getItem("activeSidebarLink") || "",
+  );
+  const [openSubMenu, setOpenSubMenu] = useState(
+    () => localStorage.getItem("openSubMenu") || null,
+  );
 
-  const toggleSidebar = () => {
-    setIsExpanded(!isExpanded)
-  }
+  useEffect(() => {
+    localStorage.setItem("activeSidebarLink", activeLink);
+  }, [activeLink]);
 
-  const toggleMobileSidebar = () => {
-    setIsMobileOpen(!isMobileOpen)
-  }
-
-  const closeMobileSidebar = () => {
-    setIsMobileOpen(false)
-  }
+  useEffect(() => {
+    localStorage.setItem("openSubMenu", openSubMenu);
+  }, [openSubMenu]);
 
   return (
     <SidebarContext.Provider
-      value={{
-        isExpanded,
-        setIsExpanded,
-        isMobileOpen,
-        setIsMobileOpen,
-        toggleSidebar,
-        toggleMobileSidebar,
-        closeMobileSidebar,
-        isHovered,
-        setIsHovered,
-      }}
+      value={{ activeLink, setActiveLink, openSubMenu, setOpenSubMenu }}
     >
       {children}
     </SidebarContext.Provider>
-  )
-}
-
-export const useSidebar = () => {
-  const context = useContext(SidebarContext)
-  if (!context) {
-    throw new Error('useSidebar must be used within a SidebarProvider')
-  }
-  return context
-}
+  );
+};
