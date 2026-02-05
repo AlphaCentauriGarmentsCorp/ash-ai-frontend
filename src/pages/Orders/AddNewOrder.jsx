@@ -5,8 +5,10 @@ import Select from "../../components/form/Select";
 import FileUpload from "../../components/form/FileUpload";
 import Textarea from "../../components/form/Textarea";
 import FormActions from "../../components/form/FormActions";
+import { orderService } from "../../services/orderService";
 
 import { orderInitialState } from "../../constants/formInitialState/orderInitialState";
+import { orderSchema } from "../../validations/orderSchema";
 import {
   options as optionList,
   defaultSize,
@@ -30,7 +32,7 @@ import {
   paymentMethods,
 } from "../../constants/formOptions/orderOptions";
 
-export default function AddNewClient() {
+export default function AddNewOrder() {
   const calculateUnitPrice = (costPrice, quantity) => {
     const cost = parseFloat(costPrice) || 0;
     const qty = parseFloat(quantity) || 0;
@@ -39,15 +41,6 @@ export default function AddNewClient() {
 
   const [formData, setFormData] = useState({
     ...orderInitialState,
-    options: "",
-    option_color: "",
-    livesOnSite: false,
-    selectedOptions: [],
-    // Add separate file fields as arrays
-    design_files: [],
-    design_mockup: [],
-    placement_measurements: [],
-    payments: [],
     sizes: defaultSize.map((size) => ({
       id: Date.now() + Math.random(),
       name: size.size,
@@ -106,6 +99,51 @@ export default function AddNewClient() {
     });
   };
 
+  const validateField = (name, value) => {
+    const fieldSchema = orderSchema[name];
+    if (!fieldSchema) return "";
+
+    const { required, pattern, validation, message, invalidMessage } =
+      fieldSchema;
+
+    // Check if field is required but empty
+    if (required && (value === undefined || value === null || value === "")) {
+      return message || `${name} is required.`;
+    }
+
+    // Check pattern validation
+    if (pattern && value && !pattern.test(value)) {
+      return invalidMessage || `${name} is invalid.`;
+    }
+
+    // Check custom validation
+    if (validation && typeof validation === "function") {
+      const isValid = validation(value);
+      return isValid ? "" : message || `${name} is invalid.`;
+    }
+
+    return "";
+  };
+
+  const validateForm = () => {
+    const newErrors = {};
+    let hasError = false;
+
+    const hasSizeWithQuantity = formData.sizes.some((size) => {
+      const quantity = parseInt(size.quantity) || 0;
+      return quantity > 0;
+    });
+
+    if (!hasSizeWithQuantity) {
+      newErrors.sizes =
+        "At least one size with quantity greater than 0 is required.";
+      hasError = true;
+    }
+
+    setErrors(newErrors);
+    return !hasError;
+  };
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const fieldValue = type === "checkbox" ? checked : value;
@@ -113,7 +151,6 @@ export default function AddNewClient() {
   };
 
   const updateField = (name, value) => {
-    // Skip if this is a file field (file fields use handleFileChange)
     if (
       [
         "design_files",
@@ -130,7 +167,10 @@ export default function AddNewClient() {
       [name]: value,
     }));
 
-    if (errors[name]) {
+    const error = validateField(name, value);
+    if (error) {
+      setErrors((prev) => ({ ...prev, [name]: error }));
+    } else if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
 
@@ -168,32 +208,28 @@ export default function AddNewClient() {
   };
 
   const addOption = () => {
-    // Validation
+    setErrors((prev) => ({ ...prev, options: "", option_color: "" }));
     if (!formData.options) {
-      setErrors({ options: "Please select an option" });
+      setErrors((prev) => ({ ...prev, options: "Please select an option" }));
       return;
     }
 
     if (!formData.option_color) {
-      setErrors({ option_color: "Please enter a color" });
+      setErrors((prev) => ({ ...prev, option_color: "Please enter a color" }));
       return;
     }
 
-    // Determine the color to use
     const colorToUse =
       formData.livesOnSite && formData.selectedOptions.length > 0
         ? formData.selectedOptions[0].color
         : formData.option_color;
 
-    // Find the selected option label
     const selectedOption = optionList.find(
       (opt) => opt.value === formData.options,
     );
     const optionName = selectedOption ? selectedOption.label : formData.options;
-
-    // Create new option object
     const newOption = {
-      id: Date.now(), // Simple ID for removal
+      id: Date.now(), 
       name: optionName,
       color: colorToUse,
       colorValue: colorToUse,
@@ -207,11 +243,13 @@ export default function AddNewClient() {
       option_color: formData.livesOnSite ? prev.option_color : "",
     }));
 
-    // Clear any errors
-    setErrors({});
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+      delete newErrors.selectedOptions; 
+      return newErrors;
+    });
   };
 
-  // Remove an option from selectedOptions
   const removeOption = (id) => {
     setFormData((prev) => ({
       ...prev,
@@ -221,7 +259,6 @@ export default function AddNewClient() {
     }));
   };
 
-  // Add a new size
   const addSize = () => {
     setFormData((prev) => ({
       ...prev,
@@ -258,41 +295,58 @@ export default function AddNewClient() {
     setServerError("");
     setSubmitSuccess(false);
 
-    // Check if at least one option is added
-    if (formData.selectedOptions.length === 0) {
-      setServerError("Please add at least one option before submitting.");
+    // Clear previous validation errors
+    setErrors({});
+
+    // Validate the form
+    const isValid = validateForm();
+
+    if (!isValid) {
       setIsSubmitting(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Show a general error message if there are validation errors
+      if (Object.keys(errors).length > 0) {
+        setServerError("Please fix the validation errors below.");
+      }
+
       return;
     }
 
     try {
-      // Prepare the final data structure
       const submitData = {
-        ...orderInitialState,
+        ...formData,
         selectedOptions: formData.selectedOptions.map((option) => ({
           name: option.name,
           color: option.color,
           applyToAll: option.applyToAll,
         })),
         sizes: formData.sizes.filter((size) => size.quantity > 0),
-        summary: summary,
+        summary,
       };
 
-      // Replace with your actual API call
       console.log("Submitting data:", submitData);
-      // await clientService.createClient(submitData);
 
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // ✅ REAL API CALL
+      await orderService.createOrder(submitData);
 
       setSubmitSuccess(true);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
+      console.error("Submission error:", err);
+
+      // Handle server validation errors
+      if (err.response?.data?.errors) {
+        setErrors(err.response.data.errors);
+      }
+
       setServerError(
-        err.message || "An error occurred while submitting the form.",
+        err.response?.data?.message ||
+          err.message ||
+          "An error occurred while submitting the form.",
       );
+
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setIsSubmitting(false);
@@ -302,15 +356,6 @@ export default function AddNewClient() {
   const handleReset = () => {
     setFormData({
       ...orderInitialState,
-      options: "",
-      option_color: "",
-      livesOnSite: false,
-      selectedOptions: [],
-      // Reset file fields too
-      design_files: [],
-      design_mockup: [],
-      placement_measurements: [],
-      payments: [],
       sizes: defaultSize.map((size) => ({
         id: Date.now() + Math.random(),
         name: size.size,
@@ -340,8 +385,11 @@ export default function AddNewClient() {
       [name]: value, // value is already an array from FileUpload component
     }));
 
-    // Clear error for this field
-    if (errors[name]) {
+    // Validate file field
+    const error = validateField(name, value);
+    if (error) {
+      setErrors((prev) => ({ ...prev, [name]: error }));
+    } else if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: "" }));
     }
 
@@ -368,6 +416,25 @@ export default function AddNewClient() {
     >
       <form onSubmit={handleSubmit}>
         <div className="bg-light text-red p-3 lg:p-7 rounded-lg border border-gray-300">
+          {/* Show validation errors summary */}
+          {Object.keys(errors).length > 0 && !submitSuccess && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+              <div className="flex items-center">
+                <i className="fa-solid fa-exclamation-circle text-red-500 mr-3"></i>
+                <div>
+                  <p className="text-red-800 font-medium">
+                    Please fix the following errors:
+                  </p>
+                  <ul className="text-red-600 text-sm mt-1 list-disc pl-5">
+                    {Object.entries(errors).map(([field, error]) => (
+                      <li key={field}>{error}</li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+
           {submitSuccess && (
             <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
               <div className="flex items-center">
@@ -386,7 +453,7 @@ export default function AddNewClient() {
             </div>
           )}
 
-          {serverError && (
+          {serverError && Object.keys(errors).length === 0 && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
               <div className="flex items-center">
                 <i className="fa-solid fa-exclamation-circle text-red-500 mr-3"></i>
@@ -431,22 +498,22 @@ export default function AddNewClient() {
               label="Clothing / Company"
               name="company"
               options={companyList}
-              value={formData.client}
+              value={formData.company}
               onChange={handleChange}
-              placeholder="Select client"
+              placeholder="Select company"
               searchable
-              error={errors.client}
+              error={errors.company}
               required
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Select
                 label="Brand"
-                name="Brand"
+                name="brand"
                 options={brands}
                 value={formData.brand}
                 onChange={handleChange}
-                placeholder="Select client"
+                placeholder="Select brand"
                 searchable
                 error={errors.brand}
                 required
@@ -475,11 +542,11 @@ export default function AddNewClient() {
               label="Preferred Courier"
               name="courier"
               options={courierList}
-              value={formData.client}
+              value={formData.courier}
               onChange={handleChange}
-              placeholder="Select client"
+              placeholder="Select courier"
               searchable
-              error={errors.client}
+              error={errors.courier}
               required
             />
 
@@ -487,21 +554,21 @@ export default function AddNewClient() {
               label="Shipping Method"
               name="shipping_method"
               options={shippingMethodList}
-              value={formData.client}
+              value={formData.shipping_method}
               onChange={handleChange}
-              placeholder="Select client"
+              placeholder="Select shipping method"
               searchable
-              error={errors.client}
+              error={errors.shipping_method}
               required
             />
 
             <Input
-              label="Receiver’s Name"
+              label="Receiver's Name"
               name="receiver_name"
-              value={formData.deadline}
+              value={formData.receiver_name}
               onChange={handleChange}
-              error={errors.deadline}
-              placeholder="Eneter name of receiver"
+              error={errors.receiver_name}
+              placeholder="Enter name of receiver"
               type="text"
               required
             />
@@ -509,11 +576,11 @@ export default function AddNewClient() {
             <Input
               label="Contact Number"
               name="contact_number"
-              value={formData.deadline}
+              value={formData.contact_number}
               onChange={handleChange}
-              error={errors.deadline}
-              placeholder="Eneter contact number"
-              type="number"
+              error={errors.contact_number}
+              placeholder="Enter contact number"
+              type="text"
               required
             />
           </div>
@@ -523,10 +590,10 @@ export default function AddNewClient() {
               <Input
                 label="Street"
                 name="street_address"
-                value={formData.deadline}
+                value={formData.street_address}
                 onChange={handleChange}
-                error={errors.deadline}
-                placeholder="Eneter name of receiver"
+                error={errors.street_address}
+                placeholder="Enter street address"
                 type="text"
                 required
               />
@@ -535,40 +602,43 @@ export default function AddNewClient() {
             <Input
               label="Province"
               name="province_address"
-              value={formData.deadline}
+              value={formData.province_address}
               onChange={handleChange}
-              error={errors.deadline}
-              placeholder="Eneter name of receiver"
+              error={errors.province_address}
+              placeholder="Enter province"
               type="text"
               required
             />
+
             <Input
               label="City"
               name="city_address"
-              value={formData.deadline}
+              value={formData.city_address}
               onChange={handleChange}
-              error={errors.deadline}
-              placeholder="Eneter name of receiver"
+              error={errors.city_address}
+              placeholder="Enter city"
               type="text"
               required
             />
+
             <Input
               label="Barangay"
               name="barangay_address"
-              value={formData.deadline}
+              value={formData.barangay_address}
               onChange={handleChange}
-              error={errors.deadline}
-              placeholder="Eneter name of receiver"
+              error={errors.barangay_address}
+              placeholder="Enter barangay"
               type="text"
               required
             />
+
             <Input
               label="Postal Code"
               name="postal_address"
-              value={formData.deadline}
+              value={formData.postal_address}
               onChange={handleChange}
-              error={errors.deadline}
-              placeholder="Eneter name of receiver"
+              error={errors.postal_address}
+              placeholder="Enter postal code"
               type="text"
               required
             />
@@ -583,91 +653,98 @@ export default function AddNewClient() {
               <Input
                 label="Design Name"
                 name="design_name"
-                value={formData.deadline}
+                value={formData.design_name}
                 onChange={handleChange}
-                error={errors.deadline}
-                placeholder="Eneter name of receiver"
+                error={errors.design_name}
+                placeholder="Enter design name"
                 type="text"
                 required
               />
             </div>
+
             <Select
               label="Apparel Type"
-              name="courier"
+              name="apparel_type"
               options={apparelTypeList}
-              value={formData.client}
+              value={formData.apparel_type}
               onChange={handleChange}
-              placeholder="Select client"
+              placeholder="Select apparel type"
               searchable
-              error={errors.client}
+              error={errors.apparel_type}
               required
             />
+
             <Select
               label="Pattern Type"
-              name="courier"
+              name="pattern_type"
               options={patternTypeList}
-              value={formData.client}
+              value={formData.pattern_type}
               onChange={handleChange}
-              placeholder="Select client"
+              placeholder="Select pattern type"
               searchable
-              error={errors.client}
+              error={errors.pattern_type}
               required
             />
+
             <Select
               label="Service Type"
-              name="courier"
+              name="service_type"
               options={serviceTypeList}
-              value={formData.client}
+              value={formData.service_type}
               onChange={handleChange}
-              placeholder="Select client"
+              placeholder="Select service type"
               searchable
-              error={errors.client}
+              error={errors.service_type}
               required
             />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ">
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Select
                 label="Print Method"
-                name="courier"
+                name="print_method"
                 options={printMethodList}
-                value={formData.client}
+                value={formData.print_method}
                 onChange={handleChange}
-                placeholder="Select client"
+                placeholder="Select print method"
                 searchable
-                error={errors.client}
+                error={errors.print_method}
                 required
               />
+
               <Select
                 label="Print Service"
-                name="courier"
+                name="print_service"
                 options={printServiceList}
-                value={formData.client}
+                value={formData.print_service}
                 onChange={handleChange}
-                placeholder="Select client"
+                placeholder="Select print service"
                 searchable
-                error={errors.client}
+                error={errors.print_service}
                 required
               />
             </div>
+
             <Select
               label="Size Label"
-              name="courier"
+              name="size_label"
               options={sizeLabelList}
-              value={formData.client}
+              value={formData.size_label}
               onChange={handleChange}
-              placeholder="Select client"
+              placeholder="Select size label"
               searchable
-              error={errors.client}
+              error={errors.size_label}
               required
             />
+
             <Select
               label="Print Label Placement"
-              name="courier"
+              name="print_label_placement"
               options={printLabelPlacementList}
-              value={formData.client}
+              value={formData.print_label_placement}
               onChange={handleChange}
-              placeholder="Select client"
+              placeholder="Select print label placement"
               searchable
-              error={errors.client}
+              error={errors.print_label_placement}
               required
             />
           </div>
@@ -680,74 +757,79 @@ export default function AddNewClient() {
             <div className="col-span-2">
               <Select
                 label="Fabric Type"
-                name="courier"
+                name="fabric_type"
                 options={fabricTypeList}
-                value={formData.client}
+                value={formData.fabric_type}
                 onChange={handleChange}
-                placeholder="Select client"
+                placeholder="Select fabric type"
                 searchable
-                error={errors.client}
+                error={errors.fabric_type}
                 required
               />
             </div>
 
             <Select
               label="Fabric Supplier"
-              name="courier"
+              name="fabric_supplier"
               options={fabricSupplierList}
-              value={formData.client}
+              value={formData.fabric_supplier}
               onChange={handleChange}
-              placeholder="Select client"
+              placeholder="Select fabric supplier"
               searchable
-              error={errors.client}
+              error={errors.fabric_supplier}
               required
             />
+
             <Input
               label="Fabric Color"
-              name="receiver_name"
-              value={formData.deadline}
+              name="fabric_color"
+              value={formData.fabric_color}
               onChange={handleChange}
-              error={errors.deadline}
-              placeholder="Eneter name of receiver"
+              error={errors.fabric_color}
+              placeholder="Enter fabric color"
               type="text"
               required
             />
+
             <div></div>
+
             <div className="-mt-6 flex items-start">
               <div className="flex justify-center items-center gap-3">
                 <input
                   type="checkbox"
                   name="same_fabric_color"
                   id="same_fabric_color"
-                  checked={formData.livesOnSite}
+                  checked={formData.same_fabric_color}
                   onChange={handleChange}
                   className="border-gray-300 border"
                 />
                 <label
-                  htmlFor="livesOnSite"
+                  htmlFor="same_fabric_color"
                   className="text-primary/55 text-xs"
                 >
                   Keep the same color for other
                 </label>
               </div>
             </div>
+
             <Input
               label="Thread Color"
-              name="receiver_name"
-              value={formData.deadline}
+              name="thread_color"
+              value={formData.thread_color}
               onChange={handleChange}
-              error={errors.deadline}
-              placeholder="Eneter name of receiver"
+              error={errors.thread_color}
+              placeholder="Enter thread color"
               type="text"
               required
             />
+
             <Input
               label="Ribbing Color"
-              name="receiver_name"
-              value={formData.deadline}
+              name="ribbing_color"
+              value={formData.ribbing_color}
               onChange={handleChange}
-              error={errors.deadline}
-              placeholder="Eneter name of receiver"
+              error={errors.ribbing_color}
+              placeholder="Enter ribbing color"
               type="text"
               required
             />
@@ -1027,13 +1109,13 @@ export default function AddNewClient() {
             <div className="px-6 py-4">
               <Select
                 label="Placement Measurements"
-                name="courier"
+                name="placement_measurements"
                 options={clientList}
-                value={formData.client}
+                value={formData.placement_measurements}
                 onChange={handleChange}
                 placeholder="Select Placement Measurements"
                 searchable
-                error={errors.client}
+                error={errors.placement_measurements}
               />
 
               <Textarea
@@ -1054,34 +1136,34 @@ export default function AddNewClient() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
             <Input
               label="Items"
-              name="option_color"
-              placeholder="Enter Options Color"
-              value={formData.option_color}
+              name="freebie_items"
+              placeholder="Enter freebie items"
+              value={formData.freebie_items}
               onChange={handleChange}
-              error={errors.option_color}
+              error={errors.freebie_items}
               type="text"
             />
 
             <Input
               label="Color"
-              name="option_color"
-              placeholder="Enter Options Color"
-              value={formData.option_color}
+              name="freebie_color"
+              placeholder="Enter freebie color"
+              value={formData.freebie_color}
               onChange={handleChange}
-              error={errors.option_color}
+              error={errors.freebie_color}
               type="text"
             />
 
             <div className="col-span-2">
               <Select
                 label="Others"
-                name="courier"
+                name="freebie_others"
                 options={freebiesOthersList}
-                value={formData.client}
+                value={formData.freebie_others}
                 onChange={handleChange}
-                placeholder="Select client"
+                placeholder="Select other freebies"
                 searchable
-                error={errors.client}
+                error={errors.freebie_others}
               />
             </div>
           </div>
@@ -1093,39 +1175,39 @@ export default function AddNewClient() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
             <Input
               label="Deposit %"
-              name="option_color"
-              placeholder="Enter Options Color"
-              value="60%"
+              name="deposit_percentage"
+              placeholder="Enter deposit percentage"
+              value={formData.deposit_percentage}
               onChange={handleChange}
-              error={errors.option_color}
+              error={errors.deposit_percentage}
               type="text"
-              readOnly
             />
 
             <Select
               label="Payment Method"
-              name="courier"
+              name="payment_method"
               options={paymentMethods}
-              value={formData.client}
+              value={formData.payment_method}
               onChange={handleChange}
-              placeholder="Select client"
+              placeholder="Select payment method"
               searchable
-              error={errors.client}
+              error={errors.payment_method}
               required
             />
 
             <div className="col-span-2">
               <Input
                 label="Estimated Total"
-                name="option_color"
-                placeholder="Enter Options Color"
-                value={formData.option_color}
+                name="estimated_total"
+                placeholder="Enter estimated total"
+                value={formData.estimated_total}
                 onChange={handleChange}
-                error={errors.option_color}
+                error={errors.estimated_total}
                 type="text"
               />
             </div>
           </div>
+
           <div className="p-4 lg:px-25">
             <FileUpload
               label="Receipt and Bank Account Details"
@@ -1145,7 +1227,7 @@ export default function AddNewClient() {
           isSubmitting={isSubmitting}
           submitText="Save"
           resetText="Reset"
-          submittingText="Creating Account..."
+          submittingText="Creating Order..."
         />
       </form>
     </AdminLayout>
