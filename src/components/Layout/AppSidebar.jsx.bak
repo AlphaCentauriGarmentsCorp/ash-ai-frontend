@@ -4,7 +4,12 @@ import { ChevronDown } from 'lucide-react'
 import { useSidebar } from '../../context/SidebarContext'
 import { useAuth } from '../../context/AuthContext'
 import { getMenuByRole } from '../../utils/menuConfig'
+<<<<<<< HEAD
+import '../../styles/AppSidebar.css'
+import AshLogo from '../../assets/images/Ash-Ai.png'
+=======
 import './AppSidebar.css'
+>>>>>>> 80dbc93e07df40a9da3937fdf8dc6b9f7b4eff93
 
 export default function AppSidebar() {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered, closeMobileSidebar } = useSidebar()
@@ -109,11 +114,7 @@ export default function AppSidebar() {
                 className={`sidebar-subitem ${isActive(subItem.path) ? 'active' : ''}`}
                 onClick={closeMobileSidebar}
               >
-<<<<<<< HEAD
                 <span className="subitem-bullet">•</span>
-=======
-                <span className="subitem-bullet">â€¢</span>
->>>>>>> 29b1828dee818b9ae799e2f1e0c3b896fbb979c4
                 {subItem.name}
               </Link>
             </li>
@@ -195,6 +196,15 @@ export default function AppSidebar() {
     <>
       {isMobileOpen && <div className="sidebar-overlay" onClick={closeMobileSidebar} />}
       <aside
+<<<<<<< HEAD
+        className={`sidebar expanded ${isMobileOpen ? 'mobile-open' : ''}`}
+        onMouseEnter={() => !isExpanded && setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
+        {/* Logo Section */}
+        <div className="sidebar-user-section" ref={userSectionRef}>
+          <img src={AshLogo} alt="Logo" className="sidebar-logo" />
+=======
         className={`sidebar ${isExpanded || isMobileOpen ? 'expanded' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}
         onMouseEnter={() => !isExpanded && setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -251,6 +261,7 @@ export default function AppSidebar() {
               ))}
             </div>
           )}
+>>>>>>> 80dbc93e07df40a9da3937fdf8dc6b9f7b4eff93
         </div>
 
         {/* Navigation */}
