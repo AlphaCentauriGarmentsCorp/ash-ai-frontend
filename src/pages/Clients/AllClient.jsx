@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Table from "../../components/table/Table";
-import { accountApi } from "../../api/accountApi";
+import { clientApi } from "../../api/clientApi";
 
-const AccountsPage = () => {
+const ClientsPage = () => {
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
@@ -15,47 +15,33 @@ const AccountsPage = () => {
       sortable: true,
     },
     {
-      key: "email",
-      label: "Email",
-      sortable: true,
-    },
-    {
-      key: "domain_role",
-      label: "Role",
-      sortable: true,
+      key: "brands",
+      label: "Brands",
+      sortable: false,
       render: (item) => {
-        let roles = [];
-        if (Array.isArray(item.domain_role)) {
-          roles = item.domain_role.map((role) =>
-            role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-          );
-        } else if (item.domain_role) {
-          roles = [
-            item.domain_role
-              .replace(/_/g, " ")
-              .replace(/\b\w/g, (c) => c.toUpperCase()),
-          ];
-        }
+        const brands = Array.isArray(item.brands)
+          ? item.brands.map((b) => b.name)
+          : [];
 
-        if (roles.length === 0) {
-          return <span className="text-gray-400">No role</span>;
+        if (brands.length === 0) {
+          return <span className="text-gray-400">No brands</span>;
         }
 
         return (
           <span
             className="relative group cursor-pointer"
-            title={roles.join(", ")}
+            title={brands.join(", ")}
           >
-            {roles[0]}
-            {roles.length > 1 && (
-              <span className="text-gray-400 ml-1">+{roles.length - 1}</span>
+            {brands[0]}
+            {brands.length > 1 && (
+              <span className="text-gray-400 ml-1">+{brands.length - 1}</span>
             )}
 
-            <div className="absolute z-100 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 mt-1 whitespace-nowrap">
-              {roles.map((role, index) => (
+            <div className="absolute z-50 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 mt-1 whitespace-nowrap">
+              {brands.map((brand, index) => (
                 <p key={index}>
-                  {role}
-                  {index < roles.length - 1 && " "}
+                  {brand}
+                  {index < brands.length - 1 && ", "}
                 </p>
               ))}
             </div>
@@ -63,11 +49,22 @@ const AccountsPage = () => {
         );
       },
     },
+
+    {
+      key: "email",
+      label: "Email",
+      sortable: false,
+    },
+
     {
       key: "contact_number",
       label: "Contact Number",
+      sortable: false,
+    },
+    {
+      key: "address",
+      label: "Address",
       sortable: true,
-      render: (item) => item.employee_details?.contact_number ?? "N/A",
     },
 
     {
@@ -92,9 +89,9 @@ const AccountsPage = () => {
         let response;
 
         if (perPage === "all") {
-          response = await accountApi.index();
+          response = await clientApi.index();
         } else {
-          response = await accountApi.index({ per_page: perPage });
+          response = await clientApi.index({ per_page: perPage });
         }
 
         const responseData = response.data || response;
@@ -147,19 +144,19 @@ const AccountsPage = () => {
     actions: ["view", "edit", "delete"],
     pageSize: pageSize,
     pageSizeOptions: [20, 50, 100, 500, "All"],
-    emptyMessage: "No accounts found",
-    searchPlaceholder: "Search accounts...",
+    emptyMessage: "No clients found",
+    searchPlaceholder: "Search client...",
     showIndex: true,
   };
 
   return (
     <AdminLayout
       icon="fa-user"
-      pageTitle="All Accounts"
+      pageTitle="All Clients"
       path="/account/employee"
       links={[
         { label: "Home", href: "/" },
-        { label: "Accounts", href: "/admin/accounts" },
+        { label: "Clients", href: "/clients" },
       ]}
     >
       <Table
@@ -169,12 +166,12 @@ const AccountsPage = () => {
         onPageSizeChange={handlePageSizeChange}
         onAction={handleAction}
         isLoading={isLoading}
-        url="/account/employee/new"
-        button="New Account"
-        PageTitle="All Accounts"
+        url="/clients/new"
+        button="New Client"
+        PageTitle="All Clients"
       />
     </AdminLayout>
   );
 };
 
-export default AccountsPage;
+export default ClientsPage;

@@ -18,14 +18,17 @@ export const getMenuByRole = (userType) => {
           {
             name: "Orders",
             icon: "fa-solid fa-file-invoice",
-            path: "/admin/orders",
+            subItems: [
+              { name: "All Orders", path: "/orders" },
+              { name: "Add Order", path: "/orders/new" },
+            ],
           },
           {
             name: "Clients",
             icon: "fa-solid fa-users",
             subItems: [
               { name: "All Clients", path: "/clients" },
-              { name: "Add Clients", path: "/clients/new" },
+              { name: "Add Client", path: "/clients/new" },
             ],
           },
           {

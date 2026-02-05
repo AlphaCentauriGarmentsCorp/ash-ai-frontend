@@ -3,6 +3,7 @@ import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Input from "../../components/form/Input";
 import ImageUpload from "../../components/form/ImageUpload";
 import Textarea from "../../components/form/Textarea";
+import FormActions from "../../components/form/FormActions";
 import { clientInitialState } from "../../constants/formInitialState/clientInitialState";
 import { clientSchema } from "../../validations/clientSchema";
 import { validateForm, hasErrors } from "../../utils/validation";
@@ -90,7 +91,7 @@ export default function AddNewClient() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+   
 
     setIsSubmitting(true);
     setServerError("");
@@ -365,33 +366,16 @@ export default function AddNewClient() {
               resizable={true}
             />
           </div>
-
-          {/* Submit Button */}
-          <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-300">
-            <button
-              type="button"
-              onClick={handleReset}
-              className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
-              disabled={isSubmitting}
-            >
-              Reset
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <i className="fa-solid fa-spinner fa-spin mr-2"></i>
-                  Creating Client...
-                </>
-              ) : (
-                "Create Client"
-              )}
-            </button>
-          </div>
         </div>
+
+        <FormActions
+          onSubmit={handleSubmit}
+          onReset={handleReset}
+          isSubmitting={isSubmitting}
+          submitText="Save"
+          resetText="Reset"
+          submittingText="Creating Account..."
+        />
       </form>
     </AdminLayout>
   );

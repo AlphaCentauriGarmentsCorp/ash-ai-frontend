@@ -6,6 +6,8 @@ import Dashboard from "./pages/Dashboard/Dashboard";
 import AddEmployeeAccount from "./pages/Accounts/AddNewAccount";
 import AllEmployeeAccount from "./pages/Accounts/AllAccount";
 import AddNewClient from "./pages/Clients/AddNewClient";
+import AllClients from "./pages/Clients/AllClient";
+import AddNewOrder from "./pages/Orders/AddNewOrder";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -45,6 +47,14 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/orders/new"
+          element={
+            <ProtectedRoute>
+              <AddNewOrder />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/account/employee"
@@ -59,6 +69,15 @@ function App() {
           element={
             <ProtectedRoute>
               <AddEmployeeAccount />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/clients"
+          element={
+            <ProtectedRoute>
+              <AllClients />
             </ProtectedRoute>
           }
         />

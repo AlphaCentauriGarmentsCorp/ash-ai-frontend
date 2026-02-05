@@ -13,6 +13,7 @@ const FileUpload = ({
   error = "",
   required = false,
   className = "",
+  onFileRemove,
   ...props
 }) => {
   const fileInputRef = useRef(null);
@@ -151,7 +152,6 @@ const FileUpload = ({
               .split(",")
               .map((t) => t.trim())
               .join(", ")}{" "}
-            
           </p>
         </div>
       </div>

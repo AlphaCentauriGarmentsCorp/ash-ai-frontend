@@ -21,18 +21,34 @@ const Select = ({
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [hoveredOption, setHoveredOption] = useState(null);
+  const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
+  const [hoverTimeout, setHoverTimeout] = useState(null);
+
   const selectRef = useRef(null);
   const searchInputRef = useRef(null);
   const dropdownRef = useRef(null);
+  const optionRefs = useRef([]);
 
   const inputId = name || label?.toLowerCase().replace(/\s+/g, "-");
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout);
+      }
+    };
+  }, [hoverTimeout]);
 
   // Filter options based on search term
   const filteredOptions = searchable
     ? options.filter(
         (option) =>
           option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          option.value.toLowerCase().includes(searchTerm.toLowerCase()),
+          option.value.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (option.title &&
+            option.title.toLowerCase().includes(searchTerm.toLowerCase())),
       )
     : options;
 
@@ -43,6 +59,7 @@ const Select = ({
         setIsOpen(false);
         setSearchTerm("");
         setHighlightedIndex(-1);
+        setHoveredOption(null);
       }
     };
 
@@ -83,6 +100,7 @@ const Select = ({
           setIsOpen(false);
           setSearchTerm("");
           setHighlightedIndex(-1);
+          setHoveredOption(null);
           break;
       }
     };
@@ -143,6 +161,7 @@ const Select = ({
       setIsOpen(false);
       setSearchTerm("");
       setHighlightedIndex(-1);
+      setHoveredOption(null);
     }
   };
 
@@ -161,6 +180,47 @@ const Select = ({
     if (!multiple) {
       setIsOpen(false);
     }
+  };
+
+  // Handle mouse enter on option (for tooltip)
+  const handleOptionMouseEnter = (option, index) => {
+    if (option.title) {
+      // Clear any existing timeout
+      if (hoverTimeout) {
+        clearTimeout(hoverTimeout);
+      }
+
+      // Set new timeout for tooltip display (500ms delay)
+      const timeout = setTimeout(() => {
+        setHoveredOption(option);
+
+        // Calculate tooltip position using the option element reference
+        const optionElement = optionRefs.current[index];
+        if (optionElement) {
+          const rect = optionElement.getBoundingClientRect();
+          setTooltipPosition({
+            x: rect.left + rect.width / 2,
+            y: rect.top - 10,
+          });
+        }
+      }, 500);
+
+      setHoverTimeout(timeout);
+    }
+  };
+
+  // Handle mouse leave from option
+  const handleOptionMouseLeave = () => {
+    if (hoverTimeout) {
+      clearTimeout(hoverTimeout);
+      setHoverTimeout(null);
+    }
+    setHoveredOption(null);
+  };
+
+  // Store option element reference
+  const setOptionRef = (element, index) => {
+    optionRefs.current[index] = element;
   };
 
   // Determine container classes
@@ -204,6 +264,7 @@ const Select = ({
               setHighlightedIndex(
                 filteredOptions.findIndex((opt) => isSelected(opt.value)),
               );
+              setHoveredOption(null);
             }
           }
         }}
@@ -215,6 +276,7 @@ const Select = ({
           {/* Selected Value Display */}
           <span
             className={`truncate ${!value || (multiple && value.length === 0) ? "text-gray-400" : "text-gray-800"}`}
+            title={options.find((opt) => opt.value === value)?.title || ""}
           >
             {getSelectedLabel()}
           </span>
@@ -259,6 +321,7 @@ const Select = ({
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                   setHighlightedIndex(-1);
+                  setHoveredOption(null);
                 }}
                 placeholder="Search..."
                 className="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-blue-400"
@@ -273,13 +336,16 @@ const Select = ({
               filteredOptions.map((option, index) => (
                 <div
                   key={option.value}
+                  ref={(el) => setOptionRef(el, index)}
                   className={`select-option px-4 py-2 text-sm cursor-pointer transition-colors duration-150 flex items-center ${
                     isSelected(option.value)
                       ? "bg-blue-50 text-blue-700"
                       : "hover:bg-gray-50 text-gray-700"
                   } ${index === highlightedIndex ? "bg-gray-100" : ""}`}
                   onClick={() => handleOptionSelect(option)}
-                  onMouseEnter={() => setHighlightedIndex(index)}
+                  onMouseEnter={() => handleOptionMouseEnter(option, index)}
+                  onMouseLeave={handleOptionMouseLeave}
+                  title={option.title ? "" : undefined} // Disable default title if we have custom tooltip
                 >
                   {/* Checkbox for multiple select */}
                   {multiple && (
@@ -308,6 +374,11 @@ const Select = ({
                   {!multiple && isSelected(option.value) && (
                     <i className="fa-solid fa-check text-blue-500 ml-2"></i>
                   )}
+
+                  {/* Info icon for options with description */}
+                  {option.title && (
+                    <i className="fa-solid fa-circle-info ml-2 text-gray-400 text-xs"></i>
+                  )}
                 </div>
               ))
             ) : (
@@ -315,6 +386,26 @@ const Select = ({
                 No options found
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Tooltip for option description */}
+      {hoveredOption && (
+        <div
+          className="fixed z-60 px-3 py-2 text-xs bg-gray-900 text-white rounded-md shadow-lg max-w-xs pointer-events-none"
+          style={{
+            left: `${tooltipPosition.x}px`,
+            top: `${tooltipPosition.y}px`,
+            transform: "translateX(-50%) translateY(-100%)",
+          }}
+        >
+          <div className="font-medium mb-1">{hoveredOption.title}</div>
+          {hoveredOption.description && (
+            <div className="text-gray-300">{hoveredOption.description}</div>
+          )}
+          <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 translate-y-1/2">
+            <div className="w-2 h-2 bg-gray-900 rotate-45"></div>
           </div>
         </div>
       )}
@@ -333,8 +424,8 @@ const Select = ({
 // PropTypes for better development experience
 Select.defaultProps = {
   options: [
-    // Example structure:
-    // { value: "option1", label: "Option 1", icon: <Icon /> }
+    // Example structure with title/description:
+    // { value: "option1", label: "Option 1", title: "Option Title", description: "Detailed description here", icon: <Icon /> }
   ],
   placeholder: "Select an option",
   required: false,

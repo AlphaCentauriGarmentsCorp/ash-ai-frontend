@@ -4,6 +4,7 @@ import Input from "../../components/form/Input";
 import Select from "../../components/form/Select";
 import FileUpload from "../../components/form/FileUpload";
 import ImageUpload from "../../components/form/ImageUpload";
+import FormActions from "../../components/form/FormActions";
 
 import { AccountInitialState } from "../../constants/formInitialState/accountInitialState";
 import {
@@ -82,8 +83,6 @@ export default function AddNewAccount() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-
     setIsSubmitting(true);
     setServerError("");
     setSubmitSuccess(false);
@@ -165,7 +164,7 @@ export default function AddNewAccount() {
       pageTitle="Add Accounts"
       path="/account/employee"
       links={[
-        { label: "Home", href: "/admin/dashboard" },
+        { label: "Home", href: "/" },
         { label: "Accounts", href: "/admin/accounts" },
       ]}
     >
@@ -607,32 +606,16 @@ export default function AddNewAccount() {
               error={errors.additionalFiles}
             />
           </div>
-          {/* Submit Button */}
-          <div className="flex justify-end gap-3 mt-8 pt-6 border-t border-gray-300">
-            <button
-              type="button"
-              onClick={handleReset}
-              className="px-6 py-2 border border-gray-300 rounded hover:bg-gray-50 disabled:opacity-50"
-              disabled={isSubmitting}
-            >
-              Reset
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-2 bg-primary text-white rounded hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <i className="fa-solid fa-spinner fa-spin mr-2"></i>
-                  Creating Account...
-                </>
-              ) : (
-                "Create Account"
-              )}
-            </button>
-          </div>
         </div>
+        {/* Submit Button */}
+        <FormActions
+          onSubmit={handleSubmit}
+          onReset={handleReset}
+          isSubmitting={isSubmitting}
+          submitText="Save"
+          resetText="Reset"
+          submittingText="Creating Account..."
+        />
       </form>
     </AdminLayout>
   );
