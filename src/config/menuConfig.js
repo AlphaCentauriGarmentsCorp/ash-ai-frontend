@@ -18,10 +18,7 @@ export const getMenuByRole = (userType) => {
           {
             name: "Orders",
             icon: "fa-solid fa-file-invoice",
-            subItems: [
-              { name: "All Orders", path: "/orders" },
-              { name: "Add Order", path: "/orders/new" },
-            ],
+            subItems: [{ name: "Add Order", path: "/orders/new" }],
           },
           {
             name: "Clients",
