@@ -354,7 +354,7 @@ const Table = ({
       </div>
 
       {/* Table */}
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto rounded-lg border border-gray-300">
         <table className="min-w-full divide-y divide-gray-200">
           <TableHeader
             columns={tableColumns}
