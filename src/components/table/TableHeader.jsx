@@ -2,7 +2,7 @@ import React from "react";
 
 const TableHeader = ({ columns, sortConfig, onSort, sortable }) => {
   return (
-    <thead className="bg-light">
+    <thead className="bg-light ">
       <tr>
         {columns.map((column) => (
           <th

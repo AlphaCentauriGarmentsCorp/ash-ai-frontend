@@ -108,7 +108,7 @@ const TablePagination = ({
   };
 
   return (
-    <div className="flex flex-col md:flex-row justify-between items-center mt-4 pt-4 border-t border-gray-300">
+    <div className="flex flex-col md:flex-row justify-between items-center mt-1 pt-4 ">
       {/* Showing Info */}
       <div className="text-xs text-gray-700 mb-4 md:mb-0">
         {isShowingAll ? (

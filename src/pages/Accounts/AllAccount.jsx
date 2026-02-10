@@ -42,24 +42,24 @@ const AccountsPage = () => {
         }
 
         return (
-          <span
-            className="relative group cursor-pointer"
-            title={roles.join(", ")}
-          >
-            {roles[0]}
-            {roles.length > 1 && (
-              <span className="text-gray-400 ml-1">+{roles.length - 1}</span>
-            )}
+          <div className="relative inline-block group">
+            <span className="cursor-pointer">
+              {roles[0]}
+              {roles.length > 1 && (
+                <span className="text-gray-400 ml-1">+{roles.length - 1}</span>
+              )}
+            </span>
 
-            <div className="absolute z-100 hidden group-hover:block bg-gray-800 text-white text-xs rounded px-2 py-1 mt-1 whitespace-nowrap">
+            {/* Tooltip */}
+            {/* <div className="absolute z-[100] invisible group-hover:visible left-0 -top-3 mt-1 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow-lg min-w-max">
               {roles.map((role, index) => (
                 <p key={index}>
                   {role}
-                  {index < roles.length - 1 && " "}
+                  {index < roles.length - 1 && <br />}
                 </p>
               ))}
-            </div>
-          </span>
+            </div> */}
+          </div>
         );
       },
     },
