@@ -327,29 +327,24 @@ export const apparelTypeList = [
 
 export const patternTypeList = [
   {
-    value: "solid",
-    label: "Solid",
-    title: "Single color pattern",
+    value: "pro_club",
+    label: "Pro Club",
+    title: "Heavyweight fit with a structured and durable feel",
   },
   {
-    value: "striped",
-    label: "Striped",
-    title: "Line pattern",
+    value: "boxy",
+    label: "Boxy Fit",
+    title: "Wide and straight cut with a relaxed silhouette",
   },
   {
-    value: "checkered",
-    label: "Checkered",
-    title: "Square pattern",
+    value: "regular",
+    label: "Regular Fit",
+    title: "Standard fit that offers comfort and everyday wear",
   },
   {
-    value: "printed",
-    label: "Printed",
-    title: "Custom printed design",
-  },
-  {
-    value: "embroidered",
-    label: "Embroidered",
-    title: "Stitched design pattern",
+    value: "loose",
+    label: "Loose Fit",
+    title: "Roomy fit designed for maximum comfort and movement",
   },
 ];
 
@@ -406,75 +401,60 @@ export const printMethodList = [
 
 export const printServiceList = [
   {
-    value: "front_print",
-    label: "Front Print",
-    title: "Print on garment front",
+    value: "In House",
+    label: "In-House Printing",
+    title: "Printing services handled internally by our production team",
   },
   {
-    value: "back_print",
-    label: "Back Print",
-    title: "Print on garment back",
-  },
-  {
-    value: "full_print",
-    label: "Full Print",
-    title: "Print on entire garment",
-  },
-  {
-    value: "sleeve_print",
-    label: "Sleeve Print",
-    title: "Print on sleeves",
-  },
-  {
-    value: "pocket_print",
-    label: "Pocket Print",
-    title: "Print on pocket area",
+    value: "Sub Contract",
+    label: "Subcontracted Printing",
+    title: "Printing services outsourced to a trusted third-party provider",
   },
 ];
 
 export const sizeLabelList = [
   {
-    value: "standard",
-    label: "Standard Sizes",
-    title: "Regular size labels (XS-XXL)",
+    value: "embroidered",
+    label: "Embroidered",
+    title: "Size label stitched directly onto the garment",
   },
   {
-    value: "numeric",
-    label: "Numeric Sizes",
-    title: "Numbered sizes (28-40)",
+    value: "dtf",
+    label: "DTF Print",
+    title: "Direct-to-film printed size label",
   },
   {
-    value: "alpha",
-    label: "Alphabetic Sizes",
-    title: "Letter-based sizes",
+    value: "screen_print",
+    label: "Screen Print",
+    title: "Screen printed size label on fabric",
   },
   {
-    value: "custom",
-    label: "Custom Labels",
-    title: "Custom size labeling",
+    value: "heat_transfer",
+    label: "Heat Transfer",
+    title: "Heat-pressed size label application",
   },
 ];
 
 export const printLabelPlacementList = [
   {
-    value: "neck_tag",
-    label: "Neck Tag",
-    title: "Label on neck area",
+    value: "neck",
+    label: "Neck",
+    title: "Label placed inside the neck area",
   },
   {
-    value: "care_label",
-    label: "Care Label",
-    title: "Washing instructions label",
+    value: "side",
+    label: "Side Seam",
+    title: "Label attached to the side seam",
   },
   {
-    value: "size_tag",
-    label: "Size Tag",
-    title: "Size information label",
+    value: "hem",
+    label: "Hem",
+    title: "Label placed near the bottom hem",
   },
   {
-    value: "hang_tag",
-    label: "Hang Tag",
-    title: "Removable tag",
+    value: "back",
+    label: "Back",
+    title: "Label positioned on the inner back area",
   },
 ];
 
@@ -659,4 +639,72 @@ export const paymentMethods = [
     label: "PayPal",
     title: "PayPal",
   },
+];
+
+export const apparelPlacementMeasurements = [
+  {
+    value: "center_chest",
+    label: "Center Chest",
+    title: "7–9 in below shoulder seam, standard front print",
+  },
+  {
+    value: "left_chest",
+    label: "Left Chest",
+    title: "3–4 in from shoulder seam, small logo placement",
+  },
+  {
+    value: "full_front",
+    label: "Full Front",
+    title: "2–3 in below collar, large front graphic",
+  },
+  {
+    value: "center_back",
+    label: "Center Back",
+    title: "3–4 in below collar, back print placement",
+  },
+  {
+    value: "upper_back",
+    label: "Upper Back",
+    title: "1–2 in below collar seam, small back neck print",
+  },
+  {
+    value: "short_sleeve",
+    label: "Short Sleeve",
+    title: "1–2 in from shoulder seam, sleeve logo placement",
+  },
+  {
+    value: "long_sleeve",
+    label: "Long Sleeve",
+    title: "2–3 in below shoulder seam, vertical sleeve print",
+  },
+  {
+    value: "neck_label",
+    label: "Neck Label",
+    title: "0.5–1 in below collar seam, inside neck label",
+  },
+  {
+    value: "side_seam_label",
+    label: "Side Seam Label",
+    title: "2–4 in above bottom hem, inside side label",
+  },
+  {
+    value: "hem_label",
+    label: "Hem Label",
+    title: "0.5–1 in above hem, bottom label placement",
+  },
+];
+
+export const paymentPlans = [
+  {
+    value: "full_payment",
+    label: "Full Payment",
+    title: "Pay the total amount upfront before production starts",
+  },
+  {
+    value: "downpayment",
+    label: "Down Payment",
+    title:
+      "Partial payment required before production, balance due before release",
+  },
+
 ];

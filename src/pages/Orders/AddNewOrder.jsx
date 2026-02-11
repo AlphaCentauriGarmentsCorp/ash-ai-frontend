@@ -12,8 +12,8 @@ import { orderSchema } from "../../validations/orderSchema";
 import {
   options as optionList,
   defaultSize,
-  brands,
   companyList,
+  brands,
   clientList,
   courierList,
   shippingMethodList,
@@ -30,6 +30,8 @@ import {
   priorityList,
   freebiesOthersList,
   paymentMethods,
+  apparelPlacementMeasurements,
+  paymentPlans,
 } from "../../constants/formOptions/orderOptions";
 
 export default function AddNewOrder() {
@@ -39,8 +41,19 @@ export default function AddNewOrder() {
     return cost * qty;
   };
 
+  const getDefaultDeadline = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 14);
+    return date.toISOString().split("T")[0];
+  };
+
   const [formData, setFormData] = useState({
     ...orderInitialState,
+    deadline: getDefaultDeadline(),
+    brand: brands[0]?.value || "",
+    priority: priorityList[1]?.value || "",
+    deposit_percentage: 60,
+    remaining_balance: 0,
     sizes: defaultSize.map((size) => ({
       id: Date.now() + Math.random(),
       name: size.size,
@@ -61,11 +74,97 @@ export default function AddNewOrder() {
     totalAmount: 0,
     totalCost: 0,
   });
+  const [rawClients, setRawClients] = useState([]);
+  const [clientBrands, setClientBrands] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [clientsLoading, setClientsLoading] = useState(false);
 
-  // Calculate summary whenever sizes change
+  const fetchClients = async () => {
+    try {
+      setClientsLoading(true);
+
+      const response = await orderService.getClients();
+
+      // keep raw data (with brands)
+      setRawClients(response.data);
+      const formattedClients = response.data.map((client) => ({
+        value: client.id,
+        label: client.name,
+      }));
+
+      setClients(formattedClients);
+    } catch (error) {
+      console.error("Failed to fetch clients:", error);
+      setServerError("Failed to load clients.");
+    } finally {
+      setClientsLoading(false);
+    }
+  };
+
   useEffect(() => {
     calculateSummary();
+    fetchClients();
   }, [formData.sizes]);
+
+  useEffect(() => {
+    if (!formData.client) {
+      setClientBrands([]);
+      setFormData((prev) => ({
+        ...prev,
+        company: "",
+        method: "",
+        courier: "",
+      }));
+      return;
+    }
+
+    const selectedClient = rawClients.find(
+      (client) => client.id === formData.client,
+    );
+
+    if (!selectedClient) return;
+
+    const addressParts = selectedClient.address
+      ? selectedClient.address.split(",").map((part) => part.trim())
+      : [];
+
+    const street = addressParts[0] || "";
+    const barangay = addressParts[1] || "";
+    const city = addressParts[2] || "";
+    const province = addressParts[3] || "";
+    const postal = addressParts[4] || "";
+
+    const formattedBrands =
+      selectedClient.brands?.map((brand) => ({
+        value: brand.id,
+        label: brand.name,
+      })) || [];
+
+    setClientBrands(formattedBrands);
+
+    setFormData((prev) => ({
+      ...prev,
+      company: formattedBrands[0]?.value || "",
+
+      receiver_name: selectedClient.name || "",
+      contact_number: selectedClient.contact_number || "",
+
+      // ✅ SAFE MATCHING
+      method:
+        shippingMethodList.find((m) => m.value === selectedClient.method)
+          ?.value || "",
+
+      courier:
+        courierList.find((c) => c.value === selectedClient.courier)?.value ||
+        "",
+
+      street_address: street,
+      barangay_address: barangay,
+      city_address: city,
+      province_address: province,
+      postal_address: postal,
+    }));
+  }, [formData.client, rawClients]);
 
   const calculateSummary = () => {
     let totalQuantity = 0;
@@ -90,6 +189,9 @@ export default function AddNewOrder() {
     });
 
     const averageUnitPrice = sizeCount > 0 ? unitPriceSum / sizeCount : 0;
+    const depositPercentage = 60; // default 60%
+    const depositAmount = (totalAmount * depositPercentage) / 100;
+    const remainingBalance = totalAmount - depositAmount;
 
     setSummary({
       totalQuantity,
@@ -97,6 +199,13 @@ export default function AddNewOrder() {
       totalAmount,
       totalCost,
     });
+
+    setFormData((prev) => ({
+      ...prev,
+      deposit_percentage: depositPercentage,
+      remaining_balance: remainingBalance.toFixed(2),
+      estimated_total: totalAmount.toFixed(2),
+    }));
   };
 
   const validateField = (name, value) => {
@@ -148,6 +257,56 @@ export default function AddNewOrder() {
     const { name, value, type, checked } = e.target;
     const fieldValue = type === "checkbox" ? checked : value;
     updateField(name, fieldValue);
+
+    if (name === "same_fabric_color") {
+      setFormData((prev) => {
+        if (fieldValue) {
+          // Checkbox checked: set all colors to match fabric_color
+          return {
+            ...prev,
+            same_fabric_color: true,
+            thread_color: prev.fabric_color,
+            ribbing_color: prev.fabric_color,
+          };
+        } else {
+          // Checkbox unchecked: just update checkbox
+          return {
+            ...prev,
+            same_fabric_color: false,
+          };
+        }
+      });
+      return;
+    }
+
+    // If fabric_color changes and checkbox is checked, propagate to other colors
+    if (name === "fabric_color") {
+      setFormData((prev) => ({
+        ...prev,
+        fabric_color: value,
+        ...(prev.same_fabric_color
+          ? { thread_color: value, ribbing_color: value }
+          : {}),
+      }));
+      return;
+    }
+
+    // Default behavior for other fields
+    setFormData((prev) => ({
+      ...prev,
+      [name]: fieldValue,
+    }));
+
+    const error = validateField(name, fieldValue);
+    if (error) {
+      setErrors((prev) => ({ ...prev, [name]: error }));
+    } else if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+
+    if (serverError) {
+      setServerError("");
+    }
   };
 
   const updateField = (name, value) => {
@@ -229,7 +388,7 @@ export default function AddNewOrder() {
     );
     const optionName = selectedOption ? selectedOption.label : formData.options;
     const newOption = {
-      id: Date.now(), 
+      id: Date.now(),
       name: optionName,
       color: colorToUse,
       colorValue: colorToUse,
@@ -245,7 +404,7 @@ export default function AddNewOrder() {
 
     setErrors((prev) => {
       const newErrors = { ...prev };
-      delete newErrors.selectedOptions; 
+      delete newErrors.selectedOptions;
       return newErrors;
     });
   };
@@ -276,7 +435,6 @@ export default function AddNewOrder() {
     }));
   };
 
-  // Remove a size
   const removeSize = (id) => {
     // Don't allow removal if only one size left
     if (formData.sizes.length <= 1) {
@@ -475,7 +633,7 @@ export default function AddNewOrder() {
             <Select
               label="Client"
               name="client"
-              options={clientList}
+              options={clients}
               value={formData.client}
               onChange={handleChange}
               placeholder="Select client"
@@ -493,17 +651,23 @@ export default function AddNewOrder() {
               type="date"
               required
             />
-
             <Select
               label="Clothing / Company"
               name="company"
-              options={companyList}
+              options={clientBrands}
               value={formData.company}
               onChange={handleChange}
-              placeholder="Select company"
+              placeholder={
+                !formData.client
+                  ? "Select client first"
+                  : clientBrands.length === 0
+                    ? "No brands available"
+                    : "Select brand"
+              }
               searchable
-              error={errors.company}
+              error={errors.brand}
               required
+              disabled={!formData.client}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -552,13 +716,13 @@ export default function AddNewOrder() {
 
             <Select
               label="Shipping Method"
-              name="shipping_method"
+              name="method"
               options={shippingMethodList}
-              value={formData.shipping_method}
+              value={formData.method}
               onChange={handleChange}
               placeholder="Select shipping method"
               searchable
-              error={errors.shipping_method}
+              error={errors.method}
               required
             />
 
@@ -1106,11 +1270,24 @@ export default function AddNewOrder() {
               />
             </div>
 
+            <div className="py-4">
+              <FileUpload
+                label="Size Label"
+                name="size_label_files"
+                value={formData.size_label_files}
+                onChange={handleFileChange}
+                acceptedTypes="image/*,.ai,.psd,.pdf,.png,.jpg,.jpeg"
+                maxSize={25 * 1024 * 1024}
+                multiple={true}
+                error={errors.size_label_files}
+              />
+            </div>
+
             <div className="px-6 py-4">
               <Select
                 label="Placement Measurements"
                 name="placement_measurements"
-                options={clientList}
+                options={apparelPlacementMeasurements}
                 value={formData.placement_measurements}
                 onChange={handleChange}
                 placeholder="Select Placement Measurements"
@@ -1168,19 +1345,34 @@ export default function AddNewOrder() {
             </div>
           </div>
 
+          <div className="py-4 lg:px-25">
+            <FileUpload
+              label="Freebies Files"
+              name="freebies_files"
+              value={formData.freebies_files}
+              onChange={handleFileChange}
+              acceptedTypes="image/*,.ai,.psd,.pdf,.png,.jpg,.jpeg"
+              maxSize={25 * 1024 * 1024}
+              multiple={true}
+              error={errors.freebies_files}
+            />
+          </div>
+
           <h1 className="font-semibold text-xl border-b text-primary mt-5 border-gray-300 pb-1">
             Pricing & Payment Control
           </h1>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-            <Input
-              label="Deposit %"
-              name="deposit_percentage"
-              placeholder="Enter deposit percentage"
-              value={formData.deposit_percentage}
+            <Select
+              label="Payment Plan"
+              name="payment_plan"
+              options={paymentPlans}
+              value={formData.payment_plan}
               onChange={handleChange}
-              error={errors.deposit_percentage}
-              type="text"
+              placeholder="Select payment method"
+              searchable
+              error={errors.payment_plan}
+              required
             />
 
             <Select
@@ -1194,6 +1386,30 @@ export default function AddNewOrder() {
               error={errors.payment_method}
               required
             />
+
+            {formData.payment_plan === "downpayment" && (
+              <>
+                <Input
+                  label="Deposit %"
+                  name="deposit_percentage"
+                  placeholder="Enter deposit percentage"
+                  value={formData.deposit_percentage}
+                  onChange={handleChange}
+                  error={errors.deposit_percentage}
+                  type="text"
+                />
+
+                <Input
+                  label="Remaining Balance"
+                  name="remaining_balance"
+                  placeholder="Enter remaining balance"
+                  value={formData.remaining_balance}
+                  onChange={handleChange}
+                  error={errors.remaining_balance}
+                  type="text"
+                />
+              </>
+            )}
 
             <div className="col-span-2">
               <Input

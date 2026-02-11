@@ -4,10 +4,15 @@ import Input from "../../components/form/Input";
 import ImageUpload from "../../components/form/ImageUpload";
 import Textarea from "../../components/form/Textarea";
 import FormActions from "../../components/form/FormActions";
+import Select from "../../components/form/Select";
 import { clientInitialState } from "../../constants/formInitialState/clientInitialState";
 import { clientSchema } from "../../validations/clientSchema";
 import { validateForm, hasErrors } from "../../utils/validation";
 import { clientService } from "../../services/clientService";
+import {
+  courierList,
+  shippingMethodList,
+} from "../../constants/formOptions/orderOptions";
 
 export default function AddNewClient() {
   const [formData, setFormData] = useState({
@@ -91,8 +96,6 @@ export default function AddNewClient() {
   };
 
   const handleSubmit = async (e) => {
-   
-
     setIsSubmitting(true);
     setServerError("");
     setSubmitSuccess(false);
@@ -121,12 +124,6 @@ export default function AddNewClient() {
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      if (err.response) {
-        console.log("Status:", err.response.status);
-        console.log("Data:", err.response.data);
-      } else {
-        console.log("Error message:", err.message);
-      }
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setIsSubmitting(false);
@@ -310,15 +307,52 @@ export default function AddNewClient() {
             Address
           </h1>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-7 px-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-x-7 px-4">
+            <div className="col-span-2">
+              <Select
+                label="Preferred Courier"
+                name="courier"
+                options={courierList}
+                value={formData.courier}
+                onChange={handleChange}
+                placeholder="Select courier"
+                searchable
+                error={errors.courier}
+                required
+              />
+            </div>
+            <div className="col-span-2">
+              <Select
+                label="Shipping Method"
+                name="method"
+                options={shippingMethodList}
+                value={formData.method}
+                onChange={handleChange}
+                placeholder="Select shipping method"
+                searchable
+                error={errors.method}
+                required
+              />
+            </div>
+
+            <div className="col-span-4">
+              <Input
+                label="Street Address"
+                name="street_address"
+                placeholder="Enter Street Address"
+                value={formData.street_address}
+                onChange={handleChange}
+                error={errors.street_address}
+                type="text"
+              />
+            </div>
             <Input
-              label="Street Address"
-              name="street_address"
-              placeholder="Enter Street Address"
-              value={formData.street_address}
+              label="Barangay"
+              name="barangay"
+              placeholder="Enter barangay"
+              value={formData.barangay}
               onChange={handleChange}
-              required
-              error={errors.street_address}
+              error={errors.barangay}
               type="text"
             />
 
@@ -328,7 +362,6 @@ export default function AddNewClient() {
               placeholder="Enter city"
               value={formData.city}
               onChange={handleChange}
-              required
               error={errors.city}
               type="text"
             />
@@ -339,7 +372,6 @@ export default function AddNewClient() {
               placeholder="Enter province"
               value={formData.province}
               onChange={handleChange}
-              required
               error={errors.province}
               type="text"
             />
@@ -350,7 +382,6 @@ export default function AddNewClient() {
               placeholder="Enter postal code"
               value={formData.postal_code}
               onChange={handleChange}
-              required
               error={errors.postal_code}
               type="text"
             />
