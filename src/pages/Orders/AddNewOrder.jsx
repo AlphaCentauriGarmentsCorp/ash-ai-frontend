@@ -379,7 +379,7 @@ export default function AddNewOrder() {
     }
 
     const colorToUse =
-      formData.livesOnSite && formData.selectedOptions.length > 0
+      formData.same_option_color && formData.selectedOptions.length > 0
         ? formData.selectedOptions[0].color
         : formData.option_color;
 
@@ -392,14 +392,14 @@ export default function AddNewOrder() {
       name: optionName,
       color: colorToUse,
       colorValue: colorToUse,
-      applyToAll: formData.livesOnSite,
+      applyToAll: formData.same_option_color,
     };
 
     setFormData((prev) => ({
       ...prev,
       selectedOptions: [...prev.selectedOptions, newOption],
       options: "",
-      option_color: formData.livesOnSite ? prev.option_color : "",
+      option_color: formData.same_option_color ? prev.option_color : "",
     }));
 
     setErrors((prev) => {
@@ -629,7 +629,7 @@ export default function AddNewOrder() {
             Order Information
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4">
             <Select
               label="Client"
               name="client"
@@ -670,7 +670,7 @@ export default function AddNewOrder() {
               disabled={!formData.client}
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select
                 label="Brand"
                 name="brand"
@@ -701,7 +701,7 @@ export default function AddNewOrder() {
             Courier
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4">
             <Select
               label="Preferred Courier"
               name="courier"
@@ -749,8 +749,8 @@ export default function AddNewOrder() {
             />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 px-4">
-            <div className="col-span-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 px-4">
+            <div className="col-span-1 sm:col-span-2 md:col-span-4">
               <Input
                 label="Street"
                 name="street_address"
@@ -812,8 +812,8 @@ export default function AddNewOrder() {
             Product Details
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4">
+            <div className="col-span-1 sm:col-span-2">
               <Input
                 label="Design Name"
                 name="design_name"
@@ -862,7 +862,7 @@ export default function AddNewOrder() {
               required
             />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Select
                 label="Print Method"
                 name="print_method"
@@ -917,8 +917,8 @@ export default function AddNewOrder() {
             Fabric Details
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
-            <div className="col-span-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4">
+            <div className="col-span-1 sm:col-span-2">
               <Select
                 label="Fabric Type"
                 name="fabric_type"
@@ -1003,7 +1003,7 @@ export default function AddNewOrder() {
             Add Options
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4">
             <Select
               label="Options"
               name="options"
@@ -1031,14 +1031,14 @@ export default function AddNewOrder() {
               <div className="flex justify-center items-center gap-3">
                 <input
                   type="checkbox"
-                  name="livesOnSite"
-                  id="livesOnSite"
-                  checked={formData.livesOnSite}
+                  name="same_option_color"
+                  id="same_option_color"
+                  checked={formData.same_option_color}
                   onChange={handleChange}
                   className="border-gray-300 border"
                 />
                 <label
-                  htmlFor="livesOnSite"
+                  htmlFor="same_option_color"
                   className="text-primary/55 text-xs"
                 >
                   Keep the same color for all options
@@ -1048,7 +1048,7 @@ export default function AddNewOrder() {
 
             {/* Display added options */}
             {formData.selectedOptions.length > 0 && (
-              <div className="col-span-2 mt-4">
+              <div className="col-span-1 sm:col-span-2 mt-4">
                 <h3 className="font-medium text-primary mb-2">
                   Added Options ({formData.selectedOptions.length}):
                 </h3>
@@ -1090,7 +1090,7 @@ export default function AddNewOrder() {
               </div>
             )}
 
-            <div className="col-span-2">
+            <div className="col-span-1 sm:col-span-2">
               <button
                 type="button"
                 onClick={addOption}
@@ -1111,7 +1111,7 @@ export default function AddNewOrder() {
                 key={size.id}
                 className="bg-white px-10 my-7 py-5 border border-gray-200 rounded"
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                   <Input
                     label="Size"
                     name={`Size-${size.name}`}
@@ -1201,7 +1201,7 @@ export default function AddNewOrder() {
 
           <div className="p-4">
             <div className="bg-white px-10 my-7 py-5 border border-gray-200 rounded">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Input
                   label="Total Quantity"
                   name="totalQuantity"
@@ -1243,7 +1243,7 @@ export default function AddNewOrder() {
             Design Files & Mockups
           </h1>
 
-          <div className="p-4 lg:px-25">
+          <div className="px-2 lg:px-25">
             <div className="py-4">
               <FileUpload
                 label="Design Files"
@@ -1310,7 +1310,7 @@ export default function AddNewOrder() {
             Freebies
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          <div className="grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4">
             <Input
               label="Items"
               name="freebie_items"
@@ -1362,7 +1362,7 @@ export default function AddNewOrder() {
             Pricing & Payment Control
           </h1>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+          <div className="grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-2 gap-4 p-4">
             <Select
               label="Payment Plan"
               name="payment_plan"
