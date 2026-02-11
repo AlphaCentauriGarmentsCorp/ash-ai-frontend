@@ -1,16 +1,17 @@
 import { options } from "../formOptions/orderOptions";
+import { defaultSize } from "../formOptions/orderOptions";
 
 export const orderInitialState = {
   // Order Information
   client: "",
-  deadline: "",
+  deadline: "", // will be set dynamically to default +14 days in the component
   company: "",
   brand: "",
   priority: "",
 
   // Courier Information
   courier: "",
-  shipping_method: "",
+  method: "", // matches your formData name
   receiver_name: "",
   contact_number: "",
   street_address: "",
@@ -37,18 +38,26 @@ export const orderInitialState = {
   thread_color: "",
   ribbing_color: "",
 
-  // Options (for the Add Options section)
+  // Options
   options: "",
   option_color: "",
   livesOnSite: false,
   selectedOptions: [],
 
-  // Sizes (will be populated dynamically)
-  sizes: [],
+  // Sizes (populated dynamically)
+  sizes: defaultSize.map((size) => ({
+    id: Date.now() + Math.random(),
+    name: size.size,
+    costPrice: size.cost_price,
+    quantity: 0,
+    unitPrice: 0,
+    totalPrice: 0,
+  })),
 
   // Design Files & Mockups
   design_files: [],
   design_mockup: [],
+  size_label_files: [],
   placement_measurements: "",
   notes: "",
 
@@ -56,14 +65,16 @@ export const orderInitialState = {
   freebie_items: "",
   freebie_color: "",
   freebie_others: "",
+  freebies_files: [],
 
   // Pricing & Payment Control
-  deposit_percentage: "",
+  deposit_percentage: 60, 
+  remaining_balance: 0,
+  payment_plan: "", 
   payment_method: "",
-  estimated_total: "",
+  estimated_total: 0,
   payments: [],
 
-  // Summary (will be calculated)
   summary: {
     totalQuantity: 0,
     averageUnitPrice: 0,

@@ -38,22 +38,27 @@ export const clientSchema = {
   },
 
   street_address: {
-    required: true,
+    required: false,
     message: "street address is required.",
   },
 
+  barangay: {
+    required: false,
+    message: "barangay address is required.",
+  },
+
   city: {
-    required: true,
+    required: false,
     message: "City address is required.",
   },
 
   province: {
-    required: true,
+    required: false,
     message: "Province address is required.",
   },
 
   postal_code: {
-    required: true,
+    required: false,
     pattern: /^[0-9]{4}$/,
     message: "Postal code is required.",
     invalidMessage: "Postal code must be 4 digits.",

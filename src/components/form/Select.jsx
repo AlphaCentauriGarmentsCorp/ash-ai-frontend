@@ -41,15 +41,16 @@ const Select = ({
     };
   }, [hoverTimeout]);
 
-  // Filter options based on search term
   const filteredOptions = searchable
-    ? options.filter(
-        (option) =>
-          option.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          option.value.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (option.title &&
-            option.title.toLowerCase().includes(searchTerm.toLowerCase())),
-      )
+    ? options.filter((option) => {
+        const search = searchTerm.toLowerCase();
+
+        return (
+          String(option.label).toLowerCase().includes(search) ||
+          String(option.value).toLowerCase().includes(search) ||
+          (option.title && String(option.title).toLowerCase().includes(search))
+        );
+      })
     : options;
 
   // Handle click outside to close dropdown
@@ -229,7 +230,7 @@ const Select = ({
       "text-sm mt-3 border rounded py-2 px-4 w-full transition-colors duration-200 cursor-pointer flex items-center justify-between";
 
     if (disabled) {
-      classes += " bg-gray-100 text-gray-500 cursor-not-allowed";
+      classes += " bg-light2 border-gray-300 text-gray-500 cursor-not-allowed";
     } else if (isOpen) {
       classes += " bg-white border-blue-500 ring-1 ring-primary/20";
     } else if (error) {

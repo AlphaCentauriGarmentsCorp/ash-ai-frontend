@@ -28,7 +28,7 @@ const TableBody = ({
         <tr>
           <td
             colSpan={columns.length + 1}
-            className="px-6 py-8 text-center text-gray-500"
+            className="px-6 py-8 text-center text-gray-500  "
           >
             {emptyMessage}
           </td>
@@ -61,7 +61,7 @@ const TableBody = ({
           {columns.map((column) => (
             <td
               key={`${item.id}-${column.key}`}
-              className={`px-6 py-2 whitespace-nowrap ${
+              className={`px-6 py-2 text-xs text-primary wrap-break-word ${
                 column.className || "text-xs text-primary"
               }`}
             >
