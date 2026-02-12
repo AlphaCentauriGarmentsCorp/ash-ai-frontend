@@ -3,7 +3,7 @@ import api from "./axios";
 export const orderApi = {
   create: async (payload) => {
     console.log(payload);
-    const { data } = await api.post("/v2/order", payload, {
+    const { data } = await api.post("/order", payload, {
       headers: { "Content-Type": "multipart/form-data" },
     });
     return data;
@@ -11,7 +11,7 @@ export const orderApi = {
 
   index: async (params = {}) => {
     try {
-      const response = await api.get("/v2/clients", { params });
+      const response = await api.get("/clients", { params });
       return response.data;
     } catch (error) {
       throw error;
