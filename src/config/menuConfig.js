@@ -85,6 +85,18 @@ export const getMenuByRole = (userType) => {
               { name: "Job Orders", path: "/admin/job-orders" },
             ],
           },
+          {
+            name: "Drop Down Settings",
+            icon: "fa-solid fa-cog",
+            subItems: [
+              { name: "Pattern Type", path: "/admin/settings/pattern-type" },
+              { name: "Apparel Type", path: "/admin/settings/apparel-type" },
+              { name: "Service Type", path: "/admin/settings/service-type" },
+              { name: "Print Method", path: "/admin/settings/print-method" },
+              { name: "Size Label", path: "/admin/settings/size-label" },
+              { name: "Print Label Placements", path: "/admin/settings/print-label-placements" },
+            ],
+          },
         ],
       },
     ],
