@@ -10,6 +10,8 @@ import AllClients from "./pages/Clients/AllClient";
 import AddNewOrder from "./pages/Orders/AddNewOrder";
 import PatternType from "./pages/drop down settings/Pattern type/Pattern Type";
 import AddPatternType from "./pages/drop down settings/Pattern type/AddPatternType";
+import ApparelType from "./pages/drop down settings/Apparel type/Apparel Type";
+import AddApparelType from "./pages/drop down settings/Apparel type/AddApparelType";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -107,6 +109,24 @@ function App() {
           element={
             <ProtectedRoute>
               <AddPatternType />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/apparel-type"
+          element={
+            <ProtectedRoute>
+              <ApparelType />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/apparel-type/new"
+          element={
+            <ProtectedRoute>
+              <AddApparelType />
             </ProtectedRoute>
           }
         />
