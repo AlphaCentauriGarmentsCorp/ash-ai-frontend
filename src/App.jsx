@@ -12,6 +12,8 @@ import PatternType from "./pages/drop down settings/Pattern type/Pattern Type";
 import AddPatternType from "./pages/drop down settings/Pattern type/AddPatternType";
 import ApparelType from "./pages/drop down settings/Apparel type/Apparel Type";
 import AddApparelType from "./pages/drop down settings/Apparel type/AddApparelType";
+import ServiceType from "./pages/drop down settings/Service type/Service Type";
+import AddServiceType from "./pages/drop down settings/Service type/AddServiceType";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -127,6 +129,24 @@ function App() {
           element={
             <ProtectedRoute>
               <AddApparelType />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/service-type"
+          element={
+            <ProtectedRoute>
+              <ServiceType />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/service-type/new"
+          element={
+            <ProtectedRoute>
+              <AddServiceType />
             </ProtectedRoute>
           }
         />
