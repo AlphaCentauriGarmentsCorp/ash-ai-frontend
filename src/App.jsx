@@ -8,6 +8,8 @@ import AllEmployeeAccount from "./pages/Accounts/AllAccount";
 import AddNewClient from "./pages/Clients/AddNewClient";
 import AllClients from "./pages/Clients/AllClient";
 import AddNewOrder from "./pages/Orders/AddNewOrder";
+import PatternType from "./pages/drop down settings/Pattern type/Pattern Type";
+import AddPatternType from "./pages/drop down settings/Pattern type/AddPatternType";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -87,6 +89,24 @@ function App() {
           element={
             <ProtectedRoute>
               <AddNewClient />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/pattern-type"
+          element={
+            <ProtectedRoute>
+              <PatternType />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/pattern-type/new"
+          element={
+            <ProtectedRoute>
+              <AddPatternType />
             </ProtectedRoute>
           }
         />
