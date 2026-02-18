@@ -17,4 +17,13 @@ export const orderApi = {
       throw error;
     }
   },
+
+  getOrder: async (po_code) => {
+    try {
+      const response = await api.get(`/orders/details/${po_code}`);
+      return response.data;
+    } catch (error) {
+      throw error.response?.data || error.message;
+    }
+  },
 };

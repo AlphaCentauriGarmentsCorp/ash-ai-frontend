@@ -9,6 +9,7 @@ import AddNewClient from "./pages/Clients/AddNewClient";
 import AllClients from "./pages/Clients/AllClient";
 import AddNewOrder from "./pages/Orders/AddNewOrder";
 import AllOrders from "./pages/Orders/AllOrders";
+import OrderDetails from "./pages/Orders/OrderDetails";
 import PatternType from "./pages/DropDownSettings/PatternType/PatternType";
 import AddPatternType from "./pages/DropDownSettings/PatternType/AddPatternType";
 import ApparelType from "./pages/DropDownSettings/ApparelType/ApparelType";
@@ -74,6 +75,15 @@ function App() {
           element={
             <ProtectedRoute>
               <AddNewOrder />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/order/:po_code"
+          element={
+            <ProtectedRoute>
+              <OrderDetails />
             </ProtectedRoute>
           }
         />
