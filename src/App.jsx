@@ -18,6 +18,8 @@ import PrintMethod from "./pages/drop down settings/Print method/PrintMethod";
 import AddPrintMethod from "./pages/drop down settings/Print method/AddPrintMethod";
 import SizeLabel from "./pages/drop down settings/Size label/SizeLabel";
 import AddSizeLabel from "./pages/drop down settings/Size label/AddSizeLabel";
+import PrintLabelPlacement from "./pages/drop down settings/Print label placements/PrintLabelPlacement";
+import AddPrintLabelPlacement from "./pages/drop down settings/Print label placements/AddPrintLabelPlacement";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -187,6 +189,24 @@ function App() {
           element={
             <ProtectedRoute>
               <AddSizeLabel />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/print-label-placements"
+          element={
+            <ProtectedRoute>
+              <PrintLabelPlacement />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/print-label-placements/new"
+          element={
+            <ProtectedRoute>
+              <AddPrintLabelPlacement />
             </ProtectedRoute>
           }
         />
