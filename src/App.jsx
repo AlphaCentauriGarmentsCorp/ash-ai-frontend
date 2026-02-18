@@ -12,8 +12,9 @@ import PatternType from "./pages/drop down settings/Pattern type/Pattern Type";
 import AddPatternType from "./pages/drop down settings/Pattern type/AddPatternType";
 import ApparelType from "./pages/drop down settings/Apparel type/Apparel Type";
 import AddApparelType from "./pages/drop down settings/Apparel type/AddApparelType";
-import ServiceType from "./pages/drop down settings/Service type/Service Type";
+import ServiceTypeList from "./pages/drop down settings/Service type/Service Type";
 import AddServiceType from "./pages/drop down settings/Service type/AddServiceType";
+import PrintMethod from "./pages/drop down settings/Print method/PrintMethod";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -137,7 +138,7 @@ function App() {
           path="/admin/settings/service-type"
           element={
             <ProtectedRoute>
-              <ServiceType />
+              <ServiceTypeList />
             </ProtectedRoute>
           }
         />
@@ -147,6 +148,15 @@ function App() {
           element={
             <ProtectedRoute>
               <AddServiceType />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/print-method"
+          element={
+            <ProtectedRoute>
+              <PrintMethod />
             </ProtectedRoute>
           }
         />
