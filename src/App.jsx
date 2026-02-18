@@ -16,6 +16,8 @@ import ServiceTypeList from "./pages/drop down settings/Service type/Service Typ
 import AddServiceType from "./pages/drop down settings/Service type/AddServiceType";
 import PrintMethod from "./pages/drop down settings/Print method/PrintMethod";
 import AddPrintMethod from "./pages/drop down settings/Print method/AddPrintMethod";
+import SizeLabel from "./pages/drop down settings/Size label/SizeLabel";
+import AddSizeLabel from "./pages/drop down settings/Size label/AddSizeLabel";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -167,6 +169,24 @@ function App() {
           element={
             <ProtectedRoute>
               <AddPrintMethod />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/size-label"
+          element={
+            <ProtectedRoute>
+              <SizeLabel />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/size-label/new"
+          element={
+            <ProtectedRoute>
+              <AddSizeLabel />
             </ProtectedRoute>
           }
         />
