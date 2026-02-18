@@ -15,6 +15,7 @@ import AddApparelType from "./pages/drop down settings/Apparel type/AddApparelTy
 import ServiceTypeList from "./pages/drop down settings/Service type/Service Type";
 import AddServiceType from "./pages/drop down settings/Service type/AddServiceType";
 import PrintMethod from "./pages/drop down settings/Print method/PrintMethod";
+import AddPrintMethod from "./pages/drop down settings/Print method/AddPrintMethod";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -157,6 +158,15 @@ function App() {
           element={
             <ProtectedRoute>
               <PrintMethod />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/print-method/new"
+          element={
+            <ProtectedRoute>
+              <AddPrintMethod />
             </ProtectedRoute>
           }
         />
