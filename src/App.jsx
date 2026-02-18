@@ -8,13 +8,18 @@ import AllEmployeeAccount from "./pages/Accounts/AllAccount";
 import AddNewClient from "./pages/Clients/AddNewClient";
 import AllClients from "./pages/Clients/AllClient";
 import AddNewOrder from "./pages/Orders/AddNewOrder";
-import AllOrders from "./pages/Orders/AllOrders";
-import PatternType from "./pages/drop down settings/Pattern type/Pattern Type";
-import AddPatternType from "./pages/drop down settings/Pattern type/AddPatternType";
-import ApparelType from "./pages/drop down settings/Apparel type/Apparel Type";
-import AddApparelType from "./pages/drop down settings/Apparel type/AddApparelType";
-import ServiceType from "./pages/drop down settings/Service type/Service Type";
-import AddServiceType from "./pages/drop down settings/Service type/AddServiceType";
+import PatternType from "./pages/DropDownSettings/PatternType/PatternType";
+import AddPatternType from "./pages/DropDownSettings/PatternType/AddPatternType";
+import ApparelType from "./pages/DropDownSettings/ApparelType/ApparelType";
+import AddApparelType from "./pages/DropDownSettings/ApparelType/AddApparelType";
+import ServiceTypeList from "./pages/DropDownSettings/ServiceType/ServiceType";
+import AddServiceType from "./pages/DropDownSettings/ServiceType/AddServiceType";
+import PrintMethod from "./pages/DropDownSettings/PrintMethod/PrintMethod";
+import AddPrintMethod from "./pages/DropDownSettings/PrintMethod/AddPrintMethod";
+import SizeLabel from "./pages/DropDownSettings/SizeLabel/SizeLabel";
+import AddSizeLabel from "./pages/DropDownSettings/SizeLabel/AddSizeLabel";
+import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/PrintLabelPlacement";
+import AddPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/AddPrintLabelPlacement";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -147,7 +152,7 @@ function App() {
           path="/admin/settings/service-type"
           element={
             <ProtectedRoute>
-              <ServiceType />
+              <ServiceTypeList />
             </ProtectedRoute>
           }
         />
@@ -157,6 +162,60 @@ function App() {
           element={
             <ProtectedRoute>
               <AddServiceType />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/print-method"
+          element={
+            <ProtectedRoute>
+              <PrintMethod />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/print-method/new"
+          element={
+            <ProtectedRoute>
+              <AddPrintMethod />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/size-label"
+          element={
+            <ProtectedRoute>
+              <SizeLabel />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/size-label/new"
+          element={
+            <ProtectedRoute>
+              <AddSizeLabel />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/print-label-placements"
+          element={
+            <ProtectedRoute>
+              <PrintLabelPlacement />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/print-label-placements/new"
+          element={
+            <ProtectedRoute>
+              <AddPrintLabelPlacement />
             </ProtectedRoute>
           }
         />
