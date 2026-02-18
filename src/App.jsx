@@ -8,6 +8,7 @@ import AllEmployeeAccount from "./pages/Accounts/AllAccount";
 import AddNewClient from "./pages/Clients/AddNewClient";
 import AllClients from "./pages/Clients/AllClient";
 import AddNewOrder from "./pages/Orders/AddNewOrder";
+import AllOrders from "./pages/Orders/AllOrders";
 import PatternType from "./pages/DropDownSettings/PatternType/PatternType";
 import AddPatternType from "./pages/DropDownSettings/PatternType/AddPatternType";
 import ApparelType from "./pages/DropDownSettings/ApparelType/ApparelType";
