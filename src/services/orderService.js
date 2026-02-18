@@ -4,8 +4,7 @@ import { orderSchema } from "../validations/orderSchema";
 import { validateForm, hasErrors } from "../utils/validation";
 
 export const orderService = {
-  createClient: async (formData) => {
-    console.log("FormData to submit:", formData);
+  createOrder: async (formData) => {
     const errors = validateForm(formData, orderSchema);
 
     if (hasErrors(errors)) {

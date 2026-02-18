@@ -31,7 +31,7 @@ export const orderSchema = {
     message: "Preferred courier is required.",
   },
 
-  shipping_method: {
+  method: {
     required: true,
     message: "Shipping method is required.",
   },
@@ -49,27 +49,27 @@ export const orderSchema = {
   },
 
   street_address: {
-    required: true,
+    required: false,
     message: "Street address is required.",
   },
 
   province_address: {
-    required: true,
+    required: false,
     message: "Province address is required.",
   },
 
   city_address: {
-    required: true,
+    required: false,
     message: "City address is required.",
   },
 
   barangay_address: {
-    required: true,
+    required: false,
     message: "Barangay address is required.",
   },
 
   postal_address: {
-    required: true,
+    required: false,
     pattern: /^[0-9]{4}$/,
     message: "Postal code is required.",
     invalidMessage: "Postal code must be 4 digits.",
@@ -226,6 +226,11 @@ export const orderSchema = {
     pattern: /^[0-9,.]+$/,
     message: "Estimated total is required.",
     invalidMessage: "Estimated total must be a valid number.",
+  },
+
+  payment_plan: {
+    required: true,
+    message: "Payment plan is required.",
   },
 
   payments: {

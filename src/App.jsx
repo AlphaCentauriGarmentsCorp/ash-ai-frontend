@@ -60,6 +60,15 @@ function App() {
           }
         />
         <Route
+          path="/orders"
+          element={
+            <ProtectedRoute>
+              <AllOrders />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/orders/new"
           element={
             <ProtectedRoute>

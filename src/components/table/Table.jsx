@@ -334,7 +334,7 @@ const Table = ({
         )}
       </div>
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-        <h1 className="text-lg font-semibold text-gray-800">{PageTitle}</h1>
+        <div>{PageTitle}</div>
 
         <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full md:w-auto">
           <div className="flex flex-wrap gap-3">

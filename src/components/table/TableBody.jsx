@@ -61,7 +61,7 @@ const TableBody = ({
           {columns.map((column) => (
             <td
               key={`${item.id}-${column.key}`}
-              className={`px-6 py-2 text-xs text-primary wrap-break-word ${
+              className={`px-6 py-2 text-xs text-primary wrap-break-word capitalize ${
                 column.className || "text-xs text-primary"
               }`}
             >
