@@ -18,7 +18,10 @@ export const getMenuByRole = (userType) => {
           {
             name: "Orders",
             icon: "fa-solid fa-file-invoice",
-            subItems: [{ name: "Add Order", path: "/orders/new" }],
+            subItems: [
+              { name: "All Orders", path: "/orders" },
+              { name: "Add Order", path: "/orders/new" },
+            ],
           },
           {
             name: "Clients",
@@ -94,7 +97,10 @@ export const getMenuByRole = (userType) => {
               { name: "Service Type", path: "/admin/settings/service-type" },
               { name: "Print Method", path: "/admin/settings/print-method" },
               { name: "Size Label", path: "/admin/settings/size-label" },
-              { name: "Print Label Placements", path: "/admin/settings/print-label-placements" },
+              {
+                name: "Print Label Placements",
+                path: "/admin/settings/print-label-placements",
+              },
             ],
           },
         ],

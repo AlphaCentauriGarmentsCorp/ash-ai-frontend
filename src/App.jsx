@@ -8,6 +8,7 @@ import AllEmployeeAccount from "./pages/Accounts/AllAccount";
 import AddNewClient from "./pages/Clients/AddNewClient";
 import AllClients from "./pages/Clients/AllClient";
 import AddNewOrder from "./pages/Orders/AddNewOrder";
+import AllOrders from "./pages/Orders/AllOrders";
 import PatternType from "./pages/drop down settings/Pattern type/Pattern Type";
 import AddPatternType from "./pages/drop down settings/Pattern type/AddPatternType";
 import ApparelType from "./pages/drop down settings/Apparel type/Apparel Type";
@@ -53,6 +54,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/orders"
+          element={
+            <ProtectedRoute>
+              <AllOrders />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/orders/new"
           element={
