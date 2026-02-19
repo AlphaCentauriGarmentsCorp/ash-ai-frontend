@@ -61,8 +61,7 @@ const ServiceTypePage = () => {
         { label: "Service Type", href: "#" },
       ]}
     >
-      <div className="bg-white rounded-lg p-4">
-        <h1 className="text-2xl font-bold mb-4">Service Type</h1>
+
         <Table
           data={data}
           columns={columns}
@@ -73,7 +72,7 @@ const ServiceTypePage = () => {
           button="Add Service Type"
           PageTitle="Service Type"
         />
-      </div>
+
     </AdminLayout>
   );
 };

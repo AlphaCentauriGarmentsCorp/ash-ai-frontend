@@ -61,8 +61,7 @@ const ApparelTypePage = () => {
         { label: "Apparel Type", href: "#" },
       ]}
     >
-      <div className="bg-white rounded-lg p-4">
-        <h1 className="text-2xl font-bold mb-4">Apparel Type</h1>
+
         <Table
           data={data}
           columns={columns}
@@ -73,7 +72,7 @@ const ApparelTypePage = () => {
           button="Add Apparel Type"
           PageTitle="Apparel Type"
         />
-      </div>
+        
     </AdminLayout>
   );
 };
