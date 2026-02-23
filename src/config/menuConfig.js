@@ -39,55 +39,55 @@ export const getMenuByRole = (userType) => {
               { name: "Add User", path: "/account/employee/new" },
             ],
           },
-          {
-            name: "Inventory Management",
-            icon: "fa-solid fa-warehouse",
-            subItems: [
-              { name: "View Inventory", path: "/admin/inventory" },
-              { name: "Adjust Stock", path: "/admin/inventory/adjust" },
-              { name: "Inventory Reports", path: "/admin/inventory/reports" },
-            ],
-          },
-          {
-            name: "Financial Suite",
-            icon: "fa-solid fa-chart-pie",
-            subItems: [
-              { name: "Financial Reports", path: "/admin/reports/financial" },
-              { name: "Revenue Overview", path: "/admin/reports/revenue" },
-              { name: "Cost Analysis", path: "/admin/reports/costs" },
-            ],
-          },
-          {
-            name: "Audit & Compliance",
-            icon: "fa-solid fa-history",
-            subItems: [
-              { name: "Audit Trail", path: "/admin/audit-logs" },
-              { name: "User Activity", path: "/admin/audit/user-activity" },
-              { name: "System Changes", path: "/admin/audit/system-changes" },
-            ],
-          },
-          {
-            name: "System Settings",
-            icon: "fa-solid fa-cogs",
-            subItems: [
-              { name: "General Config", path: "/admin/settings/general" },
-              { name: "Pricing Setup", path: "/admin/settings/pricing" },
-              { name: "Access Levels", path: "/admin/settings/access" },
-              {
-                name: "System Preferences",
-                path: "/admin/settings/preferences",
-              },
-            ],
-          },
-          {
-            name: "P.O. & Job Orders",
-            icon: "fa-solid fa-clipboard-list",
-            subItems: [
-              { name: "Create P.O.", path: "/admin/po/new" },
-              { name: "All P.O.s", path: "/admin/po" },
-              { name: "Job Orders", path: "/admin/job-orders" },
-            ],
-          },
+          // {
+          //   name: "Inventory Management",
+          //   icon: "fa-solid fa-warehouse",
+          //   subItems: [
+          //     { name: "View Inventory", path: "/admin/inventory" },
+          //     { name: "Adjust Stock", path: "/admin/inventory/adjust" },
+          //     { name: "Inventory Reports", path: "/admin/inventory/reports" },
+          //   ],
+          // },
+          // {
+          //   name: "Financial Suite",
+          //   icon: "fa-solid fa-chart-pie",
+          //   subItems: [
+          //     { name: "Financial Reports", path: "/admin/reports/financial" },
+          //     { name: "Revenue Overview", path: "/admin/reports/revenue" },
+          //     { name: "Cost Analysis", path: "/admin/reports/costs" },
+          //   ],
+          // },
+          // {
+          //   name: "Audit & Compliance",
+          //   icon: "fa-solid fa-history",
+          //   subItems: [
+          //     { name: "Audit Trail", path: "/admin/audit-logs" },
+          //     { name: "User Activity", path: "/admin/audit/user-activity" },
+          //     { name: "System Changes", path: "/admin/audit/system-changes" },
+          //   ],
+          // },
+          // {
+          //   name: "System Settings",
+          //   icon: "fa-solid fa-cogs",
+          //   subItems: [
+          //     { name: "General Config", path: "/admin/settings/general" },
+          //     { name: "Pricing Setup", path: "/admin/settings/pricing" },
+          //     { name: "Access Levels", path: "/admin/settings/access" },
+          //     {
+          //       name: "System Preferences",
+          //       path: "/admin/settings/preferences",
+          //     },
+          //   ],
+          // },
+          // {
+          //   name: "P.O. & Job Orders",
+          //   icon: "fa-solid fa-clipboard-list",
+          //   subItems: [
+          //     { name: "Create P.O.", path: "/admin/po/new" },
+          //     { name: "All P.O.s", path: "/admin/po" },
+          //     { name: "Job Orders", path: "/admin/job-orders" },
+          //   ],
+          // },
           {
             name: "Drop Down Settings",
             icon: "fa-solid fa-cog",
@@ -106,6 +106,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+    
     // GENERAL MANAGER - High-level oversight & approvals
     general_manager: [
       {
@@ -169,6 +170,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // CSR - Customer Support Representative
     csr: [
       {
@@ -240,6 +242,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // GRAPHIC ARTIST - Design tasks & layout preparation
     graphic_artist: [
       {
@@ -314,6 +317,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // FINANCE - Payment & expense management
     finance: [
       {
@@ -398,6 +402,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // PURCHASING - Purchase orders & material receiving
     purchasing: [
       {
@@ -474,6 +479,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // CUTTER - Cutting department tasks
     cutter: [
       {
@@ -534,6 +540,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // DRIVER - Delivery & pickup operations
     driver: [
       {
@@ -594,6 +601,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // PRINTER - Printing department (Silkscreen/DTF/Sublimation)
     printer: [
       {
@@ -658,6 +666,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // SEWER - Sewing department operations
     sewer: [
       {
@@ -718,6 +727,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // QA - Quality Assurance & inspection
     qa: [
       {
@@ -789,6 +799,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // PACKER - Packing & preparation for delivery
     packer: [
       {
@@ -847,6 +858,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // WAREHOUSE MANAGER - Inventory & stock oversight
     warehouse_manager: [
       {
@@ -941,6 +953,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // SCREEN MAKER - Screen preparation for printing
     screen_maker: [
       {
@@ -995,6 +1008,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // SAMPLE MAKER - Sample production workflow
     sample_maker: [
       {
@@ -1069,6 +1083,7 @@ export const getMenuByRole = (userType) => {
         ],
       },
     ],
+
     // SUBCONTRACT - Outsourced work management
     subcontract: [
       {
