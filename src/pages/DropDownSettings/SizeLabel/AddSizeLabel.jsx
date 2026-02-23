@@ -1,31 +1,61 @@
 import React, { useState } from "react";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
-import { useNavigate } from "react-router-dom";
+import Textarea from "../../../components/form/Textarea";
+import FormActions from "../../../components/form/FormActions";
+import Input from "../../../components/form/Input";
+import { typesInitialState } from "../../../constants/formInitialState/typesInitialState";
+import { typesSchema } from "../../../validations/typesSchema";
+import { validateForm, hasErrors } from "../../../utils/validation";
+import { sizeLabelApi } from "../../../api/sizeLabelApi";
 
 const AddSizeLabel = () => {
-  const [formData, setFormData] = useState({
-    sizeLabelTitle: "",
-    description: "",
-  });
-  const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [formData, setFormData] = useState(typesInitialState);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [serverError, setServerError] = useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log("Form submitted:", formData);
-    // Handle form submission here
-    navigate("/admin/settings/size-label");
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setSubmitSuccess(false);
+    setServerError("");
+
+    const validationErrors = validateForm(formData, typesSchema);
+
+    if (hasErrors(validationErrors)) {
+      setErrors(validationErrors);
+      setIsSubmitting(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    try {
+      await sizeLabelApi.create(formData);
+      setSubmitSuccess(true);
+
+      setFormData(typesInitialState);
+      setErrors({});
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      setServerError("Failed to create size label.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleCancel = () => {
-    navigate("/admin/settings/size-label");
+  const handleReset = () => {
+    setFormData(typesInitialState);
+    setErrors({});
+    setSubmitSuccess(false);
+    setServerError("");
   };
 
   return (
@@ -37,81 +67,59 @@ const AddSizeLabel = () => {
         { label: "Home", href: "/" },
         { label: "Drop Down Settings", href: "#" },
         { label: "Size Label", href: "/admin/settings/size-label" },
-        { label: "Add Size Label", href: "#" },
       ]}
     >
-      <div className="p-4 md:p-6">
-        <div className="max-w-4xl mx-auto">
-          {/* Size Label Details Card */}
-          <div 
-            className="rounded-lg p-6 md:p-8"
-            style={{ backgroundColor: "#EBF6FF" }}
-          >
-            <h2 className="text-xl font-semibold text-gray-800 mb-6">
-              Size Label Details
-            </h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Size Label Title Field */}
-              <div>
-                <label 
-                  htmlFor="sizeLabelTitle" 
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Size Label Title
-                </label>
-                <input
-                  type="text"
-                  id="sizeLabelTitle"
-                  name="sizeLabelTitle"
-                  value={formData.sizeLabelTitle}
-                  onChange={handleChange}
-                  placeholder="Enter additional dropdown"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                  required
-                />
-              </div>
-
-              {/* Description Field */}
-              <div>
-                <label 
-                  htmlFor="description" 
-                  className="block text-sm font-medium text-gray-700 mb-2"
-                >
-                  Description
-                </label>
-                <textarea
-                  id="description"
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  placeholder="Enter description here..."
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-none"
-                  required
-                />
-              </div>
-
-              {/* Buttons */}
-              <div className="flex justify-end space-x-4 pt-4">
-                <button
-                  type="button"
-                  onClick={handleCancel}
-                  className="px-6 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-6 py-2 bg-blue-900 text-white rounded-lg hover:bg-blue-800 transition-colors font-medium"
-                >
-                  Save
-                </button>
-              </div>
-            </form>
+      <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
+        {submitSuccess && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
+            <p className="text-green-800 font-medium">
+              Size Label created successfully!
+            </p>
           </div>
-        </div>
+        )}
+
+        {serverError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+            <p className="text-red-800 font-medium">{serverError}</p>
+          </div>
+        )}
+
+        <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4">
+          Size Label Details
+        </h1>
+
+        <Input
+          label="Size Label Title"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          error={errors.name}
+          type="text"
+          placeholder="Enter size label name"
+          required
+        />
+
+        <Textarea
+          label="Description"
+          name="description"
+          value={formData.description}
+          error={errors.description}
+          onChange={handleChange}
+          rows={15}
+          resizable
+          required
+          placeholder="Enter size label description"
+        />
       </div>
+
+      <FormActions
+        onSubmit={handleSubmit}
+        onReset={handleReset}
+        isSubmitting={isSubmitting}
+        submitText="Save"
+        resetText="Reset"
+        submittingText="Saving..."
+      />
     </AdminLayout>
   );
 };
