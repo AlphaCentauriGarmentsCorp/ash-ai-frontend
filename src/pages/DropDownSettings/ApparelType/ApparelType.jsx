@@ -1,16 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
+import { apparelTypeApi } from "../../../api/apparelTypeApi";
 
 const ApparelTypePage = () => {
-  const [data, setData] = useState([
-    { id: 1, name: "Item 1", description: "Displays more information when you move your cursor over the icon." },
-    { id: 2, name: "Item 1", description: "Displays more information when you move your cursor over the icon." },
-    { id: 3, name: "Item 1", description: "Displays more information when you move your cursor over the icon." },
-    { id: 4, name: "Item 1", description: "Displays more information when you move your cursor over the icon." },
-    { id: 5, name: "Item 1", description: "Displays more information when you move your cursor over the icon." },
-  ]);
+  const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
 
   const columns = [
     {
@@ -24,6 +20,42 @@ const ApparelTypePage = () => {
       sortable: false,
     },
   ];
+
+  const fetchData = useCallback(
+        async (perPage = pageSize) => {
+          setIsLoading(true);
+          try {
+            let response;
+    
+            if (perPage === "all") {
+              response = await apparelTypeApi.index();
+            } else {
+              response = await apparelTypeApi.index({ per_page: perPage });
+            }
+    
+            const responseData = response.data || response;
+            setData(responseData);
+          } catch (error) {
+            console.error("Error fetching data:", error);
+            setData([]);
+          } finally {
+            setIsLoading(false);
+          }
+        },
+        [pageSize],
+      );
+    
+      useEffect(() => {
+        fetchData();
+      }, [fetchData]);
+    
+      useEffect(() => {
+        fetchData(pageSize);
+      }, [pageSize]);
+    
+      const handlePageSizeChange = (newPageSize) => {
+        setPageSize(newPageSize);
+    };
 
   const handleAction = (action, rowData) => {
     switch (action) {
