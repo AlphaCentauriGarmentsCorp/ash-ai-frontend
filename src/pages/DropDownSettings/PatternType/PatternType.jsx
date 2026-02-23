@@ -94,8 +94,7 @@ const PatternTypePage = () => {
         { label: "Pattern Type", href: "#" },
       ]}
     >
-      <div className="bg-white rounded-lg p-4">
-        <h1 className="text-2xl font-bold mb-4">Pattern Type</h1>
+   
         <Table
           data={data}
           columns={columns}
@@ -106,7 +105,7 @@ const PatternTypePage = () => {
           button="Add Pattern Type"
           PageTitle="Pattern Types"
         />
-      </div>
+  
     </AdminLayout>
   );
 };

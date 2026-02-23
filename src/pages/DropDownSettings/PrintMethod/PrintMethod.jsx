@@ -93,8 +93,7 @@ const PrintMethodPage = () => {
         { label: "Print Method", href: "#" },
       ]}
     >
-      <div className="bg-white rounded-lg p-4">
-        <h1 className="text-2xl font-bold mb-4">Print Method</h1>
+
         <Table
           data={data}
           columns={columns}
@@ -105,7 +104,7 @@ const PrintMethodPage = () => {
           button="Add Print Method"
           PageTitle="Print Method"
         />
-      </div>
+
     </AdminLayout>
   );
 };

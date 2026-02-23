@@ -93,8 +93,7 @@ const SizeLabelPage = () => {
         { label: "Size Label", href: "#" },
       ]}
     >
-      <div className="bg-white rounded-lg p-4">
-        <h1 className="text-2xl font-bold mb-4">Size Label</h1>
+
         <Table
           data={data}
           columns={columns}
@@ -105,7 +104,7 @@ const SizeLabelPage = () => {
           button="Add Size Label"
           PageTitle="Size Label"
         />
-      </div>
+
     </AdminLayout>
   );
 };

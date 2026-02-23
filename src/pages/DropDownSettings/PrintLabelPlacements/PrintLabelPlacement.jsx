@@ -94,8 +94,7 @@ const PrintLabelPlacementPage = () => {
         { label: "Print Label Placements", href: "#" },
       ]}
     >
-      <div className="bg-white rounded-lg p-4">
-        <h1 className="text-2xl font-bold mb-4">Print Label Placements</h1>
+
         <Table
           data={data}
           columns={columns}
@@ -106,7 +105,7 @@ const PrintLabelPlacementPage = () => {
           button="Add Print Label Placement"
           PageTitle="Print Label Placements"
         />
-      </div>
+ 
     </AdminLayout>
   );
 };
