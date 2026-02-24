@@ -108,7 +108,7 @@ const EditSizeLabel = () => {
         {submitSuccess && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
             <p className="text-green-800 font-medium">
-              Size Label created successfully!
+              Size Label Updated successfully!
             </p>
           </div>
         )}
