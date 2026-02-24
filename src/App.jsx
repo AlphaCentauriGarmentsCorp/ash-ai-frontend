@@ -24,6 +24,7 @@ import AddPrintMethod from "./pages/DropDownSettings/PrintMethod/AddPrintMethod"
 import EditPrintMethod from "./pages/DropDownSettings/PrintMethod/EditPrintMethod";
 import SizeLabel from "./pages/DropDownSettings/SizeLabel/SizeLabel";
 import AddSizeLabel from "./pages/DropDownSettings/SizeLabel/AddSizeLabel";
+import EditSizeLabel from "./pages/DropDownSettings/SizeLabel/EditSizeLabel";
 import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/PrintLabelPlacement";
 import AddPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/AddPrintLabelPlacement";
 
@@ -192,7 +193,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/print-method"
           element={
@@ -217,7 +217,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/size-label"
           element={
@@ -234,6 +233,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/settings/size-label/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditSizeLabel />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/admin/settings/print-label-placements"
           element={

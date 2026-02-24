@@ -18,6 +18,24 @@ export const sizeLabelApi = {
     }
   },
 
+  show: async (id) => {
+    try {
+      const response = await api.get(`/size-label/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  update: async (id, payload) => {
+    try {
+      const response = await api.put(`/size-label/${id}`, payload);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   delete: async (id) => {
     try {
       const response = await api.delete(`/size-label/${id}`);
