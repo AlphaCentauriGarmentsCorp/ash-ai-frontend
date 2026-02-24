@@ -18,6 +18,24 @@ export const serviceTypeApi = {
     }
   },
 
+  show: async (id) => {
+    try {
+      const response = await api.get(`/service-type/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  update: async (id, payload) => {
+    try {
+      const response = await api.put(`/service-type/${id}`, payload);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   delete: async (id) => {
     try {
       const response = await api.delete(`/service-type/${id}`);

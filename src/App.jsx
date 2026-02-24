@@ -18,6 +18,7 @@ import AddApparelType from "./pages/DropDownSettings/ApparelType/AddApparelType"
 import EditApparelType from "./pages/DropDownSettings/ApparelType/EditApparelType";
 import ServiceTypeList from "./pages/DropDownSettings/ServiceType/ServiceType";
 import AddServiceType from "./pages/DropDownSettings/ServiceType/AddServiceType";
+import EditServiceType from "./pages/DropDownSettings/ServiceType/EditServiceType";
 import PrintMethod from "./pages/DropDownSettings/PrintMethod/PrintMethod";
 import AddPrintMethod from "./pages/DropDownSettings/PrintMethod/AddPrintMethod";
 import SizeLabel from "./pages/DropDownSettings/SizeLabel/SizeLabel";
@@ -54,7 +55,6 @@ function App() {
             </PublicRoute>
           }
         />
-
         <Route
           path="/"
           element={
@@ -71,7 +71,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/orders/new"
           element={
@@ -80,7 +79,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/order/:po_code"
           element={
@@ -89,7 +87,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/account/employee"
           element={
@@ -106,7 +103,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/clients"
           element={
@@ -115,7 +111,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/clients/new"
           element={
@@ -124,7 +119,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/pattern-type"
           element={
@@ -133,7 +127,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/pattern-type/new"
           element={
@@ -142,7 +135,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/pattern-type/edit/:id"
           element={
@@ -151,7 +143,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/apparel-type"
           element={
@@ -160,7 +151,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/apparel-type/new"
           element={
@@ -169,7 +159,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/apparel-type/edit/:id"
           element={
@@ -178,7 +167,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/service-type"
           element={
@@ -187,12 +175,19 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/service-type/new"
           element={
             <ProtectedRoute>
               <AddServiceType />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/service-type/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditServiceType />
             </ProtectedRoute>
           }
         />
@@ -205,7 +200,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/print-method/new"
           element={
@@ -214,7 +208,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/size-label"
           element={
@@ -223,7 +216,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/size-label/new"
           element={
@@ -232,7 +224,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/print-label-placements"
           element={
@@ -241,7 +232,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/print-label-placements/new"
           element={
