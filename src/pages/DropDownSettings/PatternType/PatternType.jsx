@@ -3,8 +3,10 @@ import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
 import { patternTypeApi } from "../../../api/patternTypeApi";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
+import { useNavigate } from "react-router-dom";
 
 const PatternTypePage = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
@@ -87,7 +89,7 @@ const PatternTypePage = () => {
   const handleAction = (action, rowData) => {
     switch (action) {
       case "edit":
-        console.log("Edit:", rowData);
+        navigate(`/admin/settings/pattern-type/edit/${rowData.id}`);
         break;
       case "delete":
         handleDeleteClick(rowData);
