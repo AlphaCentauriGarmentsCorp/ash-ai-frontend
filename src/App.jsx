@@ -12,6 +12,7 @@ import AllOrders from "./pages/Orders/AllOrders";
 import OrderDetails from "./pages/Orders/OrderDetails";
 import PatternType from "./pages/DropDownSettings/PatternType/PatternType";
 import AddPatternType from "./pages/DropDownSettings/PatternType/AddPatternType";
+import EditPatternType from "./pages/DropDownSettings/PatternType/EditPatternType";
 import ApparelType from "./pages/DropDownSettings/ApparelType/ApparelType";
 import AddApparelType from "./pages/DropDownSettings/ApparelType/AddApparelType";
 import EditApparelType from "./pages/DropDownSettings/ApparelType/EditApparelType";
@@ -138,6 +139,15 @@ function App() {
           element={
             <ProtectedRoute>
               <AddPatternType />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/pattern-type/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditPatternType />
             </ProtectedRoute>
           }
         />
