@@ -17,4 +17,13 @@ export const patternTypeApi = {
       throw error;
     }
   },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/pattern-type/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };

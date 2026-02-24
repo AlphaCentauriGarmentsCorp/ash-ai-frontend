@@ -17,4 +17,13 @@ export const serviceTypeApi = {
       throw error;
     }
   },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/service-type/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
