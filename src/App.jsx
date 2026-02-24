@@ -21,6 +21,7 @@ import AddServiceType from "./pages/DropDownSettings/ServiceType/AddServiceType"
 import EditServiceType from "./pages/DropDownSettings/ServiceType/EditServiceType";
 import PrintMethod from "./pages/DropDownSettings/PrintMethod/PrintMethod";
 import AddPrintMethod from "./pages/DropDownSettings/PrintMethod/AddPrintMethod";
+import EditPrintMethod from "./pages/DropDownSettings/PrintMethod/EditPrintMethod";
 import SizeLabel from "./pages/DropDownSettings/SizeLabel/SizeLabel";
 import AddSizeLabel from "./pages/DropDownSettings/SizeLabel/AddSizeLabel";
 import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/PrintLabelPlacement";
@@ -208,6 +209,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/admin/settings/print-method/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditPrintMethod />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/admin/settings/size-label"
           element={
