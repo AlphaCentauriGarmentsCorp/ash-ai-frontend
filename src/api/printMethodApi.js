@@ -18,6 +18,23 @@ export const printMethodApi = {
     }
   },
 
+  show: async (id) => {
+    try {
+      const response = await api.get(`/print-method/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  update: async (id, payload) => {
+    try {
+      const response = await api.put(`/print-method/${id}`, payload);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
   delete: async (id) => {
     try {
       const response = await api.delete(`/print-method/${id}`);
