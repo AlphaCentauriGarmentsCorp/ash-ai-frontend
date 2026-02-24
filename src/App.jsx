@@ -27,6 +27,7 @@ import AddSizeLabel from "./pages/DropDownSettings/SizeLabel/AddSizeLabel";
 import EditSizeLabel from "./pages/DropDownSettings/SizeLabel/EditSizeLabel";
 import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/PrintLabelPlacement";
 import AddPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/AddPrintLabelPlacement";
+import EditPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/EditPrintLabelPlacement";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -241,7 +242,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/print-label-placements"
           element={
@@ -255,6 +255,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AddPrintLabelPlacement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/print-label-placements/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditPrintLabelPlacement />
             </ProtectedRoute>
           }
         />

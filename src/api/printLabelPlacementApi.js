@@ -18,6 +18,24 @@ export const printLabelPlacementApi = {
     }
   },
 
+  show: async (id) => {
+    try {
+      const response = await api.get(`/print-label-placement/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  update: async (id, payload) => {
+    try {
+      const response = await api.put(`/print-label-placement/${id}`, payload);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   delete: async (id) => {
     try {
       const response = await api.delete(`/print-label-placement/${id}`);
