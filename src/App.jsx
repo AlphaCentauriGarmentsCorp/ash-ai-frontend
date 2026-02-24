@@ -14,6 +14,7 @@ import PatternType from "./pages/DropDownSettings/PatternType/PatternType";
 import AddPatternType from "./pages/DropDownSettings/PatternType/AddPatternType";
 import ApparelType from "./pages/DropDownSettings/ApparelType/ApparelType";
 import AddApparelType from "./pages/DropDownSettings/ApparelType/AddApparelType";
+import EditApparelType from "./pages/DropDownSettings/ApparelType/EditApparelType";
 import ServiceTypeList from "./pages/DropDownSettings/ServiceType/ServiceType";
 import AddServiceType from "./pages/DropDownSettings/ServiceType/AddServiceType";
 import PrintMethod from "./pages/DropDownSettings/PrintMethod/PrintMethod";
@@ -155,6 +156,15 @@ function App() {
           element={
             <ProtectedRoute>
               <AddApparelType />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/apparel-type/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditApparelType />
             </ProtectedRoute>
           }
         />

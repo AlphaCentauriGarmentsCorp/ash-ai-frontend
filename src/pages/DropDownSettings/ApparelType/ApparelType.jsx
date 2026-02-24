@@ -3,8 +3,10 @@ import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
 import { apparelTypeApi } from "../../../api/apparelTypeApi";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
+import { useNavigate } from "react-router-dom";
 
 const ApparelTypePage = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
@@ -86,7 +88,7 @@ const ApparelTypePage = () => {
   const handleAction = (action, rowData) => {
     switch (action) {
       case "edit":
-        console.log("Edit:", rowData);
+        navigate(`/admin/settings/apparel-type/edit/${rowData.id}`);
         break;
       case "delete":
         handleDeleteClick(rowData);
