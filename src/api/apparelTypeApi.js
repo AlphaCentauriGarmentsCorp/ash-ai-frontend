@@ -17,4 +17,13 @@ export const apparelTypeApi = {
       throw error;
     }
   },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/apparel-type/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };

@@ -17,4 +17,13 @@ export const printMethodApi = {
       throw error;
     }
   },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/print-method/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
