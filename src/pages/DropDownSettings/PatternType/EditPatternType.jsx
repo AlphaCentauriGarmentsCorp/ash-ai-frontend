@@ -82,7 +82,7 @@ const EditPatternType = () => {
 
   if (isLoading) {
     return (
-      <AdminLayout pageTitle="Edit Apparel Type">
+      <AdminLayout pageTitle="Edit Pattern Type">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -96,12 +96,12 @@ const EditPatternType = () => {
   return (
     <AdminLayout
       icon="fa-cog"
-      pageTitle="Edit Apparel Type"
-      path={`/admin/settings/apparel-type/edit/${id}`}
+      pageTitle="Edit Pattern Type"
+      path={`/admin/settings/pattern-type/edit/${id}`}
       links={[
         { label: "Home", href: "/" },
         { label: "Drop Down Settings", href: "#" },
-        { label: "Apparel Type", href: "/admin/settings/apparel-type" },
+        { label: "Pattern Type", href: "/admin/settings/pattern-type" },
       ]}
     >
       <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
@@ -124,13 +124,13 @@ const EditPatternType = () => {
         </h1>
 
         <Input
-          label="Apparel Type Title"
+          label="Pattern Type Title"
           name="name"
           value={formData.name}
           onChange={handleChange}
           error={errors.name}
           type="text"
-          placeholder="Enter apparel type name"
+          placeholder="Enter pattern type name"
           required
         />
 
@@ -143,7 +143,7 @@ const EditPatternType = () => {
           rows={15}
           resizable
           required
-          placeholder="Enter apparel type description"
+          placeholder="Enter pattern type description"
         />
       </div>
 
