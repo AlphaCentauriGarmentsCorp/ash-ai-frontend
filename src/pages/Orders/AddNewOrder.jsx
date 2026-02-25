@@ -505,7 +505,6 @@ export default function AddNewOrder() {
 
   // Form submission
   const handleSubmit = async (e) => {
-    e.preventDefault();
     setIsSubmitting(true);
     setServerError("");
     setSubmitSuccess(false);
