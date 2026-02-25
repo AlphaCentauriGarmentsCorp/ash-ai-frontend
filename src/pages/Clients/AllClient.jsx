@@ -2,11 +2,16 @@ import React, { useState, useEffect, useCallback } from "react";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Table from "../../components/table/Table";
 import { clientApi } from "../../api/clientApi";
+import DeleteConfirmationDialog from "../../components/common/DeleteConfirmationDialog";
 
 const ClientsPage = () => {
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const columns = [
     {
@@ -114,8 +119,30 @@ const ClientsPage = () => {
     fetchData(pageSize);
   }, [pageSize]);
 
-  const handlePageSizeChange = (newPageSize) => {
-    setPageSize(newPageSize);
+  const handleDeleteClick = (rowData) => {
+    setSelectedItem(rowData);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedItem) return;
+
+    setIsDeleting(true);
+    try {
+      await clientApi.delete(selectedItem.id);
+      setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      alert("Failed to delete client. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setSelectedItem(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteDialogOpen(false);
+    setSelectedItem(null);
   };
 
   const handleAction = (action, rowData) => {
@@ -127,11 +154,7 @@ const ClientsPage = () => {
         console.log("Edit:", rowData);
         break;
       case "delete":
-        if (
-          window.confirm(`Are you sure you want to delete ${rowData.name}?`)
-        ) {
-          console.log("Delete:", rowData);
-        }
+        handleDeleteClick(rowData);
         break;
     }
   };
@@ -163,12 +186,19 @@ const ClientsPage = () => {
         data={data}
         columns={columns}
         config={tableConfig}
-        onPageSizeChange={handlePageSizeChange}
         onAction={handleAction}
         isLoading={isLoading}
         url="/clients/new"
         button="New Client"
         PageTitle="All Clients"
+      />
+
+      <DeleteConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        itemName={selectedItem?.name}
+        isLoading={isDeleting}
       />
     </AdminLayout>
   );
