@@ -68,4 +68,14 @@ export const clientSchema = {
     required: false,
     message: "Postal code is required.",
   },
+
+  method: {
+    required: true,
+    message: "Shipping Method is required.",
+  },
+
+  courier: {
+    required: true,
+    message: "Preferred courier is required.",
+  },
 };
