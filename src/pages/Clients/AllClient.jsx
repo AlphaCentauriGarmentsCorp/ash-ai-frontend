@@ -3,8 +3,10 @@ import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Table from "../../components/table/Table";
 import { clientApi } from "../../api/clientApi";
 import DeleteConfirmationDialog from "../../components/common/DeleteConfirmationDialog";
+import { useNavigate } from "react-router-dom";
 
 const ClientsPage = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
@@ -148,7 +150,7 @@ const ClientsPage = () => {
   const handleAction = (action, rowData) => {
     switch (action) {
       case "view":
-        console.log("View:", rowData);
+        navigate(`/clients/view/${rowData.id}`);
         break;
       case "edit":
         console.log("Edit:", rowData);

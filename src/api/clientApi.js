@@ -18,6 +18,15 @@ export const clientApi = {
     }
   },
 
+  show: async (id) => {
+    try {
+      const response = await api.get(`/clients/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
   delete: async (id) => {
     try {
       const response = await api.delete(`/clients/${id}`);
