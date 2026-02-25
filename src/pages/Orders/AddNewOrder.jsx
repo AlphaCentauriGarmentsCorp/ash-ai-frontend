@@ -66,6 +66,11 @@ const calculateUnitPrice = (costPrice, quantity) =>
   (parseFloat(costPrice) || 0) * (parseFloat(quantity) || 0);
 
 export default function AddNewOrder() {
+  // Loading states
+  const [loading, setLoading] = useState(true);
+  const [clientsLoading, setClientsLoading] = useState(false);
+  const [optionsLoading, setOptionsLoading] = useState(false);
+
   // State
   const [formData, setFormData] = useState(() => ({
     ...orderInitialState,
@@ -89,7 +94,22 @@ export default function AddNewOrder() {
   const [clients, setClients] = useState([]);
   const [rawClients, setRawClients] = useState([]);
   const [clientBrands, setClientBrands] = useState([]);
-  const [clientsLoading, setClientsLoading] = useState(false);
+
+  const [brandsOptions, setBrandsOptions] = useState([]);
+  const [priorityOptions, setPriorityOptions] = useState([]);
+  const [courierOptions, setCourierOptions] = useState([]);
+  const [shippingMethodOptions, setShippingMethodOptions] = useState([]);
+  const [apparelTypeOptions, setApparelTypeOptions] = useState([]);
+  const [patternTypeOptions, setPatternTypeOptions] = useState([]);
+  const [serviceTypeOptions, setServiceTypeOptions] = useState([]);
+  const [printMethodOptions, setPrintMethodOptions] = useState([]);
+  const [sizeLabelOptions, setSizeLabelOptions] = useState([]);
+  const [printLabelPlacementOptions, setPrintLabelPlacementOptions] = useState(
+    [],
+  );
+  const [fabricTypeOptions, setFabricTypeOptions] = useState([]);
+  const [fabricSupplierOptions, setFabricSupplierOptions] = useState([]);
+  const [priorityListOptions, setPriorityListOptions] = useState([]);
 
   // Memoized values
   const summary = useMemo(
@@ -144,8 +164,20 @@ export default function AddNewOrder() {
     }));
   }, [formData.sizes, formData.deposit_percentage]);
 
+  // Initial data loading
   useEffect(() => {
-    fetchClients();
+    const loadInitialData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([fetchClients(), fetchDropdownOptions()]);
+      } catch (error) {
+        console.error("Failed to load initial data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialData();
   }, []);
 
   useEffect(() => {
@@ -210,6 +242,24 @@ export default function AddNewOrder() {
       setServerError("Failed to load clients.");
     } finally {
       setClientsLoading(false);
+    }
+  };
+
+  const fetchDropdownOptions = async () => {
+    try {
+      setOptionsLoading(true);
+      const options = await orderService.getAllDropdownOptions();
+
+      setApparelTypeOptions(options.apparelTypes);
+      setPatternTypeOptions(options.patternTypes);
+      setServiceTypeOptions(options.serviceTypes);
+      setPrintMethodOptions(options.printMethods);
+      setSizeLabelOptions(options.sizeLabels);
+      setPrintLabelPlacementOptions(options.printLabelPlacements);
+    } catch (err) {
+      setServerError("Failed to load dropdown options.");
+    } finally {
+      setOptionsLoading(false);
     }
   };
 
@@ -455,6 +505,7 @@ export default function AddNewOrder() {
 
   // Form submission
   const handleSubmit = async (e) => {
+    e.preventDefault();
     setIsSubmitting(true);
     setServerError("");
     setSubmitSuccess(false);
@@ -505,6 +556,7 @@ export default function AddNewOrder() {
       setIsSubmitting(false);
     }
   };
+
   const handleReset = useCallback(() => {
     setFormData({
       ...orderInitialState,
@@ -524,6 +576,41 @@ export default function AddNewOrder() {
     setServerError("");
     setSubmitSuccess(false);
   }, []);
+
+  // Loading state
+  if (loading) {
+    const loadingMessages = [
+      "Sorting fabrics for your perfect design...",
+      "Counting threads to ensure top quality...",
+      "Measuring patterns for your style...",
+      "Preparing color palettes for your prints...",
+      "Checking sizes so nothing feels tight or loose...",
+      "Polishing designs for a flawless look...",
+      "Mixing inks for vibrant prints...",
+      "Ensuring every stitch is on point...",
+    ];
+
+    const randomMessage =
+      loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
+
+    return (
+      <AdminLayout
+        pageTitle="Add Order"
+        path="/"
+        links={[
+          { label: "Home", href: "/" },
+          { label: "Orders", href: "/orders" },
+        ]}
+      >
+        <div className="flex justify-center items-center h-64">
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-gray-600 text-sm font-medium">{randomMessage}</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   const renderSuccessMessage = () => {
     if (!submitSuccess) return null;
@@ -701,6 +788,7 @@ export default function AddNewOrder() {
                 searchable
                 error={errors.client}
                 required
+                loading={clientsLoading}
               />
 
               <Input
@@ -729,7 +817,7 @@ export default function AddNewOrder() {
                 searchable
                 error={errors.company}
                 required
-                disabled={!formData.client}
+                disabled={!formData.client || clientsLoading}
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -836,50 +924,54 @@ export default function AddNewOrder() {
               <Select
                 label="Apparel Type"
                 name="apparel_type"
-                options={apparelTypeList}
+                options={apparelTypeOptions}
                 value={formData.apparel_type || ""}
                 onChange={handleChange}
                 placeholder="Select apparel type"
                 searchable
                 error={errors.apparel_type}
                 required
+                loading={optionsLoading}
               />
 
               <Select
                 label="Pattern Type"
                 name="pattern_type"
-                options={patternTypeList}
+                options={patternTypeOptions}
                 value={formData.pattern_type || ""}
                 onChange={handleChange}
                 placeholder="Select pattern type"
                 searchable
                 error={errors.pattern_type}
                 required
+                loading={optionsLoading}
               />
 
               <Select
                 label="Service Type"
                 name="service_type"
-                options={serviceTypeList}
+                options={serviceTypeOptions}
                 value={formData.service_type || ""}
                 onChange={handleChange}
                 placeholder="Select service type"
                 searchable
                 error={errors.service_type}
                 required
+                loading={optionsLoading}
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Select
                   label="Print Method"
                   name="print_method"
-                  options={printMethodList}
+                  options={printMethodOptions}
                   value={formData.print_method || ""}
                   onChange={handleChange}
                   placeholder="Select print method"
                   searchable
                   error={errors.print_method}
                   required
+                  loading={optionsLoading}
                 />
 
                 <Select
@@ -898,25 +990,27 @@ export default function AddNewOrder() {
               <Select
                 label="Size Label"
                 name="size_label"
-                options={sizeLabelList}
+                options={sizeLabelOptions}
                 value={formData.size_label || ""}
                 onChange={handleChange}
                 placeholder="Select size label"
                 searchable
                 error={errors.size_label}
                 required
+                loading={optionsLoading}
               />
 
               <Select
                 label="Print Label Placement"
                 name="print_label_placement"
-                options={printLabelPlacementList}
+                options={printLabelPlacementOptions}
                 value={formData.print_label_placement || ""}
                 onChange={handleChange}
                 placeholder="Select print label placement"
                 searchable
                 error={errors.print_label_placement}
                 required
+                loading={optionsLoading}
               />
             </div>
           </Section>
