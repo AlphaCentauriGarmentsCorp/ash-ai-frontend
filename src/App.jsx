@@ -8,6 +8,7 @@ import AllEmployeeAccount from "./pages/Accounts/AllAccount";
 import AddNewClient from "./pages/Clients/AddNewClient";
 import AllClients from "./pages/Clients/AllClient";
 import ViewClient from "./pages/Clients/ViewClient";
+import EditClient from "./pages/Clients/EditClient";
 import AddNewOrder from "./pages/Orders/AddNewOrder";
 import AllOrders from "./pages/Orders/AllOrders";
 import OrderDetails from "./pages/Orders/OrderDetails";
@@ -128,6 +129,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ViewClient />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clients/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditClient />
             </ProtectedRoute>
           }
         />

@@ -153,7 +153,7 @@ const ClientsPage = () => {
         navigate(`/clients/view/${rowData.id}`);
         break;
       case "edit":
-        console.log("Edit:", rowData);
+        navigate(`/clients/edit/${rowData.id}`);
         break;
       case "delete":
         handleDeleteClick(rowData);
