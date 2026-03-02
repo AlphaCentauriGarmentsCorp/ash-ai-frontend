@@ -30,6 +30,10 @@ import EditSizeLabel from "./pages/DropDownSettings/SizeLabel/EditSizeLabel";
 import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/PrintLabelPlacement";
 import AddPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/AddPrintLabelPlacement";
 import EditPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/EditPrintLabelPlacement";
+import EquipmentInventory from "./pages/Locations/EquipmentInventory";
+import AddLocation from "./pages/Locations/AddLocation";
+import EditLocation from "./pages/Locations/EditLocation";
+
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -65,6 +69,30 @@ function App() {
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipment-inventory"
+          element={
+            <ProtectedRoute>
+              <EquipmentInventory />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipment-inventory/new"
+          element={
+            <ProtectedRoute>
+              <AddLocation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipment-inventory/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditLocation />
             </ProtectedRoute>
           }
         />
