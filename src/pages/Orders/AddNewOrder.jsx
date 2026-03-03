@@ -1231,6 +1231,7 @@ export default function AddNewOrder() {
                 value={formData.design_mockup || []}
                 onChange={handleFileChange}
                 error={errors.design_mockup}
+                acceptedTypes=".jpg,.jpeg,.png,.webp"
               />
 
               <FileUploadSection
@@ -1466,14 +1467,21 @@ const AddressFields = ({ formData, handleChange, errors }) => (
   </div>
 );
 
-const FileUploadSection = ({ label, name, value, onChange, error }) => (
+const FileUploadSection = ({
+  label,
+  name,
+  value,
+  onChange,
+  error,
+  acceptedTypes,
+}) => (
   <div className="py-4">
     <FileUpload
       label={label}
       name={name}
       value={value}
       onChange={onChange}
-      acceptedTypes="image/*,.ai,.psd,.pdf,.png,.jpg,.jpeg"
+      acceptedTypes={acceptedTypes || "image/*,.ai,.psd,.pdf,.png,.jpg,.jpeg"}
       maxSize={25 * 1024 * 1024}
       multiple={true}
       error={error}
