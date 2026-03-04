@@ -6,9 +6,10 @@ import FormActions from "../../components/form/FormActions";
 import Input from "../../components/form/Input";
 import Select from "../../components/form/Select";
 import { locationInitialState } from "../../constants/formInitialState/locationInitialState";
-import { locationSchema } from "../../validations/locationSchema";
+import { equipmentLocationSchema } from "../../validations/equipmentLocationSchema";
 import { validateForm, hasErrors } from "../../utils/validation";
-import { locationApi } from "../../api/locationApi";
+import { equipmentLocationApi } from "../../api/equipmentLocationApi";
+import { LocationIconOptions } from "../../constants/formOptions/equipmentInventoryOptions";
 
 const EditLocation = () => {
   const { id } = useParams();
@@ -27,7 +28,7 @@ const EditLocation = () => {
 
   const fetchLocation = async () => {
     try {
-      const response = await locationApi.show(id);
+      const response = await equipmentLocationApi.show(id);
       setFormData(response.data);
     } catch (error) {
       setServerError("Failed to load location.");
@@ -49,7 +50,7 @@ const EditLocation = () => {
     setSubmitSuccess(false);
     setServerError("");
 
-    const validationErrors = validateForm(formData, locationSchema);
+    const validationErrors = validateForm(formData, equipmentLocationSchema);
 
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);
@@ -59,9 +60,8 @@ const EditLocation = () => {
     }
 
     try {
-      await locationApi.update(id, formData);
+      await equipmentLocationApi.update(id, formData);
       setSubmitSuccess(true);
-
       window.scrollTo({ top: 0, behavior: "smooth" });
 
       setTimeout(() => {
@@ -138,10 +138,10 @@ const EditLocation = () => {
           <Select
             label="Icon"
             name="icon"
+            options={LocationIconOptions}
             value={formData.icon}
             onChange={handleChange}
             error={errors.icon}
-            options={[]}
             placeholder="Select an icon"
             searchable
             required
