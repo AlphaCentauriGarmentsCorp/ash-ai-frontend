@@ -1,10 +1,10 @@
 import React from "react";
 
 /**
- * Card Component
+ * EquipmentLocationCard Component
  * A flexible container for grouping related content.
  */
-const CardTemplate = ({
+const EquipmentLocationCard = ({
   title,
   subtitle,
   children,
@@ -32,43 +32,43 @@ const CardTemplate = ({
       <div className={`bg-white rounded-lg overflow-hidden ${shadow} ${hoverClasses} ${containerClass}`}>
         
         {/* Dark Header with Icon, Title, Description, and Action Buttons */}
-        <div className={`bg-primary px-6 py-4 relative ${headerClass}`}>
+        <div className={`bg-primary px-4 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-6 relative ${headerClass}`}>
           {/* Action Buttons (top right) */}
           {actionButtons && (
-            <div className="absolute top-4 right-4 flex gap-2 z-10">
+            <div className="absolute top-3 sm:top-4 lg:top-5 right-3 sm:right-4 lg:right-5 flex gap-1.5 sm:gap-2 z-10">
               {actionButtons}
             </div>
           )}
           
-          <div className="flex items-start gap-6">
+          <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-5 lg:gap-7">
             {/* Icon - Large circular white background */}
             {icon && (
-              <div className="bg-white rounded-full p-5 flex-shrink-0 self-center">
+              <div className="bg-white rounded-full p-3 sm:p-4 lg:p-5 flex-shrink-0 self-start sm:self-center">
                 {icon}
               </div>
             )}
             
             {/* Content Section */}
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               {/* Title and Description */}
-              <div className="pr-16">
-                {title && <h3 className="text-2xl font-bold text-white mb-1">{title}</h3>}
-                {subtitle && <p className="text-sm text-gray-200 leading-relaxed">{subtitle}</p>}
+              <div className="pr-12 sm:pr-14 lg:pr-16">
+                {title && <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-white mb-1.5 break-words">{title}</h3>}
+                {subtitle && <p className="text-xs text-gray-200 leading-relaxed font-light">{subtitle}</p>}
               </div>
 
               {/* Stats Section */}
               {stats && (
-                <div className="flex items-center mt-4">
-                  <div className="flex items-center justify-between flex-1 pr-24">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6 md:gap-8 lg:gap-30 mt-4 sm:mt-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3 lg:gap-4 flex-1 flex-wrap">
                     {stats.map((stat, index) => (
-                      <div key={index} className="flex items-center gap-2 text-white">
-                        {stat.icon && <span className="text-sm">{stat.icon}</span>}
-                        <span className="text-sm font-medium">{stat.label}: {stat.value}</span>
+                      <div key={index} className="flex items-center gap-1.5 sm:gap-2 text-white">
+                        {stat.icon && <span className="text-xs">{stat.icon}</span>}
+                        <span className="text-xs font-extralight whitespace-nowrap">{stat.label}: {stat.value}</span>
                       </div>
                     ))}
                   </div>
                   
-                  {/* View Link - inline with stats */}
+                  {/* View Link - wraps naturally */}
                   {viewLink && (
                     <div className="flex-shrink-0">
                       {viewLink}
@@ -82,14 +82,14 @@ const CardTemplate = ({
 
         {/* Body (if needed) */}
         {children && (
-          <div className={`px-6 py-4 ${bodyClass}`}>
+          <div className={`px-3 sm:px-4 lg:px-6 py-3 sm:py-4 ${bodyClass}`}>
             {children}
           </div>
         )}
 
         {/* Footer */}
         {footer && (
-          <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
+          <div className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 bg-gray-50 border-t border-gray-100">
             {footer}
           </div>
         )}
@@ -108,20 +108,20 @@ const CardTemplate = ({
 
       {/* Header Section */}
       {(title || subtitle) && (
-        <div className={`px-6 py-4 border-b border-gray-100 ${headerClass}`}>
-          {title && <h3 className="text-lg font-bold text-gray-800">{title}</h3>}
-          {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
+        <div className={`px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-b border-gray-100 ${headerClass}`}>
+          {title && <h3 className="text-base sm:text-lg font-semibold text-gray-800">{title}</h3>}
+          {subtitle && <p className="text-xs sm:text-sm text-gray-500">{subtitle}</p>}
         </div>
       )}
 
       {/* Main Content (The "Body") */}
-      <div className={`px-6 py-4 ${bodyClass}`}>
+      <div className={`px-3 sm:px-4 lg:px-6 py-3 sm:py-4 ${bodyClass}`}>
         {children}
       </div>
 
       {/* Footer Section (optional, like your customButtons) */}
       {footer && (
-        <div className="px-6 py-3 bg-gray-50 border-t border-gray-100">
+        <div className="px-3 sm:px-4 lg:px-6 py-2.5 sm:py-3 bg-gray-50 border-t border-gray-100">
           {footer}
         </div>
       )}
@@ -129,4 +129,4 @@ const CardTemplate = ({
   );
 };
 
-export default CardTemplate;
+export default EquipmentLocationCard;

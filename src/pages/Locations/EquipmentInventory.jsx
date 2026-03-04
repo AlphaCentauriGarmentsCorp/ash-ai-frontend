@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
-import CardList from "../../components/card/CardList";
+import EquipmentLocationCardContainer from "../../components/card/EquipmentLocationCardContainer";
 import DeleteConfirmationDialog from "../../components/common/DeleteConfirmationDialog";
 
 // ============= FOR API USE - UNCOMMENT WHEN CONNECTING TO BACKEND =============
@@ -148,22 +148,22 @@ const EquipmentInventory = () => {
   // Get stats for each location card
   const getCardStats = (item) => [
     { 
-      icon: "✓", 
+      icon: <i className="fas fa-box-open text-white"></i>, 
       label: "Total Items", 
       value: item.total_items || 0
     },
     { 
-      icon: "🔧", 
+      icon: <i className="fas fa-spinner text-white"></i>, 
       label: "In use", 
       value: item.in_use || 0
     },
     { 
-      icon: "📦", 
+      icon: <i className="fas fa-user-check text-white"></i>, 
       label: "Available", 
       value: item.available || 0
     },
     { 
-      icon: "⚠️", 
+      icon: <i className="fas fa-exclamation-circle text-white"></i>, 
       label: "Missing", 
       value: item.missing || 0
     },
@@ -185,7 +185,7 @@ const EquipmentInventory = () => {
         { label: "Locations", href: "#" },
       ]}
     >
-      <CardList
+      <EquipmentLocationCardContainer
         data={data}
         config={cardConfig}
         onAction={handleAction}
