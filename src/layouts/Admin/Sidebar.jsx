@@ -1,9 +1,8 @@
-import { useState, useContext } from "react";
-import { Link } from "react-router-dom";
+import { useState, useContext, useEffect, useCallback } from "react";
+import { Link, useLocation } from "react-router-dom";
 import { getMenuByRole } from "../../config/menuConfig";
 import { SidebarContext } from "../../context/SidebarContext";
 import Logo from "../../assets/images/logo/Logo.png";
-import LogoBox from "../../assets/images/logo/LogoBox.png";
 
 export default function Sidebar({
   userType,
@@ -13,28 +12,82 @@ export default function Sidebar({
   setIsMobileOpen,
   isMobileView,
 }) {
+  const location = useLocation();
   const menu = getMenuByRole(userType);
-
   const { activeLink, setActiveLink, openSubMenu, setOpenSubMenu } =
     useContext(SidebarContext);
+
+  const findBestMatch = useCallback(() => {
+    let bestMatch = null;
+
+    menu.forEach((section) => {
+      section.items.forEach((item) => {
+        if (item.path && !item.subItems) {
+          if (location.pathname === item.path) {
+            bestMatch = item.path;
+          }
+        }
+
+        if (item.subItems) {
+          item.subItems.forEach((sub) => {
+            if (location.pathname === sub.path) {
+              bestMatch = sub.path;
+            }
+          });
+        }
+      });
+    });
+
+    return bestMatch;
+  }, [location.pathname, menu]);
+
+  useEffect(() => {
+    const bestMatch = findBestMatch();
+    if (bestMatch) {
+      setActiveLink(bestMatch);
+    } else {
+      const pathSegments = location.pathname.split("/").filter(Boolean);
+      if (pathSegments.length > 0) {
+        const lastSegment = "/" + pathSegments[pathSegments.length - 1];
+        setActiveLink(lastSegment);
+      } else {
+        setActiveLink("/");
+      }
+    }
+  }, [location.pathname, setActiveLink, findBestMatch]);
+
+  useEffect(() => {
+    menu.forEach((section, sIdx) => {
+      section.items.forEach((item, iIdx) => {
+        if (
+          item.subItems &&
+          item.subItems.some((sub) => location.pathname === sub.path)
+        ) {
+          if (openSubMenu !== `${sIdx}-${iIdx}`) {
+            setOpenSubMenu(`${sIdx}-${iIdx}`);
+          }
+        }
+      });
+    });
+  }, [location.pathname]);
 
   const handleClick = (itemKey, path, hasSubItems) => {
     if (hasSubItems) {
       setOpenSubMenu(openSubMenu === itemKey ? null : itemKey);
-      if (path) {
-        setActiveLink(path);
-      }
     } else {
       setActiveLink(path);
       setOpenSubMenu(null);
-    }
 
-    if (isMobileView) {
-      setIsMobileOpen(false);
+      if (isMobileView) {
+        setIsMobileOpen(false);
+      }
     }
   };
 
   const showContent = isMobileView ? isMobileOpen : isOpen;
+  if (!menu || menu.length === 0) {
+    return null;
+  }
 
   return (
     <>
@@ -80,7 +133,7 @@ export default function Sidebar({
               ${showContent ? "opacity-100" : "opacity-0 w-0 overflow-hidden"}
             `}
           >
-            <img src={Logo} alt="Logo" className="object-contain " />
+            <img src={Logo} alt="Logo" className="object-contain" />
           </div>
 
           {}
@@ -120,9 +173,9 @@ export default function Sidebar({
               <ul className="mb-2 pl-2">
                 {section.items.map((item, iIdx) => {
                   const itemKey = `${sIdx}-${iIdx}`;
-                  const isItemActive = activeLink === item.path;
-                  const isSubMenuOpen = openSubMenu === itemKey;
                   const hasSubItems = item.subItems && item.subItems.length > 0;
+                  const isItemActive = !hasSubItems && activeLink === item.path;
+                  const isSubMenuOpen = openSubMenu === itemKey;
 
                   return (
                     <li key={iIdx} className="relative">
@@ -154,13 +207,14 @@ export default function Sidebar({
                           className={`
                             flex items-center my-0.5 mx-2 px-2 cursor-pointer
                             rounded-[5px] transition-all duration-200 ease-in-out
-                            ${isItemActive ? "bg-white text-primary" : "hover:bg-white hover:text-primary"}
+                            hover:bg-white hover:text-primary
                             overflow-hidden
                             min-h-9
                           `}
-                          onClick={() =>
-                            handleClick(itemKey, item.path, hasSubItems)
-                          }
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleClick(itemKey, item.path, hasSubItems);
+                          }}
                         >
                           <div className="flex items-center gap-4">
                             <i className={`${item.icon} text-sm shrink-0`}></i>
@@ -175,7 +229,6 @@ export default function Sidebar({
                                 text-xs fa-solid fa-chevron-${
                                   isSubMenuOpen ? "down" : "right"
                                 } text-sm transition-all duration-300 ease-in-out ml-auto
-                                ${isSubMenuOpen ? "rotate-0" : ""}
                                 shrink-0
                               `}
                             ></i>
@@ -195,48 +248,25 @@ export default function Sidebar({
                               const isSubActive = activeLink === sub.path;
                               return (
                                 <li key={subIdx}>
-                                  {sub.path ? (
-                                    <Link
-                                      to={sub.path}
-                                      className={`
-                                        block pl-4 py-2 cursor-pointer text-[14px]
-                                        m-1 rounded-[5px] transition-all duration-200 ease-in-out
-                                        ${
-                                          isSubActive
-                                            ? "bg-white text-primary"
-                                            : "hover:bg-white hover:text-primary"
-                                        }
-                                        whitespace-nowrap
-                                      `}
-                                      onClick={() => {
-                                        setActiveLink(sub.path);
-                                        if (isMobileView)
-                                          setIsMobileOpen(false);
-                                      }}
-                                    >
-                                      {sub.name}
-                                    </Link>
-                                  ) : (
-                                    <div
-                                      className={`
-                                        pl-4 py-2 cursor-pointer text-[14px]
-                                        m-1 rounded-[5px] transition-all duration-200 ease-in-out
-                                        ${
-                                          isSubActive
-                                            ? "bg-white text-primary"
-                                            : "hover:bg-white hover:text-primary"
-                                        }
-                                        whitespace-nowrap
-                                      `}
-                                      onClick={() => {
-                                        setActiveLink(sub.path);
-                                        if (isMobileView)
-                                          setIsMobileOpen(false);
-                                      }}
-                                    >
-                                      {sub.name}
-                                    </div>
-                                  )}
+                                  <Link
+                                    to={sub.path}
+                                    className={`
+                                      block pl-4 py-2 cursor-pointer text-[14px]
+                                      m-1 rounded-[5px] transition-all duration-200 ease-in-out
+                                      ${
+                                        isSubActive
+                                          ? "bg-white text-primary"
+                                          : "hover:bg-white hover:text-primary"
+                                      }
+                                      whitespace-nowrap
+                                    `}
+                                    onClick={() => {
+                                      setActiveLink(sub.path);
+                                      if (isMobileView) setIsMobileOpen(false);
+                                    }}
+                                  >
+                                    {sub.name}
+                                  </Link>
                                 </li>
                               );
                             })}
