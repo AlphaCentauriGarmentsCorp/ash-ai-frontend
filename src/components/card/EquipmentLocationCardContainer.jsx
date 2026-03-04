@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import CardTemplate from "./CardTemplate";
+import EquipmentLocationCard from "./EquipmentLocationCard";
 import TableSearch from "../table/TableSearch";
 
 /**
- * CardList Component
+ * EquipmentLocationCardContainer Component
  * A smart component that handles card display with filtering, sorting, and pagination
  * Similar to Table.jsx but for cards
  */
-const CardList = ({
+const EquipmentLocationCardContainer = ({
   data = [],
   config = {
     search: true,
@@ -64,9 +64,9 @@ const CardList = ({
   // Get layout classes
   const getLayoutClasses = () => {
     if (config.layout === "grid") {
-      return "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+      return "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 lg:gap-6";
     }
-    return "flex flex-col gap-6";
+    return "flex flex-col gap-3 sm:gap-4 lg:gap-6";
   };
 
   // Handle search
@@ -86,21 +86,17 @@ const CardList = ({
     <>
       <button
         onClick={() => handleAction("edit", item)}
-        className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition"
+        className="bg-white hover:bg-gray-50 border-2 border-gray-300 w-6 h-6 flex items-center justify-center transition"
         title="Edit"
       >
-        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-        </svg>
+        <i className="fas fa-pen text-primary text-xs"></i>
       </button>
       <button
         onClick={() => handleAction("delete", item)}
-        className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition"
+        className="bg-white hover:bg-gray-50 border-2 border-gray-300 w-6 h-6 flex items-center justify-center transition"
         title="Delete"
       >
-        <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-        </svg>
+        <i className="fas fa-trash text-primary text-xs"></i>
       </button>
     </>
   );
@@ -109,7 +105,7 @@ const CardList = ({
   const renderViewLink = (item) => (
     <button
       onClick={() => handleAction("view", item)}
-      className="text-white text-sm hover:underline"
+      className="text-white text-xs underline font-extralight"
     >
       View contents
     </button>
@@ -117,7 +113,7 @@ const CardList = ({
 
   // Default card renderer
   const defaultRenderCard = (item) => (
-    <CardTemplate
+    <EquipmentLocationCard
       key={item.id}
       variant="dark-header"
       title={item.name}
@@ -136,14 +132,14 @@ const CardList = ({
   return (
     <div className="w-full">
       {/* Header with Add Button and Search */}
-      <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-        <div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 sm:mb-8 gap-3 sm:gap-4">
+        <div className="w-full sm:w-auto">
           {url && button && (
             <Link
               to={url}
-              className="cursor-pointer hover:bg-secondary/90 bg-secondary text-white px-4 py-2 rounded-lg text-sm"
+              className="cursor-pointer hover:bg-secondary/90 bg-secondary text-white px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-normal inline-block w-full sm:w-auto text-center"
             >
-              <i className="fa fa-add mr-2"></i>
+              <i className="fa fa-add mr-1 sm:mr-2"></i>
               {button}
             </Link>
           )}
@@ -159,16 +155,16 @@ const CardList = ({
 
       {/* Title Section */}
       {title && (
-        <div className="mb-4">
-          <h2 className="text-xl font-semibold text-gray-800">{title}</h2>
+        <div className="mb-3 sm:mb-4">
+          <h2 className="text-lg sm:text-xl font-medium text-gray-800">{title}</h2>
         </div>
       )}
 
       {/* Divider Line */}
-      <div className="border-t border-gray-200 mb-6"></div>
+      <div className="border-t border-gray-200 mb-5 sm:mb-7"></div>
 
       {/* Content Container - Constrained Width */}
-      <div className="max-w-7xl mx-auto px-3">
+      <div className="max-w-7xl mx-auto px-2 sm:px-3">
         {/* Loading State */}
         {isLoading && (
           <div className="flex justify-center items-center py-12">
@@ -178,17 +174,17 @@ const CardList = ({
 
         {/* Empty State */}
         {!isLoading && paginatedData.length === 0 && (
-          <div className="text-center py-12 bg-gray-50 rounded-lg border border-gray-200">
+          <div className="text-center py-8 sm:py-12 bg-gray-50 rounded-lg border border-gray-200">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400 mb-4"
+              className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400 mb-3 sm:mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
             </svg>
-            <p className="text-gray-600 text-lg font-medium mb-2">No locations found</p>
-            <p className="text-gray-500 text-sm">
+            <p className="text-gray-600 text-base sm:text-lg font-normal mb-1.5 sm:mb-2">No locations found</p>
+            <p className="text-gray-500 text-xs sm:text-sm">
               {searchTerm ? "Try adjusting your search" : "Add a location to get started"}
             </p>
           </div>
@@ -206,22 +202,22 @@ const CardList = ({
 
       {/* Pagination */}
       {config.pagination && totalPages > 1 && (
-        <div className="max-w-7xl mx-auto px-3">
-          <div className="flex justify-between items-center mt-6 px-4 py-3 bg-white border border-gray-200 rounded-lg">
-          <div className="text-sm text-gray-700">
+        <div className="max-w-7xl mx-auto px-2 sm:px-3">
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-0 mt-4 sm:mt-6 px-3 sm:px-4 py-3 bg-white border border-gray-200 rounded-lg">
+          <div className="text-xs sm:text-sm text-gray-700 font-normal">
             Showing{" "}
-            <span className="font-medium">{(currentPage - 1) * pageSize + 1}</span> to{" "}
-            <span className="font-medium">
+            <span className="font-normal">{(currentPage - 1) * pageSize + 1}</span> to{" "}
+            <span className="font-normal">
               {Math.min(currentPage * pageSize, totalItems)}
             </span>{" "}
-            of <span className="font-medium">{totalItems}</span> results
+            of <span className="font-normal">{totalItems}</span> results
           </div>
 
-          <div className="flex gap-2">
+          <div className="flex gap-1.5 sm:gap-2 flex-wrap justify-center">
             <button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-2.5 sm:px-3 py-1 text-xs sm:text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed font-normal"
             >
               Previous
             </button>
@@ -230,7 +226,7 @@ const CardList = ({
               <button
                 key={index + 1}
                 onClick={() => setCurrentPage(index + 1)}
-                className={`px-3 py-1 text-sm border rounded-lg ${
+                className={`px-2.5 sm:px-3 py-1 text-xs sm:text-sm border rounded-lg font-normal ${
                   currentPage === index + 1
                     ? "bg-blue-600 text-white border-blue-600"
                     : "border-gray-300 hover:bg-gray-50"
@@ -243,7 +239,7 @@ const CardList = ({
             <button
               onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
               disabled={currentPage === totalPages}
-              className="px-3 py-1 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-2.5 sm:px-3 py-1 text-xs sm:text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed font-normal"
             >
               Next
             </button>
@@ -255,4 +251,4 @@ const CardList = ({
   );
 };
 
-export default CardList;
+export default EquipmentLocationCardContainer;
