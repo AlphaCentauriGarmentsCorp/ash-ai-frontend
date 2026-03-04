@@ -1,15 +1,18 @@
 import React, { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Textarea from "../../components/form/Textarea";
 import FormActions from "../../components/form/FormActions";
 import Input from "../../components/form/Input";
 import Select from "../../components/form/Select";
 import { locationInitialState } from "../../constants/formInitialState/locationInitialState";
-import { locationSchema } from "../../validations/locationSchema";
+import { equipmentLocationSchema } from "../../validations/equipmentLocationSchema";
 import { validateForm, hasErrors } from "../../utils/validation";
-import { locationApi } from "../../api/locationApi";
+import { equipmentLocationApi } from "../../api/equipmentLocationApi";
+import { LocationIconOptions } from "../../constants/formOptions/equipmentInventoryOptions";
 
 const AddLocation = () => {
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState(locationInitialState);
@@ -29,7 +32,7 @@ const AddLocation = () => {
     setSubmitSuccess(false);
     setServerError("");
 
-    const validationErrors = validateForm(formData, locationSchema);
+    const validationErrors = validateForm(formData, equipmentLocationSchema);
 
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);
@@ -39,14 +42,17 @@ const AddLocation = () => {
     }
 
     try {
-      await locationApi.create(formData);
+      await equipmentLocationApi.create(formData);
       setSubmitSuccess(true);
+      setTimeout(() => {
+        navigate("/equipment-inventory");
+      }, 1500);
 
       setFormData(locationInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
-      setServerError("Failed to create location.");
+      setServerError("Failed to create equipment location.");
     } finally {
       setIsSubmitting(false);
     }
@@ -62,7 +68,7 @@ const AddLocation = () => {
   return (
     <AdminLayout
       icon="fa-map-marker"
-      pageTitle="Add Location"
+      pageTitle="Add Equipment Location"
       path="/equipment-inventory/new"
       links={[
         { label: "Home", href: "/" },
@@ -85,7 +91,7 @@ const AddLocation = () => {
         )}
 
         <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4">
-          Location Details
+          Equipment Location Details
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -103,10 +109,10 @@ const AddLocation = () => {
           <Select
             label="Icon"
             name="icon"
+            options={LocationIconOptions}
             value={formData.icon}
             onChange={handleChange}
             error={errors.icon}
-            options={[]}
             placeholder="Select an icon"
             searchable
             required

@@ -1,4 +1,4 @@
-export const locationSchema = {
+export const equipmentLocationSchema = {
   name: {
     required: true,
     message: "Location name is required.",
