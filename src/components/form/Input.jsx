@@ -48,6 +48,10 @@ const Input = ({
       classes += " pr-10";
     }
 
+    if (icon) {
+      classes += " pl-9";
+    }
+
     return classes;
   };
 

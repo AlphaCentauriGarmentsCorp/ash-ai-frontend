@@ -169,6 +169,9 @@ const EquipmentInventory = () => {
 
   const handleAction = (action, rowData) => {
     switch (action) {
+      case "view":
+        navigate(`/equipment-inventory/equipment/${rowData.id}/view`);
+        break;
       case "edit":
         navigate(`/equipment-inventory/equipment/${rowData.id}/edit`);
         break;
