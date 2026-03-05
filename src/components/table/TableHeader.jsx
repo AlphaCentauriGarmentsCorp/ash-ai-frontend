@@ -10,6 +10,34 @@ const TableHeader = ({
   allSelected,
   hasData,
 }) => {
+  // Helper function to get alignment class
+  const getAlignmentClass = (position) => {
+    switch (position) {
+      case "start":
+        return "text-left";
+      case "center":
+        return "text-center";
+      case "end":
+        return "text-right";
+      default:
+        return "text-left";
+    }
+  };
+
+  // Helper function to get flex justification based on position
+  const getJustifyClass = (position) => {
+    switch (position) {
+      case "start":
+        return "justify-start";
+      case "center":
+        return "justify-center";
+      case "end":
+        return "justify-end";
+      default:
+        return "justify-start";
+    }
+  };
+
   return (
     <thead className="bg-light ">
       <tr>
@@ -27,7 +55,7 @@ const TableHeader = ({
         {columns.map((column) => (
           <th
             key={column.key}
-            className={`px-6 py-2 text-left text-xs font-normal text-primary tracking-wider ${
+            className={`px-6 py-2 text-xs font-normal text-primary tracking-wider ${
               column.sortable !== false && sortable
                 ? "cursor-pointer hover:bg-light2"
                 : ""
@@ -37,8 +65,10 @@ const TableHeader = ({
             }
             style={{ width: column.width }}
           >
-            <div className="flex items-center">
-              {column.label}
+            <div
+              className={`flex items-center ${getJustifyClass(column.position)}`}
+            >
+              <span>{column.label}</span>
               {column.sortable !== false && sortable && (
                 <div className="flex flex-col ml-1">
                   <i

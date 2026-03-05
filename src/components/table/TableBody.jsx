@@ -11,6 +11,20 @@ const TableBody = ({
   selectedItems,
   onSelectItem,
 }) => {
+  // Helper function to get alignment class for cell content
+  const getAlignmentClass = (position) => {
+    switch (position) {
+      case "start":
+        return "text-left";
+      case "center":
+        return "text-center";
+      case "end":
+        return "text-right";
+      default:
+        return "text-left";
+    }
+  };
+
   if (isLoading) {
     return (
       <tbody>
@@ -65,28 +79,30 @@ const TableBody = ({
       {data.map((item, index) => (
         <tr key={item.id || index} className="hover:bg-gray-50">
           {showCheckbox && (
-            <td className="px-6 py-2 w-2 ">
-              <input
-                type="checkbox"
-                className={`w-5 h-5 mt-2 rounded-full border border-gray-300 bg-white checked:bg-primary checked:border-primary cursor-pointer transition accent-primary`}
-                checked={selectedItems.has(item.id)}
-                onChange={() => onSelectItem(item.id)}
-              />
+            <td className="px-6 py-2 w-2">
+              <div className="flex justify-center">
+                <input
+                  type="checkbox"
+                  className={`w-5 h-5 mt-2 rounded-full border border-gray-300 bg-white checked:bg-primary checked:border-primary cursor-pointer transition accent-primary`}
+                  checked={selectedItems.has(item.id)}
+                  onChange={() => onSelectItem(item.id)}
+                />
+              </div>
             </td>
           )}
           {columns.map((column) => (
             <td
               key={`${item.id}-${column.key}`}
-              className={`px-6 py-2 text-xs text-primary wrap-break-word capitalize ${
-                column.className || "text-xs text-primary"
-              }`}
+              className={`px-6 py-2 text-xs text-primary wrap-break-word ${getAlignmentClass(
+                column.position,
+              )} ${column.className || "text-xs text-primary"}`}
             >
               {renderCell(item, column)}
             </td>
           ))}
 
           {/* Actions */}
-          <td className="px-6 py-2 whitespace-nowrap">
+          <td className="px-6 py-2">
             <div className="flex space-x-2 justify-center">
               {actions.includes("view") && (
                 <button

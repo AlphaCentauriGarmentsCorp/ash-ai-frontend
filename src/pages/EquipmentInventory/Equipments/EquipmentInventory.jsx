@@ -56,30 +56,71 @@ const EquipmentInventory = () => {
       sortable: true,
     },
     {
-      key: "total_items",
+      key: "quantity",
       label: "Total Items",
       sortable: true,
+      position: "center",
     },
     {
       key: "in_use",
       label: "In Use",
       sortable: true,
+      position: "center",
+      render: (item) => {
+        const in_use = item.in_use;
+        return <div>{in_use > 0 ? in_use : 0}</div>;
+      },
     },
     {
       key: "available",
       label: "Available",
       sortable: true,
+      position: "center",
+      render: (item) => {
+        return <div>{item.quantity - item.in_use - item.missing}</div>;
+      },
     },
     {
       key: "missing",
       label: "Missing",
       sortable: true,
+      position: "center",
+      render: (item) => {
+        const missing = item.missing;
+        return <div>{missing > 0 ? missing : 0}</div>;
+      },
     },
 
     {
       key: "status",
       label: "Status",
       sortable: true,
+      position: "center",
+      render: (item) => {
+        let bgColor = "bg-gray-200";
+
+        switch (item.status?.toLowerCase()) {
+          case "available":
+            bgColor = "bg-green-100 text-green-800";
+            break;
+          case "all in use":
+            bgColor = "bg-yellow-100 text-yellow-800";
+            break;
+          case "all missing":
+            bgColor = "bg-red-100 text-red-800";
+            break;
+          default:
+            bgColor = "bg-gray-100 text-gray-700";
+        }
+
+        return (
+          <span
+            className={`${bgColor} px-3 py-1 rounded-full text-xs font-medium capitalize`}
+          >
+            {item.status}
+          </span>
+        );
+      },
     },
   ];
 
@@ -155,7 +196,7 @@ const EquipmentInventory = () => {
     <AdminLayout
       icon="fa-cog"
       pageTitle="Equipment Inventory"
-      path="/admin/settings/equipment-inventory"
+      path="/equipment-inventory"
       links={[
         { label: "Home", href: "/" },
         { label: "Equipment Inventory", href: "#" },
