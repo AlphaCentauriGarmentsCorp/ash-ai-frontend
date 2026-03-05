@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Input from "../../../components/form/Input";
 import Textarea from "../../../components/form/Textarea";
@@ -7,7 +7,7 @@ import Select from "../../../components/form/Select";
 import FileUpload from "../../../components/form/FileUpload";
 import ImageUpload from "../../../components/form/ImageUpload";
 import FormActions from "../../../components/form/FormActions";
-import { equipmentInventoryInitialState } from "../../../constants/formInitialState/equipmentInventoryInitialState";
+import Loader from "../../../components/common/Loader";
 import { equipmentInventorySchema } from "../../../validations/equipmentInventorySchema";
 import { validateForm, hasErrors } from "../../../utils/validation";
 import { equipmentInventoryApi } from "../../../api/equipmentInventoryApi";
@@ -15,7 +15,10 @@ import { equipmentLocationApi } from "../../../api/equipmentLocationApi";
 
 export default function AddNewEquipment() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState(equipmentInventoryInitialState);
+  const [isLoading, setIsLoading] = useState(true);
+  const { id } = useParams();
+  const [formData, setFormData] = useState([]);
+  const [data, setData] = useState([]);
   const [errors, setErrors] = useState({});
   const [LocationOptions, setLocationOptions] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,6 +26,32 @@ export default function AddNewEquipment() {
   const [serverError, setServerError] = useState("");
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
+  const BaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+  useEffect(() => {
+    fetchEquipment();
+    fetchLocations();
+  }, []);
+
+  const fetchEquipment = async () => {
+    try {
+      const response = await equipmentInventoryApi.show(id);
+      setFormData({
+        ...response.data,
+        receipt: [],
+      });
+      setData(response.data);
+      if (response.data.image) {
+        setPreviewUrl(`${BaseUrl}${response.data.image}`);
+      } else {
+        setPreviewUrl("");
+      }
+    } catch (error) {
+      setServerError("Failed to load equipments.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleFileChange = (e) => {
     const { name, value } = e.target;
@@ -62,13 +91,13 @@ export default function AddNewEquipment() {
     }
 
     try {
-      await equipmentInventoryApi.create(formData);
+      await equipmentInventoryApi.update(id, formData);
       setSubmitSuccess(true);
       setErrors({});
 
       window.scrollTo({ top: 0, behavior: "smooth" });
       setTimeout(() => {
-        navigate("/equipment-inventory");
+        navigate(`/equipment-inventory/${id}/contents`);
       }, 1500);
     } catch (err) {
       setServerError(err.response?.data?.message || "Failed to add equipment.");
@@ -78,31 +107,30 @@ export default function AddNewEquipment() {
     }
   };
 
-  const handleReset = () => {
-    setFormData(AccountInitialState);
-    setErrors({});
-    setServerError("");
-    setSubmitSuccess(false);
-  };
-
   const handleImageUpload = (file) => {
     setSelectedImage(file);
 
     updateField("image", file);
+
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreviewUrl(reader.result);
       };
       reader.readAsDataURL(file);
+    } else if (data?.image) {
+      setPreviewUrl(`${BaseUrl}${data.image}`);
     } else {
       setPreviewUrl("");
     }
   };
 
-  useEffect(() => {
-    fetchLocations();
-  }, [formData.location_id]);
+  const handleReset = () => {
+    setFormData(AccountInitialState);
+    setErrors({});
+    setServerError("");
+    setSubmitSuccess(false);
+  };
 
   const fetchLocations = async () => {
     try {
@@ -117,10 +145,23 @@ export default function AddNewEquipment() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <Loader
+        pageTitle="Edit Equipment"
+        path="#"
+        links={[
+          { label: "Home", href: "/" },
+          { label: "Equipment Inventory", href: "/equipment-inventory" },
+        ]}
+      />
+    );
+  }
+
   return (
     <AdminLayout
-      pageTitle="Add Equipment"
-      path="/equipment-inventory/equipment/add"
+      pageTitle="Edit Equipment"
+      path="#"
       links={[
         { label: "Home", href: "/" },
         { label: "Equipment Inventory", href: "/equipment-inventory" },
@@ -135,10 +176,10 @@ export default function AddNewEquipment() {
                 <i className="fa-solid fa-check-circle text-green-500 mr-3"></i>
                 <div>
                   <p className="text-green-800 font-medium">
-                    Equipment added successfully!
+                    Equipment updated successfully!
                   </p>
                   <p className="text-green-600 text-sm mt-1">
-                    The new equipment has been added to the inventory.
+                    Equipment has been updated in inventory.
                   </p>
                 </div>
               </div>
@@ -161,7 +202,7 @@ export default function AddNewEquipment() {
           )}
 
           <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-1">
-            Add New Equipment
+            Edit Equipment Details
           </h1>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-7 p-4">

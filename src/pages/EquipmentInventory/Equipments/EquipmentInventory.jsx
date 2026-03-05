@@ -170,7 +170,7 @@ const EquipmentInventory = () => {
   const handleAction = (action, rowData) => {
     switch (action) {
       case "edit":
-        navigate(`/equipment-inventory/${rowData.id}/edit`);
+        navigate(`/equipment-inventory/equipment/${rowData.id}/edit`);
         break;
       case "delete":
         handleDeleteClick(rowData);
@@ -208,7 +208,7 @@ const EquipmentInventory = () => {
         config={tableConfig}
         onAction={handleAction}
         isLoading={isLoading}
-        url="/equipment-inventory/add-equipment"
+        url="/equipment-inventory/equipment/add"
         button="Add Equipment"
         downloadableColumn="qr_code"
       />

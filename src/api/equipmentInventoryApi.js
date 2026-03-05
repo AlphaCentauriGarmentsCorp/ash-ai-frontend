@@ -2,7 +2,6 @@ import api from "./axios";
 
 export const equipmentInventoryApi = {
   create: async (payload) => {
-    console.log("Payload to submit:", payload);
     const { data } = await api.post("/equipment-inventory", payload, {
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -37,12 +36,30 @@ export const equipmentInventoryApi = {
   },
 
   update: async (id, payload) => {
-    try {
-      const response = await api.put(`/equipment-inventory/${id}`, payload);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    console.log(payload);
+    const formData = new FormData();
+
+    Object.keys(payload).forEach((key) => {
+      const value = payload[key];
+
+      if (Array.isArray(value)) {
+        value.forEach((file) => {
+          formData.append(`${key}[]`, file);
+        });
+      } else {
+        formData.append(key, value);
+      }
+    });
+    console.log(formData);
+    const response = await api.post(
+      `/equipment-inventory/${id}?_method=PUT`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      },
+    );
+
+    return response.data;
   },
 
   delete: async (id) => {

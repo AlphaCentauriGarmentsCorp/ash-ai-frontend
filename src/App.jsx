@@ -34,7 +34,7 @@ import EquipmentLocations from "./pages/EquipmentInventory/Locations/EquipmentLo
 import AddLocation from "./pages/EquipmentInventory/Locations/AddLocation";
 import EditLocation from "./pages/EquipmentInventory/Locations/EditLocation";
 import AddEquipment from "./pages/EquipmentInventory/Equipments/AddEquipment";
-
+import EditEquipment from "./pages/EquipmentInventory/Equipments/EditEquipment";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
 import EquipmentInventory from "./pages/EquipmentInventory/Equipments/EquipmentInventory";
@@ -90,10 +90,18 @@ function App() {
           }
         />
         <Route
-          path="/equipment-inventory/add-equipment"
+          path="/equipment-inventory/equipment/add"
           element={
             <ProtectedRoute>
               <AddEquipment />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipment-inventory/equipment/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditEquipment />
             </ProtectedRoute>
           }
         />
