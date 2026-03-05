@@ -7,12 +7,18 @@ const TableBody = ({
   onAction,
   isLoading,
   emptyMessage,
+  showCheckbox,
+  selectedItems,
+  onSelectItem,
 }) => {
   if (isLoading) {
     return (
       <tbody>
         <tr>
-          <td colSpan={columns.length + 1} className="px-6 py-8 text-center">
+          <td
+            colSpan={columns.length + (showCheckbox ? 1 : 0) + 1}
+            className="px-6 py-8 text-center"
+          >
             <div className="flex justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
@@ -27,8 +33,8 @@ const TableBody = ({
       <tbody>
         <tr>
           <td
-            colSpan={columns.length + 1}
-            className="px-6 py-8 text-center text-gray-500  "
+            colSpan={columns.length + (showCheckbox ? 1 : 0) + 1}
+            className="px-6 py-8 text-center text-gray-500"
           >
             {emptyMessage}
           </td>
@@ -58,6 +64,16 @@ const TableBody = ({
     <tbody className="bg-white divide-y divide-gray-200">
       {data.map((item, index) => (
         <tr key={item.id || index} className="hover:bg-gray-50">
+          {showCheckbox && (
+            <td className="px-6 py-2 w-2 ">
+              <input
+                type="checkbox"
+                className={`w-5 h-5 mt-2 rounded-full border border-gray-300 bg-white checked:bg-primary checked:border-primary cursor-pointer transition accent-primary`}
+                checked={selectedItems.has(item.id)}
+                onChange={() => onSelectItem(item.id)}
+              />
+            </td>
+          )}
           {columns.map((column) => (
             <td
               key={`${item.id}-${column.key}`}

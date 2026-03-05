@@ -1,9 +1,29 @@
 import React from "react";
 
-const TableHeader = ({ columns, sortConfig, onSort, sortable }) => {
+const TableHeader = ({
+  columns,
+  sortConfig,
+  onSort,
+  sortable,
+  showCheckbox,
+  onSelectAll,
+  allSelected,
+  hasData,
+}) => {
   return (
     <thead className="bg-light ">
       <tr>
+        {showCheckbox && (
+          <th className="px-6 py-2 text-left text-xs font-normal text-primary tracking-wider">
+            <input
+              type="checkbox"
+              className={`w-5 h-5 mt-1 rounded-full border border-gray-300 bg-white checked:bg-primary checked:border-primary cursor-pointer transition accent-primary`}
+              checked={allSelected && hasData}
+              onChange={onSelectAll}
+              disabled={!hasData}
+            />
+          </th>
+        )}
         {columns.map((column) => (
           <th
             key={column.key}

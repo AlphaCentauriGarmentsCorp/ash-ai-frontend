@@ -56,10 +56,26 @@ const EquipmentInventory = () => {
       sortable: true,
     },
     {
-      key: "stocks",
-      label: "Stocks",
+      key: "total_items",
+      label: "Total Items",
       sortable: true,
     },
+    {
+      key: "in_use",
+      label: "In Use",
+      sortable: true,
+    },
+    {
+      key: "available",
+      label: "Available",
+      sortable: true,
+    },
+    {
+      key: "missing",
+      label: "Missing",
+      sortable: true,
+    },
+
     {
       key: "status",
       label: "Status",
@@ -128,11 +144,11 @@ const EquipmentInventory = () => {
     pagination: true,
     search: true,
     filters: false,
-    actions: ["edit", "delete"],
+    actions: ["view", "edit", "delete"],
     pageSize: 10,
     emptyMessage: "No equipment found",
     searchPlaceholder: "Search equipment...",
-    showIndex: true,
+    showCheckbox: true,
   };
 
   return (
@@ -153,7 +169,7 @@ const EquipmentInventory = () => {
         isLoading={isLoading}
         url="/equipment-inventory/add-equipment"
         button="Add Equipment"
-        PageTitle="Equipment Inventory"
+        downloadableColumn="qr_code"
       />
 
       <DeleteConfirmationDialog
