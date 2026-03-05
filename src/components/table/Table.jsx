@@ -5,6 +5,7 @@ import TablePagination from "./TablePagination";
 import TableFilters from "./TableFilters";
 import TableSearch from "./TableSearch";
 import { Link } from "react-router-dom";
+import { downloadApi } from "../../api/downloadApi";
 
 const Table = ({
   data = [],
@@ -16,6 +17,7 @@ const Table = ({
     filters: true,
     actions: ["view", "edit", "delete"],
     showIndex: true,
+    showCheckbox: false, // Add this to config
   },
   onPageSizeChange,
   onAction,
@@ -23,6 +25,7 @@ const Table = ({
   url,
   button,
   PageTitle,
+  downloadableColumn = "image", // New prop for download column
 }) => {
   const [localData, setLocalData] = useState(data);
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
@@ -31,10 +34,13 @@ const Table = ({
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(config.pageSize || 10);
   const [isShowingAll, setIsShowingAll] = useState(false);
+  const [selectedItems, setSelectedItems] = useState(new Set());
 
   // Handle external data updates
   useEffect(() => {
     setLocalData(data);
+    // Clear selections when data changes
+    setSelectedItems(new Set());
   }, [data]);
 
   // Reset to first page when filters/search change
@@ -87,7 +93,7 @@ const Table = ({
 
           let value;
           if (column.key.includes(".")) {
-            const keys = columnKey.split(".");
+            const keys = column.key.split(".");
             value = item;
             for (const key of keys) {
               value = value?.[key];
@@ -304,6 +310,56 @@ const Table = ({
     }
   };
 
+  // Handle select all
+  const handleSelectAll = () => {
+    if (selectedItems.size === paginatedData.length) {
+      setSelectedItems(new Set());
+    } else {
+      setSelectedItems(new Set(paginatedData.map((item) => item.id)));
+    }
+  };
+
+  // Handle select single item
+  const handleSelectItem = (id) => {
+    const newSelected = new Set(selectedItems);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedItems(newSelected);
+  };
+
+  const handleDownloadSelected = async () => {
+    const selectedData = paginatedData.filter((item) =>
+      selectedItems.has(item.id),
+    );
+
+    for (const item of selectedData) {
+      const filePath = item[downloadableColumn];
+      if (!filePath) continue;
+
+      try {
+        const blob = await downloadApi.downloadFile(filePath);
+        const extension = blob.type.split("/")[1] || "png";
+        const fileName = `${item.sku || "file"}_${downloadableColumn}.${extension}`;
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      } catch (error) {
+        console.error("Error downloading file:", error);
+      }
+    }
+  };
+
   const totalItems = sortedData.length;
   const totalPages = isShowingAll ? 1 : Math.ceil(totalItems / pageSize);
   const showingFrom = isShowingAll ? 1 : (currentPage - 1) * pageSize + 1;
@@ -314,7 +370,8 @@ const Table = ({
   return (
     <div className="bg-white rounded-lg">
       <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-        <div>
+        <div className="flex gap-2">
+          {/* Add button */}
           {url && (
             <Link
               to={url}
@@ -323,6 +380,17 @@ const Table = ({
               <i className="fa fa-add mr-2"></i>
               {button}
             </Link>
+          )}
+
+          {/* Download button */}
+          {config.showCheckbox && selectedItems.size > 0 && (
+            <button
+              onClick={handleDownloadSelected}
+              className="cursor-pointer transition-all ease-in-out  hover:text-white hover:bg-primary/90 bg-white text-primary font-medium border border-primary  px-4 py-2 rounded-lg text-sm flex items-center"
+            >
+              <i className="fa fa-download mr-2"></i>
+              Download ({selectedItems.size})
+            </button>
           )}
         </div>
 
@@ -361,6 +429,10 @@ const Table = ({
             sortConfig={sortConfig}
             onSort={handleSort}
             sortable={config.sortable}
+            showCheckbox={config.showCheckbox}
+            onSelectAll={handleSelectAll}
+            allSelected={selectedItems.size === paginatedData.length}
+            hasData={paginatedData.length > 0}
           />
 
           <TableBody
@@ -370,6 +442,9 @@ const Table = ({
             onAction={handleAction}
             isLoading={isLoading}
             emptyMessage={config.emptyMessage || "No data found"}
+            showCheckbox={config.showCheckbox}
+            selectedItems={selectedItems}
+            onSelectItem={handleSelectItem}
           />
         </table>
       </div>

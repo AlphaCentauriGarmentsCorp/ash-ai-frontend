@@ -1,13 +1,46 @@
 import React from "react";
 
-const TableHeader = ({ columns, sortConfig, onSort, sortable }) => {
+const TableHeader = ({
+  columns,
+  sortConfig,
+  onSort,
+  sortable,
+  showCheckbox,
+  onSelectAll,
+  allSelected,
+  hasData,
+}) => {
+  const getJustifyClass = (position) => {
+    switch (position) {
+      case "start":
+        return "justify-start";
+      case "center":
+        return "justify-center";
+      case "end":
+        return "justify-end";
+      default:
+        return "justify-start";
+    }
+  };
+
   return (
     <thead className="bg-light ">
       <tr>
+        {showCheckbox && (
+          <th className="px-6 py-2 text-left text-xs font-normal text-primary tracking-wider">
+            <input
+              type="checkbox"
+              className={`w-5 h-5 mt-1 rounded-full border border-gray-300 bg-white checked:bg-primary checked:border-primary cursor-pointer transition accent-primary`}
+              checked={allSelected && hasData}
+              onChange={onSelectAll}
+              disabled={!hasData}
+            />
+          </th>
+        )}
         {columns.map((column) => (
           <th
             key={column.key}
-            className={`px-6 py-2 text-left text-xs font-normal text-primary tracking-wider ${
+            className={`px-6 py-2 text-xs font-normal text-primary tracking-wider ${
               column.sortable !== false && sortable
                 ? "cursor-pointer hover:bg-light2"
                 : ""
@@ -17,8 +50,10 @@ const TableHeader = ({ columns, sortConfig, onSort, sortable }) => {
             }
             style={{ width: column.width }}
           >
-            <div className="flex items-center">
-              {column.label}
+            <div
+              className={`flex items-center ${getJustifyClass(column.position)}`}
+            >
+              <span>{column.label}</span>
               {column.sortable !== false && sortable && (
                 <div className="flex flex-col ml-1">
                   <i
