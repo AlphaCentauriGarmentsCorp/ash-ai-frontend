@@ -114,7 +114,7 @@ export const getMenuByRole = (userRole) => {
             },
             {
               name: "Add Equipment",
-              path: "/equipment-inventory/new",
+              path: "/equipment-inventory/add-equipment",
               access: ["admin", "general_manager"],
             },
           ],

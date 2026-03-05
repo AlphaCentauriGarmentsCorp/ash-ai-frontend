@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import AdminLayout from "../../layouts/Admin/AdminLayout";
-import EquipmentLocationCardContainer from "../../components/card/EquipmentLocationCardContainer";
-import DeleteConfirmationDialog from "../../components/common/DeleteConfirmationDialog";
-import { equipmentLocationApi } from "../../api/equipmentLocationApi";
+import AdminLayout from "../../../layouts/Admin/AdminLayout";
+import EquipmentLocationCardContainer from "../../../components/card/EquipmentLocationCardContainer";
+import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
+import { equipmentLocationApi } from "../../../api/equipmentLocationApi";
+import Loader from "../../../components/common/Loader";
 
-const EquipmentInventory = () => {
+const EquipmentLocations = () => {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -79,6 +80,19 @@ const EquipmentInventory = () => {
     searchPlaceholder: "Search locations...",
   };
 
+  if (isLoading) {
+    return (
+      <Loader
+        pageTitle="Equipment Inventory"
+        path="/equipment-inventory"
+        links={[
+          { label: "Home", href: "/" },
+          { label: "Equipment Inventory", href: "/equipment-inventory" },
+        ]}
+      />
+    );
+  }
+
   return (
     <AdminLayout
       pageTitle="Equipment Inventory"
@@ -108,4 +122,4 @@ const EquipmentInventory = () => {
   );
 };
 
-export default EquipmentInventory;
+export default EquipmentLocations;

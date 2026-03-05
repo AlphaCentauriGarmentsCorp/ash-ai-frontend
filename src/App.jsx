@@ -30,13 +30,14 @@ import EditSizeLabel from "./pages/DropDownSettings/SizeLabel/EditSizeLabel";
 import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/PrintLabelPlacement";
 import AddPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/AddPrintLabelPlacement";
 import EditPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/EditPrintLabelPlacement";
-import EquipmentInventory from "./pages/Locations/EquipmentInventory";
-import AddLocation from "./pages/Locations/AddLocation";
-import EditLocation from "./pages/Locations/EditLocation";
-
+import EquipmentLocations from "./pages/EquipmentInventory/Locations/EquipmentLocations";
+import AddLocation from "./pages/EquipmentInventory/Locations/AddLocation";
+import EditLocation from "./pages/EquipmentInventory/Locations/EditLocation";
+import AddEquipment from "./pages/EquipmentInventory/Equipments/AddEquipment";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
+import EquipmentInventory from "./pages/EquipmentInventory/Equipments/EquipmentInventory";
 
 function App() {
   const { loading } = useAuth();
@@ -76,7 +77,7 @@ function App() {
           path="/equipment-inventory"
           element={
             <ProtectedRoute>
-              <EquipmentInventory />
+              <EquipmentLocations />
             </ProtectedRoute>
           }
         />
@@ -89,10 +90,26 @@ function App() {
           }
         />
         <Route
+          path="/equipment-inventory/add-equipment"
+          element={
+            <ProtectedRoute>
+              <AddEquipment />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/equipment-inventory/edit/:id"
           element={
             <ProtectedRoute>
               <EditLocation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipment-inventory/:id/contents"
+          element={
+            <ProtectedRoute>
+              <EquipmentInventory />
             </ProtectedRoute>
           }
         />
