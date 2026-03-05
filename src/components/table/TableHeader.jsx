@@ -10,21 +10,6 @@ const TableHeader = ({
   allSelected,
   hasData,
 }) => {
-  // Helper function to get alignment class
-  const getAlignmentClass = (position) => {
-    switch (position) {
-      case "start":
-        return "text-left";
-      case "center":
-        return "text-center";
-      case "end":
-        return "text-right";
-      default:
-        return "text-left";
-    }
-  };
-
-  // Helper function to get flex justification based on position
   const getJustifyClass = (position) => {
     switch (position) {
       case "start":
