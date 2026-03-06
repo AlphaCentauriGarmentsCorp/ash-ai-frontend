@@ -1,19 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Textarea from "../../components/form/Textarea";
 import FormActions from "../../components/form/FormActions";
 import Input from "../../components/form/Input";
-import { supplierInitialState } from "../../constants/formInitialState/supplierInitialState";
-import { supplierSchema } from "../../validations/supplierSchema";
+import Select from "../../components/form/Select";
+import { materialsInitialState } from "../../constants/formInitialState/materialsInitialState";
+import { materialsSchema } from "../../validations/materialsSchema";
 import { validateForm, hasErrors } from "../../utils/validation";
+import { materialsApi } from "../../api/materialsApi";
 import { supplierApi } from "../../api/supplierApi";
-
-const AddSupplier = () => {
+import { MaterialOptions } from "../../constants/formOptions/materialOptions";
+const AddMaterials = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
-  const [formData, setFormData] = useState(supplierInitialState);
+  const [formData, setFormData] = useState(materialsInitialState);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [supplierOptions, setSupplierOptions] = useState([]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,7 +31,7 @@ const AddSupplier = () => {
     setSubmitSuccess(false);
     setServerError("");
 
-    const validationErrors = validateForm(formData, supplierSchema);
+    const validationErrors = validateForm(formData, materialsSchema);
 
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);
@@ -38,32 +41,49 @@ const AddSupplier = () => {
     }
 
     try {
-      await supplierApi.create(formData);
+      await materialsApi.create(formData);
       setSubmitSuccess(true);
 
-      setFormData(typesInitialState);
+      setFormData(materialsInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
-      setServerError("Failed to create supplier.");
+      setServerError("Failed to create materials.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleReset = () => {
-    setFormData(supplierInitialState);
+    setFormData(materialsInitialState);
     setErrors({});
     setSubmitSuccess(false);
     setServerError("");
   };
 
+  useEffect(() => {
+    fetchSupplier();
+  }, [formData.supplier_id]);
+
+  const fetchSupplier = async () => {
+    try {
+      const response = await supplierApi.index();
+      const options = response.data.map((supplier) => ({
+        value: supplier.id,
+        label: supplier.name,
+      }));
+      setSupplierOptions(options);
+    } catch (error) {
+      console.error("Failed to fetch locations:", error);
+    }
+  };
+
   return (
     <AdminLayout
-      pageTitle="Add Supplier"
+      pageTitle="Add Materials"
       links={[
         { label: "Home", href: "/" },
-        { label: "Suppliers", href: "/suplier" },
+        { label: "Materials", href: "/materials" },
       ]}
     >
       <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
@@ -73,10 +93,10 @@ const AddSupplier = () => {
               <i className="fa-solid fa-check-circle text-green-500 mr-3"></i>
               <div>
                 <p className="text-green-800 font-medium">
-                  Supplier added successfully!
+                  Materials added successfully!
                 </p>
                 <p className="text-green-600 text-sm mt-1">
-                  The new Supplier has been added to system.
+                  The new materials have been added to system.
                 </p>
               </div>
             </div>
@@ -99,109 +119,87 @@ const AddSupplier = () => {
         )}
 
         <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4">
-          Supplier Details
+          Materials Details
         </h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-15 px-7">
-          <Input
-            label="Code Name"
-            name="name"
-            value={formData.name}
+          <div className="col-span-2">
+            <Input
+              label="Material Name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              error={errors.name}
+              type="text"
+              placeholder="Enter materials code name"
+              required
+            />
+          </div>
+
+          <Select
+            label="Material Type"
+            name="material_type"
+            options={MaterialOptions}
+            value={formData.material_type}
             onChange={handleChange}
-            error={errors.name}
-            type="text"
-            placeholder="Enter supplier code name"
+            error={errors.material_type}
+            placeholder="Select a Supplier"
+            searchable
+            required
+          />
+
+          <Select
+            label="Material Supplier"
+            name="supplier_id"
+            options={supplierOptions}
+            value={formData.supplier_id}
+            onChange={handleChange}
+            error={errors.supplier_id}
+            placeholder="Select a Supplier"
+            searchable
             required
           />
 
           <Input
-            label="Contact Person"
-            name="contact_person"
-            value={formData.contact_person}
+            label="Price"
+            name="price"
+            value={formData.price}
             onChange={handleChange}
-            error={errors.contact_person}
-            type="text"
-            placeholder="Enter contact person"
+            error={errors.price}
+            type="number"
+            placeholder="Enter material price"
             required
           />
 
           <Input
-            label="Contact Number"
-            name="contact_number"
-            value={formData.contact_number}
+            label="Unit"
+            name="unit"
+            value={formData.unit}
             onChange={handleChange}
-            error={errors.contact_number}
+            error={errors.unit}
             type="text"
-            placeholder="Enter contact number"
+            placeholder="Enter material units"
             required
           />
 
           <Input
-            label="Email Address"
-            name="email"
-            value={formData.email}
+            label="Minimun Units"
+            name="minimum"
+            value={formData.minimum}
             onChange={handleChange}
-            error={errors.email}
-            type="email"
-            placeholder="Enter email address"
-          />
-        </div>
-
-        <h1 className="font-semibold text-xl border-b text-primary border-gray-300 mt-7 pb-2 mb-4">
-          Supplier Address
-        </h1>
-
-        <div className="px-7">
-          <Input
-            label="Street Address"
-            name="street_address"
-            placeholder="Enter Street Address"
-            value={formData.street_address}
-            onChange={handleChange}
-            error={errors.street_address}
+            error={errors.minimum}
             type="text"
-          />
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-x-5 px-7">
-          <Input
-            label="Barangay"
-            name="barangay"
-            placeholder="Enter barangay"
-            value={formData.barangay}
-            onChange={handleChange}
-            error={errors.barangay}
-            type="text"
+            placeholder="Enter minimum unit to order"
           />
 
           <Input
-            label="City"
-            name="city"
-            placeholder="Enter city"
-            value={formData.city}
+            label="Lead Time"
+            name="lead"
+            value={formData.lead}
             onChange={handleChange}
-            error={errors.city}
+            error={errors.lead}
             type="text"
-          />
-
-          <Input
-            label="Province"
-            name="province"
-            placeholder="Enter province"
-            value={formData.province}
-            onChange={handleChange}
-            error={errors.province}
-            type="text"
-          />
-
-          <Input
-            label="Postal Code"
-            name="postal_code"
-            placeholder="Enter postal code"
-            value={formData.postal_code}
-            onChange={handleChange}
-            error={errors.postal_code}
-            type="text"
+            placeholder="Enter material lead time"
           />
         </div>
 
@@ -218,8 +216,7 @@ const AddSupplier = () => {
             onChange={handleChange}
             rows={10}
             resizable
-            required
-            placeholder="Enter supplier notes"
+            placeholder="Enter materials notes"
           />
         </div>
       </div>
@@ -236,4 +233,4 @@ const AddSupplier = () => {
   );
 };
 
-export default AddSupplier;
+export default AddMaterials;

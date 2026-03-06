@@ -43,6 +43,8 @@ import Suppliers from "./pages/Supplier/AllSupplier";
 import AddSupplier from "./pages/Supplier/AddSupplier";
 import EditSupplier from "./pages/Supplier/EditSupplier";
 import ViewSupplier from "./pages/Supplier/ViewSupplier";
+import AllMaterials from "./pages/Materials/AllMaterials";
+import AddMaterials from "./pages/Materials/AddMaterials";
 
 function App() {
   const { loading } = useAuth();
@@ -379,6 +381,22 @@ function App() {
           element={
             <ProtectedRoute>
               <ViewSupplier />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/supplier/materials"
+          element={
+            <ProtectedRoute>
+              <AllMaterials />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/supplier/materials/new"
+          element={
+            <ProtectedRoute>
+              <AddMaterials />
             </ProtectedRoute>
           }
         />

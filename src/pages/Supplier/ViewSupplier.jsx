@@ -6,13 +6,17 @@ import { supplierApi } from "../../api/supplierApi";
 import { useParams, Link } from "react-router-dom";
 import Table from "../../components/table/Table";
 import Loader from "../../components/common/Loader";
+import DeleteConfirmationDialog from "../../components/common/DeleteConfirmationDialog";
+import { materialsApi } from "../../api/materialsApi";
 
 export default function ViewSupplier() {
   const { id } = useParams();
-  const [supplier, setSupplier] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [supplier, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-  const BaseUrl = import.meta.env.VITE_API_BASE_URL;
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchSupplierDetails();
@@ -20,183 +24,117 @@ export default function ViewSupplier() {
 
   const fetchSupplierDetails = async () => {
     try {
-      setLoading(true);
+      setIsLoading(true);
       const response = await supplierApi.show(id);
-      setSupplier(response.data);
+      setData(response.data);
       setError("");
     } catch (err) {
       setError("Failed to load supplier details");
       console.error("Error fetching supplier:", err);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
   const columns = [
     {
-      key: "user",
+      key: "material_type",
+      label: "Material Type",
+      sortable: false,
+      filterable: true,
+    },
+    {
+      key: "name",
       label: "Name",
       sortable: true,
     },
+
     {
-      key: "borrow_date",
-      label: "Borrowed date",
+      key: "price",
+      label: "Price/Unit",
       sortable: true,
       render: (item) => {
-        const date = new Date(item.borrow_date);
-        const formattedDate = date.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        });
-        const formattedTime = date.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        });
+        const price = item.price ?? "-";
+        const unit = item.unit ?? "-";
+        const minimum = item.minimum ?? "N/A";
 
         return (
-          <div className="flex flex-col">
-            <span className="whitespace-nowrap">{formattedDate}</span>
-            <span className="text-xs text-gray-500 whitespace-nowrap">
-              {formattedTime}
+          <div className="flex flex-col text-xs">
+            <span className="font-medium ">
+              {price} / {unit}
             </span>
+            <span className="text-xs text-gray-500">Min: {minimum}</span>
           </div>
         );
       },
     },
     {
-      key: "quantity",
-      label: "Qty",
-      sortable: false,
-      position: "center",
-      render: (item) => (
-        <span className="px-2 py-1 bg-gray-100 rounded-lg text-sm">
-          {item.quantity}
-        </span>
-      ),
+      key: "lead",
+      label: "Lead Time",
+      sortable: true,
     },
     {
-      key: "return_date",
-      label: "Return date",
+      key: "notes",
+      label: "Notes",
       sortable: true,
-      render: (item) => {
-        if (!item.return_date) {
-          return (
-            <span className="text-gray-400 italic text-sm">Not returned</span>
-          );
-        }
-        const date = new Date(item.return_date);
-        const formattedDate = date.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        });
-        const formattedTime = date.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-          hour12: true,
-        });
-
-        return (
-          <div className="flex flex-col">
-            <span className="whitespace-nowrap">{formattedDate}</span>
-            <span className="text-xs text-gray-500 whitespace-nowrap">
-              {formattedTime}
-            </span>
-          </div>
-        );
-      },
-    },
-    {
-      key: "status",
-      label: "Status",
-      sortable: true,
-      position: "center",
-      render: (item) => {
-        let bgColor = "bg-gray-200";
-        switch (item.status?.toLowerCase()) {
-          case "completed":
-            bgColor = "bg-green-100 text-green-800";
-            break;
-          case "in use":
-            bgColor = "bg-yellow-100 text-yellow-800";
-            break;
-          case "missing":
-            bgColor = "bg-red-100 text-red-800";
-            break;
-          default:
-            bgColor = "bg-gray-100 text-gray-700";
-        }
-        return (
-          <span
-            className={`${bgColor} px-2.5 py-1 rounded-full text-xs font-medium capitalize whitespace-nowrap`}
-          >
-            {item.status}
-          </span>
-        );
-      },
     },
   ];
+  const handleDeleteClick = (rowData) => {
+    setSelectedItem(rowData);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedItem) return;
+
+    setIsDeleting(true);
+    try {
+      await materialsApi.delete(selectedItem.id);
+      setData((prevSupplier) => ({
+        ...prevSupplier,
+        materials: prevSupplier.materials.filter(
+          (item) => item.id !== selectedItem.id,
+        ),
+      }));
+
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      console.log(error);
+      alert("Failed to delete materials. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setSelectedItem(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteDialogOpen(false);
+    setSelectedItem(null);
+  };
+
+  const handleAction = (action, rowData) => {
+    switch (action) {
+      case "edit":
+        navigate(`/admin/settings/materials/edit/${rowData.id}`);
+        break;
+      case "delete":
+        handleDeleteClick(rowData);
+        break;
+    }
+  };
 
   const tableConfig = {
     sortable: true,
     pagination: true,
     search: true,
-    filters: false,
-    actions: [],
+    filters: true,
+    actions: ["edit", "delete"],
     pageSize: 10,
-    emptyMessage: "No activity logs found",
-    searchPlaceholder: "Search logs...",
+    emptyMessage: "No materials found",
+    searchPlaceholder: "Search materials...",
     showIndex: true,
-    scrollable: true,
-    minWidth: "650px",
   };
-
-  const activityLogs = [
-    {
-      id: 1,
-      user: "John Doe",
-      borrow_date: "2026-03-05 15:08:56",
-      quantity: "2",
-      return_date: "2026-03-05 15:08:56",
-      status: "Completed",
-    },
-    {
-      id: 2,
-      user: "Jane Smith",
-      borrow_date: "2026-03-06 00:13:47",
-      quantity: "2",
-      return_date: "2026-03-05 15:08:56",
-      status: "Completed",
-    },
-    {
-      id: 3,
-      user: "Mike Johnson",
-      borrow_date: "2026-03-05 15:08:56",
-      quantity: "2",
-      return_date: "2026-03-05 15:08:56",
-      status: "Completed",
-    },
-    {
-      id: 4,
-      user: "Sarah Wilson",
-      borrow_date: "2026-03-05 15:08:56",
-      quantity: "2",
-      return_date: null,
-      status: "In use",
-    },
-    {
-      id: 5,
-      user: "Admin",
-      borrow_date: "2026-03-05 15:08:56",
-      quantity: "2",
-      return_date: null,
-      status: "Missing",
-    },
-  ];
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Loader
         icon="fa-building"
@@ -385,12 +323,21 @@ export default function ViewSupplier() {
           </div>
         </div>
         <Table
-          data={activityLogs}
+          data={supplier.materials}
           columns={columns}
           config={tableConfig}
-          isLoading={loading}
-          url="/new"
+          onAction={handleAction}
+          isLoading={isLoading}
+          url="/supplier/materials/new"
           button="Add Material"
+          PageTitle="Material"
+        />
+        <DeleteConfirmationDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={handleDeleteCancel}
+          onConfirm={handleDeleteConfirm}
+          itemName={selectedItem?.name}
+          isLoading={isDeleting}
         />
       </div>
     </AdminLayout>

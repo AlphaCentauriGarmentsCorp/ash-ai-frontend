@@ -1,4 +1,4 @@
-export const materialsInitalState = {
+export const materialsInitialState = {
   supplier_id: "",
   name: "",
   material_type: "",

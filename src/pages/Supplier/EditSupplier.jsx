@@ -10,7 +10,6 @@ import { validateForm, hasErrors } from "../../utils/validation";
 import { supplierApi } from "../../api/supplierApi";
 import Loader from "../../components/common/Loader";
 
-
 const EditSupplier = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -88,7 +87,7 @@ const EditSupplier = () => {
         pageTitle="Edit Supplier"
         links={[
           { label: "Home", href: "/" },
-          { label: "Suppliers", href: "/suplier" },
+          { label: "Suppliers", href: "/supplier" },
         ]}
       />
     );
@@ -99,7 +98,7 @@ const EditSupplier = () => {
       pageTitle="Edit Supplier"
       links={[
         { label: "Home", href: "/" },
-        { label: "Suppliers", href: "/suplier" },
+        { label: "Suppliers", href: "/supplier" },
       ]}
     >
       <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">

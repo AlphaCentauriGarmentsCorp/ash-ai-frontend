@@ -63,7 +63,7 @@ const AddSupplier = () => {
       pageTitle="Add Supplier"
       links={[
         { label: "Home", href: "/" },
-        { label: "Suppliers", href: "/suplier" },
+        { label: "Suppliers", href: "/supplier" },
       ]}
     >
       <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
