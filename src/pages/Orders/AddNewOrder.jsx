@@ -29,6 +29,7 @@ import {
   apparelPlacementMeasurements,
   paymentPlans,
 } from "../../constants/formOptions/orderOptions";
+import { materialsApi } from "../../api/materialsApi";
 
 // Constants
 const DEFAULT_DEADLINE_DAYS = 14;
@@ -109,7 +110,7 @@ export default function AddNewOrder() {
   );
   const [fabricTypeOptions, setFabricTypeOptions] = useState([]);
   const [fabricSupplierOptions, setFabricSupplierOptions] = useState([]);
-  const [priorityListOptions, setPriorityListOptions] = useState([]);
+  const [fabricMaterials, setFabricMaterials] = useState([]);
 
   // Memoized values
   const summary = useMemo(
@@ -169,7 +170,11 @@ export default function AddNewOrder() {
     const loadInitialData = async () => {
       setLoading(true);
       try {
-        await Promise.all([fetchClients(), fetchDropdownOptions()]);
+        await Promise.all([
+          fetchClients(),
+          fetchDropdownOptions(),
+          fetchFabricMaterials(),
+        ]);
       } catch (error) {
         console.error("Failed to load initial data:", error);
       } finally {
@@ -244,6 +249,71 @@ export default function AddNewOrder() {
       setClientsLoading(false);
     }
   };
+
+  const fetchFabricMaterials = async () => {
+    try {
+      setOptionsLoading(true);
+      const response = await materialsApi.getByTypeFabric("Fabric");
+      setFabricMaterials(response.data);
+
+      // Extract unique fabric types/names
+      const uniqueFabricNames = [
+        ...new Set(response.data.map((material) => material.name)),
+      ];
+      setFabricTypeOptions(
+        uniqueFabricNames.map((name) => ({
+          value: name,
+          label: name,
+        })),
+      );
+
+      // You can also set fabric suppliers if needed
+      // const uniqueSuppliers = [...new Set(response.data.map(material => material.supplier?.name).filter(Boolean))];
+      // setFabricSupplierOptions(
+      //   uniqueSuppliers.map(supplier => ({
+      //     value: supplier,
+      //     label: supplier
+      //   }))
+      // );
+    } catch (error) {
+      console.error("Failed to fetch fabric materials:", error);
+      setServerError("Failed to load fabric materials.");
+    } finally {
+      setOptionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (formData.fabric_type && fabricMaterials.length > 0) {
+      // Find all materials with the selected fabric name
+      const materialsWithSelectedFabric = fabricMaterials.filter(
+        (material) => material.name === formData.fabric_type,
+      );
+
+      // Get unique suppliers for this fabric
+      const supplierOptions = materialsWithSelectedFabric
+        .map((material) => material.supplier?.name)
+        .filter(Boolean)
+        .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+
+      setFabricSupplierOptions(
+        supplierOptions.map((supplier) => ({
+          value: supplier,
+          label: supplier,
+        })),
+      );
+
+      // Clear fabric supplier if current selection isn't available for this fabric
+      if (
+        formData.fabric_supplier &&
+        !supplierOptions.includes(formData.fabric_supplier)
+      ) {
+        setFormData((prev) => ({ ...prev, fabric_supplier: "" }));
+      }
+    } else {
+      setFabricSupplierOptions([]);
+    }
+  }, [formData.fabric_type, fabricMaterials]);
 
   const fetchDropdownOptions = async () => {
     try {
@@ -503,23 +573,64 @@ export default function AddNewOrder() {
     [formData.sizes.length],
   );
 
-  // Form submission
+  const debugForm = () => {
+    console.log("Current formData:", formData);
+    console.log("Current errors:", errors);
+    console.log("Required fields check:", {
+      client: !!formData.client,
+      deadline: !!formData.deadline,
+      company: !!formData.company,
+      brand: !!formData.brand,
+      priority: !!formData.priority,
+      courier: !!formData.courier,
+      method: !!formData.method,
+      receiver_name: !!formData.receiver_name,
+      contact_number: !!formData.contact_number,
+      design_name: !!formData.design_name,
+      apparel_type: !!formData.apparel_type,
+      pattern_type: !!formData.pattern_type,
+      service_type: !!formData.service_type,
+      print_method: !!formData.print_method,
+      print_service: !!formData.print_service,
+      size_label: !!formData.size_label,
+      print_label_placement: !!formData.print_label_placement,
+      fabric_type: !!formData.fabric_type,
+      fabric_supplier: !!formData.fabric_supplier,
+      fabric_color: !!formData.fabric_color,
+      thread_color: !!formData.thread_color,
+      ribbing_color: !!formData.ribbing_color,
+      payment_plan: !!formData.payment_plan,
+      payment_method: !!formData.payment_method,
+    });
+  };
+  
   const handleSubmit = async (e) => {
+    console.log("Form submitted"); // Debug log
+
     setIsSubmitting(true);
     setServerError("");
     setSubmitSuccess(false);
     setErrors({});
 
+    // Debug current form state
+    debugForm();
+
     // Validate the form
     const isValid = validateForm();
+    console.log("Form validation result:", isValid); // Debug log
+    console.log("Validation errors:", errors); // Debug log
 
     if (!isValid) {
       setIsSubmitting(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Show alert for debugging (remove in production)
+      alert("Form validation failed. Check console for details.");
       return;
     }
 
     try {
+      // Prepare data for submission
       const submitData = {
         ...formData,
         selectedOptions: formData.selectedOptions.map(
@@ -532,23 +643,46 @@ export default function AddNewOrder() {
         sizes: formData.sizes.filter((size) => size.quantity > 0),
       };
 
-      await orderService.createOrder(submitData);
+      console.log("Submitting data:", submitData); // Debug log
+
+      const response = await orderService.createOrder(submitData);
+      console.log("Submission response:", response); // Debug log
 
       setSubmitSuccess(true);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      console.error("Submission error:", err);
+      console.error("Submission error details:", err);
 
-      if (err.response?.data?.errors) {
-        setErrors(err.response.data.errors);
+      // More detailed error handling
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error("Error response data:", err.response.data);
+        console.error("Error response status:", err.response.status);
+        console.error("Error response headers:", err.response.headers);
+
+        if (err.response.data?.errors) {
+          setErrors(err.response.data.errors);
+        }
+
+        setServerError(
+          err.response.data?.message ||
+            `Server error: ${err.response.status} - ${err.response.statusText}`,
+        );
+      } else if (err.request) {
+        // The request was made but no response was received
+        console.error("Error request:", err.request);
+        setServerError(
+          "No response from server. Please check your connection.",
+        );
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error("Error message:", err.message);
+        setServerError(
+          err.message || "An error occurred while submitting the form.",
+        );
       }
-
-      setServerError(
-        err.response?.data?.message ||
-          err.message ||
-          "An error occurred while submitting the form.",
-      );
 
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
@@ -1021,26 +1155,34 @@ export default function AddNewOrder() {
                 <Select
                   label="Fabric Type"
                   name="fabric_type"
-                  options={fabricTypeList}
+                  options={fabricTypeOptions}
                   value={formData.fabric_type || ""}
                   onChange={handleChange}
                   placeholder="Select fabric type"
                   searchable
                   error={errors.fabric_type}
                   required
+                  loading={optionsLoading}
                 />
               </div>
 
               <Select
                 label="Fabric Supplier"
                 name="fabric_supplier"
-                options={fabricSupplierList}
+                options={fabricSupplierOptions}
                 value={formData.fabric_supplier || ""}
                 onChange={handleChange}
-                placeholder="Select fabric supplier"
+                placeholder={
+                  !formData.fabric_type
+                    ? "Select fabric type first"
+                    : fabricSupplierOptions.length === 0
+                      ? "No suppliers available"
+                      : "Select fabric supplier"
+                }
                 searchable
                 error={errors.fabric_supplier}
                 required
+                disabled={!formData.fabric_type || optionsLoading}
               />
 
               <Input

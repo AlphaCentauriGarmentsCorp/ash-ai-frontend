@@ -98,6 +98,27 @@ export const getMenuByRole = (userRole) => {
             },
           ],
         },
+        {
+          name: "Material Suppliers",
+          icon: "fa-solid fa-user-shield",
+          subItems: [
+            {
+              name: "Add Supplier",
+              path: "/supplier/new",
+              access: ["admin"],
+            },
+            {
+              name: "All Suppliers",
+              path: "/supplier",
+              access: ["admin"],
+            },
+            {
+              name: "All Materials",
+              path: "/supplier/materials",
+              access: ["admin"],
+            },
+          ],
+        },
       ],
     },
     {
