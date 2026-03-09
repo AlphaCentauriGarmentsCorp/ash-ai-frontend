@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { orderService } from "../../../../services/orderService";
-import { parseAddress } from "../utlis/orderHelpers";
+import { parseAddress } from "../utils/orderHelpers";
 
 export const useClients = () => {
   const [clients, setClients] = useState([]);

@@ -4,8 +4,8 @@ import {
   getDefaultDeadline,
   createSizeObjects,
   DEFAULT_DEPOSIT_PERCENTAGE,
-} from "../utlis/orderHelpers";
-import { validateForm } from "../../addOrder/utlis/orderValidation";
+} from "../utils/orderHelpers";
+import { validateForm } from "../../addOrder/utils/orderValidation";
 
 export const useOrderForm = () => {
   const [formData, setFormData] = useState(() => ({

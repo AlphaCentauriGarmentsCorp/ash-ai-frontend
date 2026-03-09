@@ -12,7 +12,7 @@ import { OrderForm } from "../../features/order/addOrder/components/OrderForm";
 import {
   createSizeObjects,
   calculateUnitPrice,
-} from "../../features/order/addOrder/utlis/orderHelpers";
+} from "../../features/order/addOrder/utils/orderHelpers";
 
 export default function AddNewOrder() {
   const [loading, setLoading] = useState(true);
@@ -212,8 +212,6 @@ export default function AddNewOrder() {
       console.log("Submitting data:", submitData); // Debug log
 
       await orderService.createOrder(submitData);
-
-
 
       setSubmitSuccess(true);
       setErrors({});
