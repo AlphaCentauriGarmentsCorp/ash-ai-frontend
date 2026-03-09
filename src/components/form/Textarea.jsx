@@ -1,4 +1,3 @@
-// components/Textarea.jsx
 import React from "react";
 
 const Textarea = ({
@@ -13,29 +12,26 @@ const Textarea = ({
   error = "",
   rows = 4,
   maxLength,
-  resizable = false, // Default to false (non-resizable)
+  resizable = false,
+
   showCounter = true,
   className = "",
   ...props
 }) => {
   const textareaId = name || label.toLowerCase().replace(/\s+/g, "-");
 
-  // Determine textarea classes based on state
   const getTextareaClasses = () => {
     let classes =
       "text-sm mt-3 border rounded py-2 px-4 w-full transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-blue-400";
 
-    // Resize control - FIXED
     classes += resizable ? " resize-y" : " resize-none";
 
-    // State-based classes
     if (disabled || readOnly) {
       classes += " bg-gray-100 text-gray-500 cursor-not-allowed";
     } else {
       classes += " bg-white text-gray-800";
     }
 
-    // Error state
     if (error) {
       classes += " border-red-500";
     } else if (disabled || readOnly) {
@@ -61,7 +57,6 @@ const Textarea = ({
 
   return (
     <div className={`mb-4 ${className}`}>
-      {/* Label with optional required asterisk */}
       {label && (
         <div className="flex justify-between items-center">
           <label
@@ -82,7 +77,6 @@ const Textarea = ({
         </div>
       )}
 
-      {/* Textarea Field */}
       <textarea
         id={textareaId}
         name={name}
@@ -98,7 +92,6 @@ const Textarea = ({
         {...props}
       />
 
-      {/* Error Message */}
       {error && (
         <p className="mt-1 text-xs text-red-500 flex items-center">
           <i className="fa-solid fa-exclamation-circle mr-1"></i>
@@ -106,7 +99,6 @@ const Textarea = ({
         </p>
       )}
 
-      {/* Character count (when label doesn't show counter) */}
       {maxLength && !label && showCounter && (
         <div className="mt-1 flex justify-between items-center">
           {error && (

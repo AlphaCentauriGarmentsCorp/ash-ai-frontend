@@ -1,4 +1,3 @@
-// components/FileUpload.jsx
 import React, { useState, useRef } from "react";
 
 const FileUpload = ({
@@ -7,7 +6,7 @@ const FileUpload = ({
   onChange,
   value = [],
   acceptedTypes = "image/*,.ai,.psd",
-  maxSize = 25 * 1024 * 1024, // 25MB in bytes
+  maxSize = 25 * 1024 * 1024,
   multiple = true,
   disabled = false,
   error = "",
@@ -18,7 +17,6 @@ const FileUpload = ({
 }) => {
   const fileInputRef = useRef(null);
 
-  // Handle file selection
   const handleFileSelect = (files) => {
     if (disabled) return;
 
@@ -26,28 +24,23 @@ const FileUpload = ({
     const validFiles = [];
 
     fileList.forEach((file) => {
-      // Validate file size
       if (file.size > maxSize) {
         alert(`File ${file.name} exceeds maximum size of 25MB`);
         return;
       }
 
-      // Validate file type
       const acceptedTypesArray = acceptedTypes
         .split(",")
         .map((type) => type.trim());
       const isTypeValid = acceptedTypesArray.some((type) => {
         if (type.startsWith(".")) {
-          // Extension check
           return file.name
             .toLowerCase()
             .endsWith(type.toLowerCase().replace("*", ""));
         } else if (type.includes("/*")) {
-          // MIME type check with wildcard
           const mainType = type.split("/*")[0];
           return file.type.startsWith(`${mainType}/`);
         } else {
-          // Exact MIME type check
           return file.type === type;
         }
       });
@@ -70,37 +63,32 @@ const FileUpload = ({
     }
   };
 
-  // Handle file input change
   const handleFileInputChange = (e) => {
     if (e.target.files && e.target.files.length > 0) {
       handleFileSelect(e.target.files);
-      // Reset input value to allow selecting same file again
+
       e.target.value = null;
     }
   };
 
-  // Handle remove file
   const handleRemoveFile = (indexToRemove, e) => {
     e.stopPropagation();
     const updatedFiles = value.filter((_, index) => index !== indexToRemove);
     onChange?.({ target: { name, value: updatedFiles } });
   };
 
-  // Handle upload area click
   const handleUploadAreaClick = () => {
     if (!disabled) {
       fileInputRef.current?.click();
     }
   };
 
-  // Format file size
   const formatFileSize = (bytes) => {
     if (bytes < 1024) return bytes + " Bytes";
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(2) + " KB";
     return (bytes / (1024 * 1024)).toFixed(2) + " MB";
   };
 
-  // Get file icon based on type
   const getFileIcon = (file) => {
     if (file.type.startsWith("image/")) {
       return <i className="fa-regular fa-image"></i>;
@@ -117,7 +105,7 @@ const FileUpload = ({
 
   return (
     <div className={`px-6 ${className}`}>
-      {/* Label */}
+      {}
       <label
         htmlFor={name}
         className="text-primary text-sm font-semibold flex items-center"
@@ -126,7 +114,7 @@ const FileUpload = ({
         {required && <span className="text-red-500 ml-1">*</span>}
       </label>
 
-      {/* Hidden file input */}
+      {}
       <input
         ref={fileInputRef}
         type="file"
@@ -139,7 +127,7 @@ const FileUpload = ({
         {...props}
       />
 
-      {/* Upload Area - EXACT same UI as provided */}
+      {}
       <div
         className="mt-3 flex justify-center items-center w-full bg-white border border-gray-300 py-7 text-gray cursor-pointer hover:bg-gray-50 transition-colors"
         onClick={handleUploadAreaClick}
@@ -156,7 +144,7 @@ const FileUpload = ({
         </div>
       </div>
 
-      {/* Uploaded Files Preview Area - EXACT same UI structure */}
+      {}
       <div className="mt-3 w-full bg-white border border-gray-300 p-3 text-gray min-h-25">
         <span className="text-xs">Uploaded files</span>
 

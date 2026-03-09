@@ -1,4 +1,3 @@
-// components/Select.jsx
 import React, { useState, useRef, useEffect } from "react";
 
 const Select = ({
@@ -32,7 +31,6 @@ const Select = ({
 
   const inputId = name || label?.toLowerCase().replace(/\s+/g, "-");
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (hoverTimeout) {
@@ -53,7 +51,6 @@ const Select = ({
       })
     : options;
 
-  // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (selectRef.current && !selectRef.current.contains(event.target)) {
@@ -68,14 +65,12 @@ const Select = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Focus search input when dropdown opens and searchable is true
   useEffect(() => {
     if (isOpen && searchable && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [isOpen, searchable]);
 
-  // Handle keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (!isOpen || filteredOptions.length === 0) return;
@@ -113,7 +108,6 @@ const Select = ({
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, highlightedIndex, filteredOptions]);
 
-  // Scroll highlighted option into view
   useEffect(() => {
     if (highlightedIndex >= 0 && dropdownRef.current) {
       const optionElements =
@@ -127,7 +121,6 @@ const Select = ({
     }
   }, [highlightedIndex]);
 
-  // Get selected label(s)
   const getSelectedLabel = () => {
     if (multiple && Array.isArray(value)) {
       if (value.length === 0) return placeholder;
@@ -142,7 +135,6 @@ const Select = ({
     }
   };
 
-  // Handle option selection
   const handleOptionSelect = (option) => {
     if (disabled) return;
 
@@ -166,7 +158,6 @@ const Select = ({
     }
   };
 
-  // Check if option is selected
   const isSelected = (optionValue) => {
     if (multiple && Array.isArray(value)) {
       return value.includes(optionValue);
@@ -174,7 +165,6 @@ const Select = ({
     return value === optionValue;
   };
 
-  // Handle clear selection
   const handleClear = (e) => {
     e.stopPropagation();
     onChange?.({ target: { name, value: multiple ? [] : "" } });
@@ -183,19 +173,15 @@ const Select = ({
     }
   };
 
-  // Handle mouse enter on option (for tooltip)
   const handleOptionMouseEnter = (option, index) => {
     if (option.title) {
-      // Clear any existing timeout
       if (hoverTimeout) {
         clearTimeout(hoverTimeout);
       }
 
-      // Set new timeout for tooltip display (500ms delay)
       const timeout = setTimeout(() => {
         setHoveredOption(option);
 
-        // Calculate tooltip position using the option element reference
         const optionElement = optionRefs.current[index];
         if (optionElement) {
           const rect = optionElement.getBoundingClientRect();
@@ -210,7 +196,6 @@ const Select = ({
     }
   };
 
-  // Handle mouse leave from option
   const handleOptionMouseLeave = () => {
     if (hoverTimeout) {
       clearTimeout(hoverTimeout);
@@ -219,12 +204,10 @@ const Select = ({
     setHoveredOption(null);
   };
 
-  // Store option element reference
   const setOptionRef = (element, index) => {
     optionRefs.current[index] = element;
   };
 
-  // Determine container classes
   const getContainerClasses = () => {
     let classes =
       "text-sm mt-3 border rounded py-2 px-4 w-full transition-colors duration-200 cursor-pointer flex items-center justify-between";
@@ -244,7 +227,6 @@ const Select = ({
 
   return (
     <div className={`mb-4 relative ${className}`} ref={selectRef}>
-      {/* Label with optional required asterisk */}
       {label && (
         <label
           htmlFor={inputId}
@@ -255,7 +237,6 @@ const Select = ({
         </label>
       )}
 
-      {/* Select Container */}
       <div
         className={getContainerClasses()}
         onClick={() => {
@@ -271,10 +252,8 @@ const Select = ({
         }}
       >
         <div className="flex items-center flex-1 overflow-hidden">
-          {/* Icon */}
           {icon && <div className="mr-3 text-gray-400">{icon}</div>}
 
-          {/* Selected Value Display */}
           <span
             className={`truncate ${!value || (multiple && value.length === 0) ? "text-gray-400" : "text-gray-800"}`}
             title={options.find((opt) => opt.value === value)?.title || ""}
@@ -283,9 +262,7 @@ const Select = ({
           </span>
         </div>
 
-        {/* Clear and Dropdown Icons */}
         <div className="flex items-center space-x-2 ml-2">
-          {/* Clear Button */}
           {clearable && value && !disabled && (
             <button
               type="button"
@@ -297,7 +274,6 @@ const Select = ({
             </button>
           )}
 
-          {/* Dropdown Icon */}
           <div
             className={`transform transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`}
           >
@@ -306,13 +282,11 @@ const Select = ({
         </div>
       </div>
 
-      {/* Dropdown Options */}
       {isOpen && !disabled && (
         <div
           ref={dropdownRef}
           className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-y-auto"
         >
-          {/* Search Input for searchable select */}
           {searchable && (
             <div className="p-2 border-b border-gray-200">
               <input
@@ -331,7 +305,6 @@ const Select = ({
             </div>
           )}
 
-          {/* Options List */}
           <div className="py-1">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option, index) => (
@@ -346,9 +319,8 @@ const Select = ({
                   onClick={() => handleOptionSelect(option)}
                   onMouseEnter={() => handleOptionMouseEnter(option, index)}
                   onMouseLeave={handleOptionMouseLeave}
-                  title={option.title ? "" : undefined} // Disable default title if we have custom tooltip
+                  title={option.title ? "" : undefined}
                 >
-                  {/* Checkbox for multiple select */}
                   {multiple && (
                     <div
                       className={`mr-3 w-4 h-4 border rounded flex items-center justify-center ${
@@ -363,20 +335,16 @@ const Select = ({
                     </div>
                   )}
 
-                  {/* Option Icon */}
                   {option.icon && (
                     <span className="mr-2 text-gray-400">{option.icon}</span>
                   )}
 
-                  {/* Option Label */}
                   <span className="flex-1">{option.label}</span>
 
-                  {/* Single select checkmark */}
                   {!multiple && isSelected(option.value) && (
                     <i className="fa-solid fa-check text-blue-500 ml-2"></i>
                   )}
 
-                  {/* Info icon for options with description */}
                   {option.title && (
                     <i className="fa-solid fa-circle-info ml-2 text-gray-400 text-xs"></i>
                   )}
@@ -391,7 +359,6 @@ const Select = ({
         </div>
       )}
 
-      {/* Tooltip for option description */}
       {hoveredOption && (
         <div
           className="fixed z-60 px-3 py-2 text-xs bg-gray-900 text-white rounded-md shadow-lg max-w-xs pointer-events-none"
@@ -411,7 +378,6 @@ const Select = ({
         </div>
       )}
 
-      {/* Error Message */}
       {error && (
         <p className="mt-1 text-xs text-red-500 flex items-center">
           <i className="fa-solid fa-exclamation-circle mr-1"></i>
@@ -422,12 +388,8 @@ const Select = ({
   );
 };
 
-// PropTypes for better development experience
 Select.defaultProps = {
-  options: [
-    // Example structure with title/description:
-    // { value: "option1", label: "Option 1", title: "Option Title", description: "Detailed description here", icon: <Icon /> }
-  ],
+  options: [],
   placeholder: "Select an option",
   required: false,
   disabled: false,

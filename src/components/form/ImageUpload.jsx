@@ -1,4 +1,3 @@
-// components/ImageUpload.jsx (Alternative - Single Line)
 import React, { useRef } from "react";
 
 const ImageUpload = ({
@@ -57,7 +56,6 @@ const ImageUpload = ({
     }
   };
 
-  // Get button classes (matching your input styling)
   const getButtonClasses = () => {
     let classes =
       "text-sm mt-3 border rounded py-2 px-4 transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-blue-400 ";
