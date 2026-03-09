@@ -52,7 +52,7 @@ const SizeLabelPage = () => {
             {parts.length > 0 ? (
               parts.join(", ")
             ) : (
-              <span className="text-gray-400 italic text-sm">No Address</span>
+              <span className="text-gray-400 italic">No Address</span>
             )}
           </div>
         );
@@ -62,17 +62,6 @@ const SizeLabelPage = () => {
       key: "notes",
       label: "Notes",
       sortable: false,
-      render: (item) => {
-        return (
-          <div>
-            {item.notes && item.notes.trim() !== "" ? (
-              item.notes
-            ) : (
-              <span className="text-gray-400 italic text-sm">N/A</span>
-            )}
-          </div>
-        );
-      },
     },
   ];
 

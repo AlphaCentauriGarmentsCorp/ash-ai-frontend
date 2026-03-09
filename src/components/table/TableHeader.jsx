@@ -1,15 +1,10 @@
 import React from "react";
+import { useTableContext } from "./context/TableContext";
 
-const TableHeader = ({
-  columns,
-  sortConfig,
-  onSort,
-  sortable,
-  showCheckbox,
-  onSelectAll,
-  allSelected,
-  hasData,
-}) => {
+const TableHeader = ({ showCheckbox, hasData }) => {
+  const { columns, sortConfig, handleSort, isAllSelected, handleSelectAll } =
+    useTableContext();
+
   const getJustifyClass = (position) => {
     switch (position) {
       case "start":
@@ -24,15 +19,15 @@ const TableHeader = ({
   };
 
   return (
-    <thead className="bg-light ">
+    <thead className="bg-light">
       <tr>
         {showCheckbox && (
           <th className="px-6 py-2 text-left text-xs font-normal text-primary tracking-wider">
             <input
               type="checkbox"
-              className={`w-5 h-5 mt-1 rounded-full border border-gray-300 bg-white checked:bg-primary checked:border-primary cursor-pointer transition accent-primary`}
-              checked={allSelected && hasData}
-              onChange={onSelectAll}
+              className="w-5 h-5 mt-1 rounded-full border border-gray-300 bg-white checked:bg-primary checked:border-primary cursor-pointer transition accent-primary"
+              checked={isAllSelected && hasData}
+              onChange={handleSelectAll}
               disabled={!hasData}
             />
           </th>
@@ -41,20 +36,16 @@ const TableHeader = ({
           <th
             key={column.key}
             className={`px-6 py-2 text-xs font-normal text-primary tracking-wider ${
-              column.sortable !== false && sortable
-                ? "cursor-pointer hover:bg-light2"
-                : ""
+              column.sortable !== false ? "cursor-pointer hover:bg-light2" : ""
             }`}
-            onClick={() =>
-              column.sortable !== false && sortable && onSort(column.key)
-            }
+            onClick={() => column.sortable !== false && handleSort(column.key)}
             style={{ width: column.width }}
           >
             <div
               className={`flex items-center ${getJustifyClass(column.position)}`}
             >
               <span>{column.label}</span>
-              {column.sortable !== false && sortable && (
+              {column.sortable !== false && (
                 <div className="flex flex-col ml-1">
                   <i
                     className={`fas fa-caret-up text-[9px] ${
@@ -77,7 +68,6 @@ const TableHeader = ({
             </div>
           </th>
         ))}
-        {/* Actions column */}
         <th className="px-6 py-2 text-center text-xs font-normal text-primary tracking-wider bg-light">
           Actions
         </th>
