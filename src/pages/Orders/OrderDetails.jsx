@@ -8,20 +8,20 @@ import {
   hasSectionAccess,
   hasProductionAccess,
 } from "../../utils/roleAccess";
-import RoleProtected from "../../components/orderDetails/RoleProtected";
-import ClientInformation from "../../components/orderDetails/ClientInformation";
-import ShippingInformation from "../../components/orderDetails/ShippingInformation";
-import ProductDetails from "../../components/orderDetails/ProductDetails";
-import DesignFiles from "../../components/orderDetails/DesignFiles";
-import Pricing from "../../components/orderDetails/Pricing";
-import POItems from "../../components/orderDetails/POItems";
-import Logs from "../../components/orderDetails/Logs";
-import MockupCarousel from "../../components/OrderDetails/MockupCarousel";
+import RoleProtected from "../../features/order/orderDetails/RoleProtected";
+import ClientInformation from "../../features/order/orderDetails/ClientInformation";
+import ShippingInformation from "../../features/order/orderDetails/ShippingInformation";
+import ProductDetails from "../../features/order/orderDetails/ProductDetails";
+import DesignFiles from "../../features/order/orderDetails/DesignFiles";
+import Pricing from "../../features/order/orderDetails/Pricing";
+import POItems from "../../features/order/orderDetails/POItems";
+import Logs from "../../features/order/orderDetails/Logs";
+import MockupCarousel from "../../features/order/OrderDetails/MockupCarousel";
 import { useAuth } from "../../hooks/useAuth";
 
-import Cutting from "../../components/productionSection/Cutting";
-import Sewing from "../../components/productionSection/Sewing";
-import OrderVerification from "../../components/productionSection/OrderVerification";
+import Cutting from "../../features/order/productionSection/Cutting";
+import Sewing from "../../features/order/productionSection/Sewing";
+import OrderVerification from "../../features/order/productionSection/OrderVerification";
 
 import Loader from "../../components/common/Loader";
 

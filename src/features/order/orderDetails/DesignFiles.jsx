@@ -1,5 +1,5 @@
 import React from "react";
-import { parseJsonField } from "../../utils/formatters";
+import { parseJsonField } from "../../../utils/formatters";
 
 const DesignFiles = ({ order }) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");

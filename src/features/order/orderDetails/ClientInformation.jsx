@@ -1,5 +1,5 @@
 import React from "react";
-import { formatDate } from "../../utils/formatters";
+import { formatDate } from "../../../utils/formatters";
 
 const ClientInformation = ({ order }) => {
   return (

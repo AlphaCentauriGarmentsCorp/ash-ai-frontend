@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { parseJsonField } from "../../utils/formatters";
+import { parseJsonField } from "../../../utils/formatters";
 
 const MockupCarousel = ({ order }) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
-  const designMockup = parseJsonField(order?.design_files) || [];
+  const designMockup = parseJsonField(order?.design_mockup) || [];
   const [currentSlide, setCurrentSlide] = useState(0);
 
   if (!designMockup || designMockup.length === 0) {
