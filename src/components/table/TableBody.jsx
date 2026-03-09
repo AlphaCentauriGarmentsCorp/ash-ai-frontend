@@ -18,7 +18,6 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
     }
   };
 
-  // Helper function to format column key to readable text
   const formatColumnKey = (key) => {
     return key
       .split(/[._]/)
@@ -27,14 +26,12 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
   };
 
   const renderCell = (item, column) => {
-    // If column has custom render function
     if (column.render) {
       return column.render(item);
     }
 
     let value;
 
-    // Handle nested keys
     if (column.key.includes(".")) {
       const keys = column.key.split(".");
       value = item;
@@ -46,7 +43,6 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
       value = item[column.key];
     }
 
-    // Check if value exists and is not empty
     const hasValue =
       value !== undefined &&
       value !== null &&
@@ -54,7 +50,6 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
       !(Array.isArray(value) && value.length === 0);
 
     if (!hasValue) {
-      // Return "No [Column Name]" in gray text
       return (
         <span className="text-gray-400 italic">
           No {formatColumnKey(column.key)}
@@ -62,12 +57,10 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
       );
     }
 
-    // Handle arrays
     if (Array.isArray(value)) {
       return value.join(", ");
     }
 
-    // Return the value
     return value;
   };
 
@@ -79,8 +72,13 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
             colSpan={columns.length + (config.showCheckbox ? 1 : 0) + 1}
             className="px-6 py-8 text-center"
           >
-            <div className="flex justify-center">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="flex justify-center items-center h-64">
+              <div className="flex flex-col items-center gap-3">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <p className="text-gray-600 text-xs font-medium">
+                  Loading Data...
+                </p>
+              </div>
             </div>
           </td>
         </tr>
@@ -131,7 +129,7 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
             </td>
           ))}
 
-          {/* Actions column */}
+          {}
           <td className="px-6 py-2">
             <div className="flex space-x-2 justify-center">
               {config.actions.includes("view") && (

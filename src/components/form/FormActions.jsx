@@ -1,27 +1,5 @@
 import React from "react";
 
-/**
- * FormActions Component
- * A reusable component for form action buttons (Submit, Reset, Cancel, etc.)
- *
- * @param {Object} props
- * @param {function} props.onSubmit - Submit button click handler
- * @param {function} props.onReset - Reset button click handler (optional)
- * @param {function} props.onCancel - Cancel button click handler (optional)
- * @param {boolean} props.isSubmitting - Loading state for submit button
- * @param {string} props.submitText - Text for submit button (default: "Save")
- * @param {string} props.resetText - Text for reset button (default: "Reset")
- * @param {string} props.cancelText - Text for cancel button (default: "Cancel")
- * @param {string} props.submittingText - Text for submit button when loading (default: "Saving...")
- * @param {string} props.alignment - Button alignment: "center", "left", "right", "between" (default: "center")
- * @param {boolean} props.showReset - Show reset button (default: true)
- * @param {boolean} props.showCancel - Show cancel button (default: false)
- * @param {string} props.submitButtonClass - Additional classes for submit button
- * @param {string} props.resetButtonClass - Additional classes for reset button
- * @param {string} props.cancelButtonClass - Additional classes for cancel button
- * @param {string} props.containerClass - Additional classes for container
- * @param {React.ReactNode} props.customButtons - Custom buttons to render
- */
 const FormActions = ({
   onSubmit,
   onReset,
@@ -40,7 +18,6 @@ const FormActions = ({
   containerClass = "",
   customButtons,
 }) => {
-  // Determine alignment classes
   const getAlignmentClass = () => {
     switch (alignment) {
       case "left":
@@ -55,7 +32,6 @@ const FormActions = ({
     }
   };
 
-  // Handle submit
   const handleSubmit = (e) => {
     e?.preventDefault();
     if (onSubmit && !isSubmitting) {
@@ -63,7 +39,6 @@ const FormActions = ({
     }
   };
 
-  // Handle reset
   const handleReset = (e) => {
     e?.preventDefault();
     if (onReset && !isSubmitting) {
@@ -71,7 +46,6 @@ const FormActions = ({
     }
   };
 
-  // Handle cancel
   const handleCancel = (e) => {
     e?.preventDefault();
     if (onCancel && !isSubmitting) {
@@ -82,7 +56,6 @@ const FormActions = ({
   return (
     <div className={`mt-5 border-gray-300 ${containerClass}`}>
       <div className={`flex gap-3 ${getAlignmentClass()}`}>
-        {/* Cancel Button (optional) */}
         {showCancel && onCancel && (
           <button
             type="button"
@@ -94,7 +67,6 @@ const FormActions = ({
           </button>
         )}
 
-        {/* Reset Button (optional) */}
         {showReset && onReset && (
           <button
             type="button"
@@ -106,10 +78,7 @@ const FormActions = ({
           </button>
         )}
 
-        {/* Custom Buttons */}
         {customButtons}
-
-        {/* Submit Button */}
         <button
           type="submit"
           onClick={handleSubmit}

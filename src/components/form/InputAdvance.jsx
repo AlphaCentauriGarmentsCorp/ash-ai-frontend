@@ -1,4 +1,3 @@
-// components/InputAdvanced.jsx
 import React, { useState } from "react";
 
 const InputAdvanced = ({
@@ -35,15 +34,12 @@ const InputAdvanced = ({
     label?.toLowerCase().replace(/\s+/g, "-") ||
     `input-${Math.random().toString(36).substr(2, 9)}`;
 
-  // Determine input type for password toggle
   const inputType = type === "password" && showPassword ? "text" : type;
 
-  // Determine input classes based on state
   const getInputClasses = () => {
     let classes =
       "text-sm mt-1 border rounded py-2.5 px-4 w-full transition-all duration-200 ease-in-out focus:outline-none focus:ring-2";
 
-    // State-based classes
     if (disabled || readOnly) {
       classes += " bg-gray-50 text-gray-500 cursor-not-allowed border-gray-300";
     } else if (error) {
@@ -60,7 +56,6 @@ const InputAdvanced = ({
         " bg-white text-gray-800 border-gray-300 hover:border-gray-400 focus:ring-blue-500 focus:border-blue-500";
     }
 
-    // Add icon padding if icon exists
     if (icon || type === "password") {
       classes += " pl-10";
     }
@@ -69,7 +64,6 @@ const InputAdvanced = ({
       classes += " pr-10";
     }
 
-    // Add custom input classes
     if (inputClassName) {
       classes += ` ${inputClassName}`;
     }
@@ -77,7 +71,6 @@ const InputAdvanced = ({
     return classes;
   };
 
-  // Determine container classes
   const getContainerClasses = () => {
     let classes = "mb-5";
 
@@ -104,7 +97,6 @@ const InputAdvanced = ({
 
   return (
     <div className={`${getContainerClasses()} ${className}`}>
-      {/* Label with optional required asterisk */}
       {label && (
         <label
           htmlFor={inputId}
@@ -120,9 +112,7 @@ const InputAdvanced = ({
         </label>
       )}
 
-      {/* Input Container with icon */}
       <div className="relative mt-1">
-        {/* Icon */}
         {icon && (
           <div
             className={`absolute left-3 top-1/2 transform -translate-y-1/2 ${
@@ -139,7 +129,6 @@ const InputAdvanced = ({
           </div>
         )}
 
-        {/* Password toggle icon */}
         {type === "password" && (
           <button
             type="button"
@@ -160,21 +149,18 @@ const InputAdvanced = ({
           </button>
         )}
 
-        {/* Success icon */}
         {success && !error && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-green-500">
             <i className="fa-solid fa-check-circle text-sm"></i>
           </div>
         )}
 
-        {/* Error icon (only if no password toggle) */}
         {error && type !== "password" && (
           <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-red-500">
             <i className="fa-solid fa-exclamation-circle text-sm"></i>
           </div>
         )}
 
-        {/* Input Field */}
         <input
           id={inputId}
           name={name}
@@ -205,9 +191,7 @@ const InputAdvanced = ({
         />
       </div>
 
-      {/* Helper text area */}
       <div className="mt-1">
-        {/* Error Message */}
         {error && (
           <p
             id={`${inputId}-error`}
@@ -219,7 +203,6 @@ const InputAdvanced = ({
           </p>
         )}
 
-        {/* Success Message */}
         {success && !error && (
           <p
             id={`${inputId}-success`}
@@ -230,7 +213,6 @@ const InputAdvanced = ({
           </p>
         )}
 
-        {/* Character count */}
         {showCharacterCount && maxLength && (
           <div className="text-xs text-gray-500 text-right mt-1">
             {value.length}/{maxLength}
