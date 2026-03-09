@@ -17,4 +17,34 @@ export const clientApi = {
       throw error;
     }
   },
+
+  show: async (id) => {
+    try {
+      const response = await api.get(`/clients/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  update: async (id, payload) => {
+    console.log("FormData to submit:", payload);
+    try {
+      const response = await api.put(`/clients/${id}`, payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/clients/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };

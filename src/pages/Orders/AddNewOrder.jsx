@@ -29,6 +29,7 @@ import {
   apparelPlacementMeasurements,
   paymentPlans,
 } from "../../constants/formOptions/orderOptions";
+import { materialsApi } from "../../api/materialsApi";
 
 // Constants
 const DEFAULT_DEADLINE_DAYS = 14;
@@ -66,6 +67,11 @@ const calculateUnitPrice = (costPrice, quantity) =>
   (parseFloat(costPrice) || 0) * (parseFloat(quantity) || 0);
 
 export default function AddNewOrder() {
+  // Loading states
+  const [loading, setLoading] = useState(true);
+  const [clientsLoading, setClientsLoading] = useState(false);
+  const [optionsLoading, setOptionsLoading] = useState(false);
+
   // State
   const [formData, setFormData] = useState(() => ({
     ...orderInitialState,
@@ -89,7 +95,22 @@ export default function AddNewOrder() {
   const [clients, setClients] = useState([]);
   const [rawClients, setRawClients] = useState([]);
   const [clientBrands, setClientBrands] = useState([]);
-  const [clientsLoading, setClientsLoading] = useState(false);
+
+  const [brandsOptions, setBrandsOptions] = useState([]);
+  const [priorityOptions, setPriorityOptions] = useState([]);
+  const [courierOptions, setCourierOptions] = useState([]);
+  const [shippingMethodOptions, setShippingMethodOptions] = useState([]);
+  const [apparelTypeOptions, setApparelTypeOptions] = useState([]);
+  const [patternTypeOptions, setPatternTypeOptions] = useState([]);
+  const [serviceTypeOptions, setServiceTypeOptions] = useState([]);
+  const [printMethodOptions, setPrintMethodOptions] = useState([]);
+  const [sizeLabelOptions, setSizeLabelOptions] = useState([]);
+  const [printLabelPlacementOptions, setPrintLabelPlacementOptions] = useState(
+    [],
+  );
+  const [fabricTypeOptions, setFabricTypeOptions] = useState([]);
+  const [fabricSupplierOptions, setFabricSupplierOptions] = useState([]);
+  const [fabricMaterials, setFabricMaterials] = useState([]);
 
   // Memoized values
   const summary = useMemo(
@@ -144,8 +165,24 @@ export default function AddNewOrder() {
     }));
   }, [formData.sizes, formData.deposit_percentage]);
 
+  // Initial data loading
   useEffect(() => {
-    fetchClients();
+    const loadInitialData = async () => {
+      setLoading(true);
+      try {
+        await Promise.all([
+          fetchClients(),
+          fetchDropdownOptions(),
+          fetchFabricMaterials(),
+        ]);
+      } catch (error) {
+        console.error("Failed to load initial data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadInitialData();
   }, []);
 
   useEffect(() => {
@@ -210,6 +247,89 @@ export default function AddNewOrder() {
       setServerError("Failed to load clients.");
     } finally {
       setClientsLoading(false);
+    }
+  };
+
+  const fetchFabricMaterials = async () => {
+    try {
+      setOptionsLoading(true);
+      const response = await materialsApi.getByTypeFabric("Fabric");
+      setFabricMaterials(response.data);
+
+      // Extract unique fabric types/names
+      const uniqueFabricNames = [
+        ...new Set(response.data.map((material) => material.name)),
+      ];
+      setFabricTypeOptions(
+        uniqueFabricNames.map((name) => ({
+          value: name,
+          label: name,
+        })),
+      );
+
+      // You can also set fabric suppliers if needed
+      // const uniqueSuppliers = [...new Set(response.data.map(material => material.supplier?.name).filter(Boolean))];
+      // setFabricSupplierOptions(
+      //   uniqueSuppliers.map(supplier => ({
+      //     value: supplier,
+      //     label: supplier
+      //   }))
+      // );
+    } catch (error) {
+      console.error("Failed to fetch fabric materials:", error);
+      setServerError("Failed to load fabric materials.");
+    } finally {
+      setOptionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (formData.fabric_type && fabricMaterials.length > 0) {
+      // Find all materials with the selected fabric name
+      const materialsWithSelectedFabric = fabricMaterials.filter(
+        (material) => material.name === formData.fabric_type,
+      );
+
+      // Get unique suppliers for this fabric
+      const supplierOptions = materialsWithSelectedFabric
+        .map((material) => material.supplier?.name)
+        .filter(Boolean)
+        .filter((value, index, self) => self.indexOf(value) === index); // Remove duplicates
+
+      setFabricSupplierOptions(
+        supplierOptions.map((supplier) => ({
+          value: supplier,
+          label: supplier,
+        })),
+      );
+
+      // Clear fabric supplier if current selection isn't available for this fabric
+      if (
+        formData.fabric_supplier &&
+        !supplierOptions.includes(formData.fabric_supplier)
+      ) {
+        setFormData((prev) => ({ ...prev, fabric_supplier: "" }));
+      }
+    } else {
+      setFabricSupplierOptions([]);
+    }
+  }, [formData.fabric_type, fabricMaterials]);
+
+  const fetchDropdownOptions = async () => {
+    try {
+      setOptionsLoading(true);
+      const options = await orderService.getAllDropdownOptions();
+
+      setApparelTypeOptions(options.apparelTypes);
+      setPatternTypeOptions(options.patternTypes);
+      setServiceTypeOptions(options.serviceTypes);
+      setPrintMethodOptions(options.printMethods);
+      setSizeLabelOptions(options.sizeLabels);
+      setPrintLabelPlacementOptions(options.printLabelPlacements);
+    } catch (err) {
+      setServerError("Failed to load dropdown options.");
+    } finally {
+      setOptionsLoading(false);
     }
   };
 
@@ -453,23 +573,64 @@ export default function AddNewOrder() {
     [formData.sizes.length],
   );
 
-  // Form submission
+  const debugForm = () => {
+    console.log("Current formData:", formData);
+    console.log("Current errors:", errors);
+    console.log("Required fields check:", {
+      client: !!formData.client,
+      deadline: !!formData.deadline,
+      company: !!formData.company,
+      brand: !!formData.brand,
+      priority: !!formData.priority,
+      courier: !!formData.courier,
+      method: !!formData.method,
+      receiver_name: !!formData.receiver_name,
+      contact_number: !!formData.contact_number,
+      design_name: !!formData.design_name,
+      apparel_type: !!formData.apparel_type,
+      pattern_type: !!formData.pattern_type,
+      service_type: !!formData.service_type,
+      print_method: !!formData.print_method,
+      print_service: !!formData.print_service,
+      size_label: !!formData.size_label,
+      print_label_placement: !!formData.print_label_placement,
+      fabric_type: !!formData.fabric_type,
+      fabric_supplier: !!formData.fabric_supplier,
+      fabric_color: !!formData.fabric_color,
+      thread_color: !!formData.thread_color,
+      ribbing_color: !!formData.ribbing_color,
+      payment_plan: !!formData.payment_plan,
+      payment_method: !!formData.payment_method,
+    });
+  };
+  
   const handleSubmit = async (e) => {
+    console.log("Form submitted"); // Debug log
+
     setIsSubmitting(true);
     setServerError("");
     setSubmitSuccess(false);
     setErrors({});
 
+    // Debug current form state
+    debugForm();
+
     // Validate the form
     const isValid = validateForm();
+    console.log("Form validation result:", isValid); // Debug log
+    console.log("Validation errors:", errors); // Debug log
 
     if (!isValid) {
       setIsSubmitting(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
+
+      // Show alert for debugging (remove in production)
+      alert("Form validation failed. Check console for details.");
       return;
     }
 
     try {
+      // Prepare data for submission
       const submitData = {
         ...formData,
         selectedOptions: formData.selectedOptions.map(
@@ -482,29 +643,53 @@ export default function AddNewOrder() {
         sizes: formData.sizes.filter((size) => size.quantity > 0),
       };
 
-      await orderService.createOrder(submitData);
+      console.log("Submitting data:", submitData); // Debug log
+
+      const response = await orderService.createOrder(submitData);
+      console.log("Submission response:", response); // Debug log
 
       setSubmitSuccess(true);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
-      console.error("Submission error:", err);
+      console.error("Submission error details:", err);
 
-      if (err.response?.data?.errors) {
-        setErrors(err.response.data.errors);
+      // More detailed error handling
+      if (err.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        console.error("Error response data:", err.response.data);
+        console.error("Error response status:", err.response.status);
+        console.error("Error response headers:", err.response.headers);
+
+        if (err.response.data?.errors) {
+          setErrors(err.response.data.errors);
+        }
+
+        setServerError(
+          err.response.data?.message ||
+            `Server error: ${err.response.status} - ${err.response.statusText}`,
+        );
+      } else if (err.request) {
+        // The request was made but no response was received
+        console.error("Error request:", err.request);
+        setServerError(
+          "No response from server. Please check your connection.",
+        );
+      } else {
+        // Something happened in setting up the request that triggered an Error
+        console.error("Error message:", err.message);
+        setServerError(
+          err.message || "An error occurred while submitting the form.",
+        );
       }
-
-      setServerError(
-        err.response?.data?.message ||
-          err.message ||
-          "An error occurred while submitting the form.",
-      );
 
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setIsSubmitting(false);
     }
   };
+
   const handleReset = useCallback(() => {
     setFormData({
       ...orderInitialState,
@@ -524,6 +709,41 @@ export default function AddNewOrder() {
     setServerError("");
     setSubmitSuccess(false);
   }, []);
+
+  // Loading state
+  if (loading) {
+    const loadingMessages = [
+      "Sorting fabrics for your perfect design...",
+      "Counting threads to ensure top quality...",
+      "Measuring patterns for your style...",
+      "Preparing color palettes for your prints...",
+      "Checking sizes so nothing feels tight or loose...",
+      "Polishing designs for a flawless look...",
+      "Mixing inks for vibrant prints...",
+      "Ensuring every stitch is on point...",
+    ];
+
+    const randomMessage =
+      loadingMessages[Math.floor(Math.random() * loadingMessages.length)];
+
+    return (
+      <AdminLayout
+        pageTitle="Add Order"
+        path="/"
+        links={[
+          { label: "Home", href: "/" },
+          { label: "Orders", href: "/orders" },
+        ]}
+      >
+        <div className="flex justify-center items-center h-64">
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-gray-600 text-sm font-medium">{randomMessage}</p>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   const renderSuccessMessage = () => {
     if (!submitSuccess) return null;
@@ -701,6 +921,7 @@ export default function AddNewOrder() {
                 searchable
                 error={errors.client}
                 required
+                loading={clientsLoading}
               />
 
               <Input
@@ -729,7 +950,7 @@ export default function AddNewOrder() {
                 searchable
                 error={errors.company}
                 required
-                disabled={!formData.client}
+                disabled={!formData.client || clientsLoading}
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -836,50 +1057,54 @@ export default function AddNewOrder() {
               <Select
                 label="Apparel Type"
                 name="apparel_type"
-                options={apparelTypeList}
+                options={apparelTypeOptions}
                 value={formData.apparel_type || ""}
                 onChange={handleChange}
                 placeholder="Select apparel type"
                 searchable
                 error={errors.apparel_type}
                 required
+                loading={optionsLoading}
               />
 
               <Select
                 label="Pattern Type"
                 name="pattern_type"
-                options={patternTypeList}
+                options={patternTypeOptions}
                 value={formData.pattern_type || ""}
                 onChange={handleChange}
                 placeholder="Select pattern type"
                 searchable
                 error={errors.pattern_type}
                 required
+                loading={optionsLoading}
               />
 
               <Select
                 label="Service Type"
                 name="service_type"
-                options={serviceTypeList}
+                options={serviceTypeOptions}
                 value={formData.service_type || ""}
                 onChange={handleChange}
                 placeholder="Select service type"
                 searchable
                 error={errors.service_type}
                 required
+                loading={optionsLoading}
               />
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Select
                   label="Print Method"
                   name="print_method"
-                  options={printMethodList}
+                  options={printMethodOptions}
                   value={formData.print_method || ""}
                   onChange={handleChange}
                   placeholder="Select print method"
                   searchable
                   error={errors.print_method}
                   required
+                  loading={optionsLoading}
                 />
 
                 <Select
@@ -898,25 +1123,27 @@ export default function AddNewOrder() {
               <Select
                 label="Size Label"
                 name="size_label"
-                options={sizeLabelList}
+                options={sizeLabelOptions}
                 value={formData.size_label || ""}
                 onChange={handleChange}
                 placeholder="Select size label"
                 searchable
                 error={errors.size_label}
                 required
+                loading={optionsLoading}
               />
 
               <Select
                 label="Print Label Placement"
                 name="print_label_placement"
-                options={printLabelPlacementList}
+                options={printLabelPlacementOptions}
                 value={formData.print_label_placement || ""}
                 onChange={handleChange}
                 placeholder="Select print label placement"
                 searchable
                 error={errors.print_label_placement}
                 required
+                loading={optionsLoading}
               />
             </div>
           </Section>
@@ -928,26 +1155,34 @@ export default function AddNewOrder() {
                 <Select
                   label="Fabric Type"
                   name="fabric_type"
-                  options={fabricTypeList}
+                  options={fabricTypeOptions}
                   value={formData.fabric_type || ""}
                   onChange={handleChange}
                   placeholder="Select fabric type"
                   searchable
                   error={errors.fabric_type}
                   required
+                  loading={optionsLoading}
                 />
               </div>
 
               <Select
                 label="Fabric Supplier"
                 name="fabric_supplier"
-                options={fabricSupplierList}
+                options={fabricSupplierOptions}
                 value={formData.fabric_supplier || ""}
                 onChange={handleChange}
-                placeholder="Select fabric supplier"
+                placeholder={
+                  !formData.fabric_type
+                    ? "Select fabric type first"
+                    : fabricSupplierOptions.length === 0
+                      ? "No suppliers available"
+                      : "Select fabric supplier"
+                }
                 searchable
                 error={errors.fabric_supplier}
                 required
+                disabled={!formData.fabric_type || optionsLoading}
               />
 
               <Input
@@ -1138,6 +1373,7 @@ export default function AddNewOrder() {
                 value={formData.design_mockup || []}
                 onChange={handleFileChange}
                 error={errors.design_mockup}
+                acceptedTypes=".jpg,.jpeg,.png,.webp"
               />
 
               <FileUploadSection
@@ -1373,14 +1609,21 @@ const AddressFields = ({ formData, handleChange, errors }) => (
   </div>
 );
 
-const FileUploadSection = ({ label, name, value, onChange, error }) => (
+const FileUploadSection = ({
+  label,
+  name,
+  value,
+  onChange,
+  error,
+  acceptedTypes,
+}) => (
   <div className="py-4">
     <FileUpload
       label={label}
       name={name}
       value={value}
       onChange={onChange}
-      acceptedTypes="image/*,.ai,.psd,.pdf,.png,.jpg,.jpeg"
+      acceptedTypes={acceptedTypes || "image/*,.ai,.psd,.pdf,.png,.jpg,.jpeg"}
       maxSize={25 * 1024 * 1024}
       multiple={true}
       error={error}

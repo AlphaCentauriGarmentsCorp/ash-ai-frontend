@@ -7,19 +7,26 @@ import AddEmployeeAccount from "./pages/Accounts/AddNewAccount";
 import AllEmployeeAccount from "./pages/Accounts/AllAccount";
 import AddNewClient from "./pages/Clients/AddNewClient";
 import AllClients from "./pages/Clients/AllClient";
+import ViewClient from "./pages/Clients/ViewClient";
+import EditClient from "./pages/Clients/EditClient";
 import AddNewOrder from "./pages/Orders/AddNewOrder";
 import AllOrders from "./pages/Orders/AllOrders";
 import OrderDetails from "./pages/Orders/OrderDetails";
 import PatternType from "./pages/DropDownSettings/PatternType/PatternType";
 import AddPatternType from "./pages/DropDownSettings/PatternType/AddPatternType";
+import EditPatternType from "./pages/DropDownSettings/PatternType/EditPatternType";
 import ApparelType from "./pages/DropDownSettings/ApparelType/ApparelType";
 import AddApparelType from "./pages/DropDownSettings/ApparelType/AddApparelType";
+import EditApparelType from "./pages/DropDownSettings/ApparelType/EditApparelType";
 import ServiceTypeList from "./pages/DropDownSettings/ServiceType/ServiceType";
 import AddServiceType from "./pages/DropDownSettings/ServiceType/AddServiceType";
+import EditServiceType from "./pages/DropDownSettings/ServiceType/EditServiceType";
 import PrintMethod from "./pages/DropDownSettings/PrintMethod/PrintMethod";
 import AddPrintMethod from "./pages/DropDownSettings/PrintMethod/AddPrintMethod";
+import EditPrintMethod from "./pages/DropDownSettings/PrintMethod/EditPrintMethod";
 import SizeLabel from "./pages/DropDownSettings/SizeLabel/SizeLabel";
 import AddSizeLabel from "./pages/DropDownSettings/SizeLabel/AddSizeLabel";
+import EditSizeLabel from "./pages/DropDownSettings/SizeLabel/EditSizeLabel";
 import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/PrintLabelPlacement";
 import AddPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/AddPrintLabelPlacement";
 import FreebiesPage from "./pages/DropDownSettings/Freebies/Freebies";
@@ -29,8 +36,22 @@ import AddPlacementMeasurement from "./pages/DropDownSettings/PlacementMeasureme
 import AdditionalOptionsPage from "./pages/DropDownSettings/AdditionalOptions/AdditionalOptions";
 import AddAdditionalOption from "./pages/DropDownSettings/AdditionalOptions/AddAdditionalOption";
 
+import EditPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/EditPrintLabelPlacement";
+import EquipmentLocations from "./pages/EquipmentInventory/Locations/EquipmentLocations";
+import AddLocation from "./pages/EquipmentInventory/Locations/AddLocation";
+import EditLocation from "./pages/EquipmentInventory/Locations/EditLocation";
+import AddEquipment from "./pages/EquipmentInventory/Equipments/AddEquipment";
+import EditEquipment from "./pages/EquipmentInventory/Equipments/EditEquipment";
+import ViewEquipment from "./pages/EquipmentInventory/Equipments/ViewEquipment";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
+import EquipmentInventory from "./pages/EquipmentInventory/Equipments/EquipmentInventory";
+import Suppliers from "./pages/Supplier/AllSupplier";
+import AddSupplier from "./pages/Supplier/AddSupplier";
+import EditSupplier from "./pages/Supplier/EditSupplier";
+import ViewSupplier from "./pages/Supplier/ViewSupplier";
+import AllMaterials from "./pages/Materials/AllMaterials";
+import AddMaterials from "./pages/Materials/AddMaterials";
 
 function App() {
   const { loading } = useAuth();
@@ -58,12 +79,67 @@ function App() {
             </PublicRoute>
           }
         />
-
         <Route
           path="/"
           element={
             <ProtectedRoute>
               <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipment-inventory"
+          element={
+            <ProtectedRoute>
+              <EquipmentLocations />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipment-inventory/new"
+          element={
+            <ProtectedRoute>
+              <AddLocation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipment-inventory/equipment/add"
+          element={
+            <ProtectedRoute>
+              <AddEquipment />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipment-inventory/equipment/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditEquipment />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipment-inventory/equipment/:id/view"
+          element={
+            <ProtectedRoute>
+              <ViewEquipment />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipment-inventory/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditLocation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/equipment-inventory/:id/contents"
+          element={
+            <ProtectedRoute>
+              <EquipmentInventory />
             </ProtectedRoute>
           }
         />
@@ -75,7 +151,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/orders/new"
           element={
@@ -84,7 +159,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/order/:po_code"
           element={
@@ -93,7 +167,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/account/employee"
           element={
@@ -110,7 +183,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/clients"
           element={
@@ -119,7 +191,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/clients/new"
           element={
@@ -128,7 +199,22 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/clients/view/:id"
+          element={
+            <ProtectedRoute>
+              <ViewClient />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/clients/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditClient />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/settings/pattern-type"
           element={
@@ -137,7 +223,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/pattern-type/new"
           element={
@@ -146,7 +231,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/admin/settings/pattern-type/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditPatternType />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/settings/apparel-type"
           element={
@@ -155,7 +247,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/apparel-type/new"
           element={
@@ -164,7 +255,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/admin/settings/apparel-type/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditApparelType />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/settings/service-type"
           element={
@@ -173,7 +271,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/service-type/new"
           element={
@@ -182,7 +279,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/admin/settings/service-type/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditServiceType />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/settings/print-method"
           element={
@@ -191,7 +295,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/print-method/new"
           element={
@@ -200,7 +303,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/admin/settings/print-method/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditPrintMethod />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/settings/size-label"
           element={
@@ -209,7 +319,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/size-label/new"
           element={
@@ -218,7 +327,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/admin/settings/size-label/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditSizeLabel />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/admin/settings/print-label-placements"
           element={
@@ -227,7 +343,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/print-label-placements/new"
           element={
@@ -236,6 +351,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+<<<<<<< feat(add-Freebies)
 
         <Route
           path="/admin/settings/freebies"
@@ -287,6 +403,61 @@ function App() {
           element={
             <ProtectedRoute>
               <AddAdditionalOption />
+=======
+        <Route
+          path="/admin/settings/print-label-placements/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditPrintLabelPlacement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/supplier"
+          element={
+            <ProtectedRoute>
+              <Suppliers />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/supplier/new"
+          element={
+            <ProtectedRoute>
+              <AddSupplier />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/supplier/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditSupplier />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/supplier/:id/view"
+          element={
+            <ProtectedRoute>
+              <ViewSupplier />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/supplier/materials"
+          element={
+            <ProtectedRoute>
+              <AllMaterials />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/supplier/materials/new"
+          element={
+            <ProtectedRoute>
+              <AddMaterials />
+>>>>>>> main
             </ProtectedRoute>
           }
         />
