@@ -351,7 +351,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-<<<<<<< feat(add-Freebies)
+        <Route
+          path="/admin/settings/print-label-placements/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditPrintLabelPlacement />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/admin/settings/freebies"
@@ -403,12 +410,6 @@ function App() {
           element={
             <ProtectedRoute>
               <AddAdditionalOption />
-=======
-        <Route
-          path="/admin/settings/print-label-placements/edit/:id"
-          element={
-            <ProtectedRoute>
-              <EditPrintLabelPlacement />
             </ProtectedRoute>
           }
         />
@@ -457,7 +458,6 @@ function App() {
           element={
             <ProtectedRoute>
               <AddMaterials />
->>>>>>> main
             </ProtectedRoute>
           }
         />

@@ -96,6 +96,21 @@ export const getMenuByRole = (userRole) => {
               path: "/admin/settings/print-label-placements",
               access: ["admin"],
             },
+            {
+              name: "Freebies",
+              path: "/admin/settings/freebies",
+              access: ["admin"],
+            },
+            {
+              name: "Placement Measurements",
+              path: "/admin/settings/placement-measurements",
+              access: ["admin"],
+            },
+            {
+              name: "Additional Options",
+              path: "/admin/settings/additional-options",
+              access: ["admin"],
+            },
           ],
         },
         {
