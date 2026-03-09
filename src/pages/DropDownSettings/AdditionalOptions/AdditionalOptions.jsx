@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
 import { additionalOptionApi } from "../../../api/additionalOptionApi";
+import { useNavigate } from "react-router-dom";
 
 const AdditionalOptionsPage = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
@@ -56,11 +58,16 @@ const AdditionalOptionsPage = () => {
   const handleAction = (action, rowData) => {
     switch (action) {
       case "edit":
-        console.log("Edit:", rowData);
+        navigate(`/admin/settings/additional-options/edit/${rowData.id}`);
         break;
       case "delete":
         if (window.confirm(`Are you sure you want to delete ${rowData.name}?`)) {
-          setData((prev) => prev.filter((item) => item.id !== rowData.id));
+          additionalOptionApi
+            .delete(rowData.id)
+            .then(() => fetchData(pageSize))
+            .catch((error) => {
+              console.error("Error deleting additional option:", error);
+            });
         }
         break;
     }

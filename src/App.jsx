@@ -31,10 +31,13 @@ import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/P
 import AddPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/AddPrintLabelPlacement";
 import FreebiesPage from "./pages/DropDownSettings/Freebies/Freebies";
 import AddFreebie from "./pages/DropDownSettings/Freebies/AddFreebie";
+import EditFreebie from "./pages/DropDownSettings/Freebies/EditFreebie";
 import PlacementMeasurementsPage from "./pages/DropDownSettings/PlacementMeasurements/PlacementMeasurements";
 import AddPlacementMeasurement from "./pages/DropDownSettings/PlacementMeasurements/AddPlacementMeasurement";
+import EditPlacementMeasurement from "./pages/DropDownSettings/PlacementMeasurements/EditPlacementMeasurement";
 import AdditionalOptionsPage from "./pages/DropDownSettings/AdditionalOptions/AdditionalOptions";
 import AddAdditionalOption from "./pages/DropDownSettings/AdditionalOptions/AddAdditionalOption";
+import EditAdditionalOption from "./pages/DropDownSettings/AdditionalOptions/EditAdditionalOption";
 
 import EditPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/EditPrintLabelPlacement";
 import EquipmentLocations from "./pages/EquipmentInventory/Locations/EquipmentLocations";
@@ -379,6 +382,15 @@ function App() {
         />
 
         <Route
+          path="/admin/settings/freebies/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditFreebie />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/admin/settings/placement-measurements"
           element={
             <ProtectedRoute>
@@ -397,6 +409,15 @@ function App() {
         />
 
         <Route
+          path="/admin/settings/placement-measurements/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditPlacementMeasurement />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
           path="/admin/settings/additional-options"
           element={
             <ProtectedRoute>
@@ -410,6 +431,15 @@ function App() {
           element={
             <ProtectedRoute>
               <AddAdditionalOption />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/additional-options/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditAdditionalOption />
             </ProtectedRoute>
           }
         />
