@@ -22,6 +22,12 @@ import SizeLabel from "./pages/DropDownSettings/SizeLabel/SizeLabel";
 import AddSizeLabel from "./pages/DropDownSettings/SizeLabel/AddSizeLabel";
 import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/PrintLabelPlacement";
 import AddPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/AddPrintLabelPlacement";
+import FreebiesPage from "./pages/DropDownSettings/Freebies/Freebies";
+import AddFreebie from "./pages/DropDownSettings/Freebies/AddFreebie";
+import PlacementMeasurementsPage from "./pages/DropDownSettings/PlacementMeasurements/PlacementMeasurements";
+import AddPlacementMeasurement from "./pages/DropDownSettings/PlacementMeasurements/AddPlacementMeasurement";
+import AdditionalOptionsPage from "./pages/DropDownSettings/AdditionalOptions/AdditionalOptions";
+import AddAdditionalOption from "./pages/DropDownSettings/AdditionalOptions/AddAdditionalOption";
 
 import ProtectedRoute from "./routes/ProtectedRoute";
 import PublicRoute from "./routes/PublicRoute";
@@ -227,6 +233,60 @@ function App() {
           element={
             <ProtectedRoute>
               <AddPrintLabelPlacement />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/freebies"
+          element={
+            <ProtectedRoute>
+              <FreebiesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/freebies/new"
+          element={
+            <ProtectedRoute>
+              <AddFreebie />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/placement-measurements"
+          element={
+            <ProtectedRoute>
+              <PlacementMeasurementsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/placement-measurements/new"
+          element={
+            <ProtectedRoute>
+              <AddPlacementMeasurement />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/additional-options"
+          element={
+            <ProtectedRoute>
+              <AdditionalOptionsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/additional-options/new"
+          element={
+            <ProtectedRoute>
+              <AddAdditionalOption />
             </ProtectedRoute>
           }
         />

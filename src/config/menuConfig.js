@@ -101,6 +101,15 @@ export const getMenuByRole = (userType) => {
                 name: "Print Label Placements",
                 path: "/admin/settings/print-label-placements",
               },
+              { name: "Freebies", path: "/admin/settings/freebies" },
+              {
+                name: "Placement Measurements",
+                path: "/admin/settings/placement-measurements",
+              },
+              {
+                name: "Additional Options",
+                path: "/admin/settings/additional-options",
+              },
             ],
           },
         ],
