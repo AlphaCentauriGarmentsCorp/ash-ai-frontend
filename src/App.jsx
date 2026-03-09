@@ -29,6 +29,13 @@ import AddSizeLabel from "./pages/DropDownSettings/SizeLabel/AddSizeLabel";
 import EditSizeLabel from "./pages/DropDownSettings/SizeLabel/EditSizeLabel";
 import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/PrintLabelPlacement";
 import AddPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/AddPrintLabelPlacement";
+import FreebiesPage from "./pages/DropDownSettings/Freebies/Freebies";
+import AddFreebie from "./pages/DropDownSettings/Freebies/AddFreebie";
+import PlacementMeasurementsPage from "./pages/DropDownSettings/PlacementMeasurements/PlacementMeasurements";
+import AddPlacementMeasurement from "./pages/DropDownSettings/PlacementMeasurements/AddPlacementMeasurement";
+import AdditionalOptionsPage from "./pages/DropDownSettings/AdditionalOptions/AdditionalOptions";
+import AddAdditionalOption from "./pages/DropDownSettings/AdditionalOptions/AddAdditionalOption";
+
 import EditPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/EditPrintLabelPlacement";
 import EquipmentLocations from "./pages/EquipmentInventory/Locations/EquipmentLocations";
 import AddLocation from "./pages/EquipmentInventory/Locations/AddLocation";
@@ -344,6 +351,59 @@ function App() {
             </ProtectedRoute>
           }
         />
+<<<<<<< feat(add-Freebies)
+
+        <Route
+          path="/admin/settings/freebies"
+          element={
+            <ProtectedRoute>
+              <FreebiesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/freebies/new"
+          element={
+            <ProtectedRoute>
+              <AddFreebie />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/placement-measurements"
+          element={
+            <ProtectedRoute>
+              <PlacementMeasurementsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/placement-measurements/new"
+          element={
+            <ProtectedRoute>
+              <AddPlacementMeasurement />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/additional-options"
+          element={
+            <ProtectedRoute>
+              <AdditionalOptionsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/settings/additional-options/new"
+          element={
+            <ProtectedRoute>
+              <AddAdditionalOption />
+=======
         <Route
           path="/admin/settings/print-label-placements/edit/:id"
           element={
@@ -397,6 +457,7 @@ function App() {
           element={
             <ProtectedRoute>
               <AddMaterials />
+>>>>>>> main
             </ProtectedRoute>
           }
         />
