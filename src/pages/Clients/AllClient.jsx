@@ -25,6 +25,12 @@ const ClientsPage = () => {
       key: "brands",
       label: "Brands",
       sortable: false,
+      searchableValue: (item) => {
+        const brands = Array.isArray(item.brands)
+          ? item.brands.map((b) => b.name).join(" ")
+          : "";
+        return brands || "No brands";
+      },
       render: (item) => {
         const brands = Array.isArray(item.brands)
           ? item.brands.map((b) => b.name)

@@ -38,6 +38,12 @@ const MaterialsPage = () => {
       key: "price",
       label: "Price/Unit",
       sortable: true,
+      searchableValue: (item) => {
+        const price = item.price ?? "-";
+        const unit = item.unit ?? "-";
+        const minimum = item.minimum ?? "N/A";
+        return `${price} / ${unit} Min: ${minimum}`;
+      },
       render: (item) => {
         const price = item.price ?? "-";
         const unit = item.unit ?? "-";

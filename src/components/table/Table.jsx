@@ -1,11 +1,16 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useMemo } from "react";
+import { TableProvider } from "./context/TableContext";
+import { useTableData } from "./hooks/useTableData";
+import { useTablePagination } from "./hooks/useTablePagination";
+import { useTableSelection } from "./hooks/useTableSelection";
+import { useTableFilters } from "./hooks/useTableFilters";
 import TableHeader from "./TableHeader";
 import TableBody from "./TableBody";
 import TablePagination from "./TablePagination";
 import TableFilters from "./TableFilters";
 import TableSearch from "./TableSearch";
+import TableActions from "./TableActions";
 import { Link } from "react-router-dom";
-import { downloadApi } from "../../api/downloadApi";
 
 const Table = ({
   data = [],
@@ -17,7 +22,7 @@ const Table = ({
     filters: true,
     actions: ["view", "edit", "delete"],
     showIndex: true,
-    showCheckbox: false, // Add this to config
+    showCheckbox: false,
   },
   onPageSizeChange,
   onAction,
@@ -25,208 +30,45 @@ const Table = ({
   url,
   button,
   PageTitle,
-  downloadableColumn = "image", // New prop for download column
+  downloadableColumn = "image",
 }) => {
-  const [localData, setLocalData] = useState(data);
-  const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
-  const [filters, setFilters] = useState({});
-  const [searchTerm, setSearchTerm] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(config.pageSize || 10);
-  const [isShowingAll, setIsShowingAll] = useState(false);
-  const [selectedItems, setSelectedItems] = useState(new Set());
+  const {
+    data: processedData,
+    sortConfig,
+    filters,
+    searchTerm,
+    handleSort,
+    handleFilterChange,
+    handleSearch,
+    resetFilters,
+  } = useTableData(data, columns, config);
 
-  // Handle external data updates
-  useEffect(() => {
-    setLocalData(data);
-    // Clear selections when data changes
-    setSelectedItems(new Set());
-  }, [data]);
+  const {
+    currentPage,
+    pageSize,
+    isShowingAll,
+    totalPages,
+    showingFrom,
+    showingTo,
+    handlePageChange,
+    handlePageSizeChange,
+    paginateData,
+  } = useTablePagination(processedData.length, config.pageSize || 10, config);
 
-  // Reset to first page when filters/search change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filters, searchTerm]);
+  const {
+    selectedItems,
+    selectedCount,
+    isAllSelected,
+    handleSelectAll,
+    handleSelectItem,
+    clearSelection,
+  } = useTableSelection(paginateData(processedData));
 
-  // Get unique filter values from data
-  const getFilterOptions = (columnKey) => {
-    // Skip index column for filters
-    if (columnKey === "index") return ["All"];
+  const { getFilterOptions, filterableColumns } = useTableFilters(
+    data,
+    columns,
+  );
 
-    // Handle nested keys for filter options
-    const values = data.map((item) => {
-      if (columnKey.includes(".")) {
-        const keys = columnKey.split(".");
-        let value = item;
-        for (const key of keys) {
-          value = value?.[key];
-        }
-        return value;
-      }
-      return item[columnKey];
-    });
-
-    // Filter out null/undefined and get unique values
-    const uniqueValues = [
-      ...new Set(
-        values.filter(
-          (value) => value !== null && value !== undefined && value !== "",
-        ),
-      ),
-    ];
-
-    return ["All", ...uniqueValues.sort()];
-  };
-
-  // Client-side filtering
-  const filteredData = useMemo(() => {
-    let result = [...localData];
-
-    // Apply search
-    if (searchTerm) {
-      const lowerSearchTerm = searchTerm.toLowerCase();
-      result = result.filter((item) => {
-        // Search through all column values except index
-        return columns.some((column) => {
-          // Skip index column from search
-          if (column.key === "index") return false;
-
-          let value;
-          if (column.key.includes(".")) {
-            const keys = column.key.split(".");
-            value = item;
-            for (const key of keys) {
-              value = value?.[key];
-            }
-          } else {
-            value = item[column.key];
-          }
-
-          if (value === null || value === undefined) return false;
-
-          // Check if value is an array
-          if (Array.isArray(value)) {
-            return value.some((arrItem) =>
-              String(arrItem).toLowerCase().includes(lowerSearchTerm),
-            );
-          }
-
-          return String(value).toLowerCase().includes(lowerSearchTerm);
-        });
-      });
-    }
-
-    // Apply filters
-    if (Object.keys(filters).length > 0) {
-      result = result.filter((item) => {
-        return Object.entries(filters).every(([key, filterValue]) => {
-          // Skip index column for filters
-          if (key === "index") return true;
-
-          if (!filterValue || filterValue === "All") return true;
-
-          let itemValue;
-          if (key.includes(".")) {
-            const keys = key.split(".");
-            itemValue = item;
-            for (const k of keys) {
-              itemValue = itemValue?.[k];
-            }
-          } else {
-            itemValue = item[key];
-          }
-
-          // Handle array values in filters
-          if (Array.isArray(itemValue)) {
-            return itemValue.includes(filterValue);
-          }
-
-          return String(itemValue) === String(filterValue);
-        });
-      });
-    }
-
-    return result;
-  }, [localData, filters, searchTerm, columns]);
-
-  // Client-side sorting
-  const sortedData = useMemo(() => {
-    if (!sortConfig.key) return filteredData;
-
-    // Skip sorting for index column
-    if (sortConfig.key === "index") return filteredData;
-
-    const sorted = [...filteredData].sort((a, b) => {
-      let aValue;
-      let bValue;
-
-      // Handle nested keys
-      if (sortConfig.key.includes(".")) {
-        const keys = sortConfig.key.split(".");
-        aValue = a;
-        bValue = b;
-        for (const key of keys) {
-          aValue = aValue?.[key];
-          bValue = bValue?.[key];
-        }
-      } else {
-        aValue = a[sortConfig.key];
-        bValue = b[sortConfig.key];
-      }
-
-      // Handle null/undefined values
-      if (aValue == null) aValue = "";
-      if (bValue == null) bValue = "";
-
-      // Convert to string for comparison
-      aValue = String(aValue).toLowerCase();
-      bValue = String(bValue).toLowerCase();
-
-      if (aValue < bValue) {
-        return sortConfig.direction === "asc" ? -1 : 1;
-      }
-      if (aValue > bValue) {
-        return sortConfig.direction === "asc" ? 1 : -1;
-      }
-      return 0;
-    });
-
-    return sorted;
-  }, [filteredData, sortConfig]);
-
-  // Calculate effective page size for pagination
-  const effectivePageSize = useMemo(() => {
-    if (isShowingAll) {
-      return sortedData.length; // When showing all, page size is total items
-    }
-    return pageSize;
-  }, [isShowingAll, pageSize, sortedData.length]);
-
-  // Client-side pagination
-  const paginatedData = useMemo(() => {
-    if (!config.pagination || isShowingAll) {
-      // When showing all or pagination disabled, return all data with continuous index
-      return sortedData.map((item, index) => ({
-        ...item,
-        index: index + 1,
-      }));
-    }
-
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-
-    // Add index numbers that continue across pages
-    const dataWithIndex = sortedData
-      .slice(startIndex, endIndex)
-      .map((item, index) => ({
-        ...item,
-        index: startIndex + index + 1, // Continuous index across pages
-      }));
-
-    return dataWithIndex;
-  }, [sortedData, currentPage, pageSize, config.pagination, isShowingAll]);
-
-  // Prepare columns with index column if enabled
   const tableColumns = useMemo(() => {
     if (config.showIndex) {
       return [
@@ -247,225 +89,143 @@ const Table = ({
     return columns;
   }, [columns, config.showIndex]);
 
-  // Local sorting handler
-  const handleSort = (key) => {
-    if (!config.sortable) return;
-    // Don't sort index column
-    if (key === "index") return;
+  const paginatedData = useMemo(
+    () => paginateData(processedData),
+    [processedData, paginateData],
+  );
 
-    const direction =
-      sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc";
-
-    setSortConfig({ key, direction });
-  };
-
-  // Handle filter changes
-  const handleFilterChange = (filterName, value) => {
-    // Don't filter by index column
-    if (filterName === "index") return;
-
-    setFilters((prev) => ({
-      ...prev,
-      [filterName]: value === "All" ? "" : value,
-    }));
-  };
-
-  // Handle search
-  const handleSearch = (term) => {
-    setSearchTerm(term);
-  };
-
-  // Handle page change
-  const handlePageChange = (page) => {
-    setCurrentPage(page);
-  };
-
-  // Handle page size change
-  const handlePageSizeChange = (size) => {
-    if (size === "All" || size === "all") {
-      // When "All" is selected, show all records without pagination
-      setIsShowingAll(true);
-      setPageSize(sortedData.length);
-      setCurrentPage(1);
-
-      if (onPageSizeChange) {
-        onPageSizeChange("all"); // Send "all" to parent for API call
-      }
-    } else {
-      const newPageSize = Number(size);
-      setIsShowingAll(false);
-      setPageSize(newPageSize);
-      setCurrentPage(1);
-
-      if (onPageSizeChange) {
-        onPageSizeChange(newPageSize);
-      }
+  const handlePageSizeChangeWithCallback = (size) => {
+    handlePageSizeChange(size);
+    if (onPageSizeChange) {
+      onPageSizeChange(size === "All" ? "all" : Number(size));
     }
   };
 
-  // Handle action button click
-  const handleAction = (action, rowData) => {
-    if (onAction) {
-      onAction(action, rowData);
-    }
-  };
-
-  // Handle select all
-  const handleSelectAll = () => {
-    if (selectedItems.size === paginatedData.length) {
-      setSelectedItems(new Set());
-    } else {
-      setSelectedItems(new Set(paginatedData.map((item) => item.id)));
-    }
-  };
-
-  // Handle select single item
-  const handleSelectItem = (id) => {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedItems(newSelected);
-  };
-
-  const handleDownloadSelected = async () => {
-    const selectedData = paginatedData.filter((item) =>
-      selectedItems.has(item.id),
-    );
-
-    for (const item of selectedData) {
-      const filePath = item[downloadableColumn];
-      if (!filePath) continue;
-
-      try {
-        const blob = await downloadApi.downloadFile(filePath);
-        const extension = blob.type.split("/")[1] || "png";
-        const fileName = `${item.sku || "file"}_${downloadableColumn}.${extension}`;
-
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
-
-        await new Promise((resolve) => setTimeout(resolve, 100));
-      } catch (error) {
-        console.error("Error downloading file:", error);
-      }
-    }
-  };
-
-  const totalItems = sortedData.length;
-  const totalPages = isShowingAll ? 1 : Math.ceil(totalItems / pageSize);
-  const showingFrom = isShowingAll ? 1 : (currentPage - 1) * pageSize + 1;
-  const showingTo = isShowingAll
-    ? totalItems
-    : Math.min(currentPage * pageSize, totalItems);
+  const contextValue = useMemo(
+    () => ({
+      columns: tableColumns,
+      config,
+      sortConfig,
+      filters,
+      selectedItems,
+      isAllSelected,
+      onAction,
+      handleSort,
+      handleSelectAll,
+      handleSelectItem,
+    }),
+    [
+      tableColumns,
+      config,
+      sortConfig,
+      filters,
+      selectedItems,
+      isAllSelected,
+      onAction,
+      handleSort,
+      handleSelectAll,
+      handleSelectItem,
+    ],
+  );
 
   return (
-    <div className="bg-white rounded-lg">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-4">
-        <div className="flex gap-2">
-          {/* Add button */}
-          {url && (
-            <Link
-              to={url}
-              className="cursor-pointer hover:bg-secondary/90 bg-secondary text-white px-4 py-2 rounded-lg text-sm"
-            >
-              <i className="fa fa-add mr-2"></i>
-              {button}
-            </Link>
-          )}
+    <TableProvider value={contextValue}>
+      <div className="bg-white rounded-lg">
+        <TableActions
+          url={url}
+          button={button}
+          showCheckbox={config.showCheckbox}
+          selectedCount={selectedCount}
+          onDownloadSelected={() =>
+            handleDownloadSelected(
+              paginatedData,
+              selectedItems,
+              downloadableColumn,
+            )
+          }
+          onSearch={config.search ? handleSearch : null}
+          searchPlaceholder={config.searchPlaceholder}
+        />
 
-          {/* Download button */}
-          {config.showCheckbox && selectedItems.size > 0 && (
-            <button
-              onClick={handleDownloadSelected}
-              className="cursor-pointer transition-all ease-in-out  hover:text-white hover:bg-primary/90 bg-white text-primary font-medium border border-primary  px-4 py-2 rounded-lg text-sm flex items-center"
-            >
-              <i className="fa fa-download mr-2"></i>
-              Download ({selectedItems.size})
-            </button>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
+          <div>{PageTitle}</div>
+
+          {config.filters && filterableColumns.length > 0 && (
+            <TableFilters
+              columns={filterableColumns}
+              filters={filters}
+              onFilterChange={handleFilterChange}
+              getFilterOptions={getFilterOptions}
+            />
           )}
         </div>
 
-        {config.search && (
-          <TableSearch
-            onSearch={handleSearch}
-            placeholder={config.searchPlaceholder || "Search..."}
+        {}
+        <div className="overflow-x-auto rounded-lg border border-gray-300">
+          <table className="min-w-full divide-y divide-gray-200 table-fixed">
+            <TableHeader
+              showCheckbox={config.showCheckbox}
+              hasData={paginatedData.length > 0}
+            />
+            <TableBody
+              data={paginatedData}
+              isLoading={isLoading}
+              emptyMessage={config.emptyMessage || "No data found"}
+            />
+          </table>
+        </div>
+
+        {}
+        {config.pagination && (
+          <TablePagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            totalItems={processedData.length}
+            showingFrom={showingFrom}
+            showingTo={showingTo}
+            onPageChange={handlePageChange}
+            onPageSizeChange={handlePageSizeChangeWithCallback}
+            pageSizeOptions={config.pageSizeOptions || [10, 20, 50, 100, "All"]}
+            isShowingAll={isShowingAll}
           />
         )}
       </div>
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-        <div>{PageTitle}</div>
-
-        <div className="flex flex-col md:flex-row items-start md:items-center gap-3 w-full md:w-auto">
-          <div className="flex flex-wrap gap-3">
-            {/* Filters */}
-            {config.filters && tableColumns.some((col) => col.filterable) && (
-              <TableFilters
-                columns={tableColumns.filter(
-                  (col) => col.filterable && col.key !== "index",
-                )}
-                filters={filters}
-                onFilterChange={handleFilterChange}
-                getFilterOptions={getFilterOptions}
-              />
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg border border-gray-300">
-        <table className="min-w-full divide-y divide-gray-200 table-fixed">
-          <TableHeader
-            columns={tableColumns}
-            sortConfig={sortConfig}
-            onSort={handleSort}
-            sortable={config.sortable}
-            showCheckbox={config.showCheckbox}
-            onSelectAll={handleSelectAll}
-            allSelected={selectedItems.size === paginatedData.length}
-            hasData={paginatedData.length > 0}
-          />
-
-          <TableBody
-            data={paginatedData}
-            columns={tableColumns}
-            actions={config.actions}
-            onAction={handleAction}
-            isLoading={isLoading}
-            emptyMessage={config.emptyMessage || "No data found"}
-            showCheckbox={config.showCheckbox}
-            selectedItems={selectedItems}
-            onSelectItem={handleSelectItem}
-          />
-        </table>
-      </div>
-
-      {/* Pagination */}
-      {config.pagination && (
-        <TablePagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          pageSize={isShowingAll ? "All" : pageSize}
-          totalItems={totalItems}
-          showingFrom={showingFrom}
-          showingTo={showingTo}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-          pageSizeOptions={config.pageSizeOptions || [10, 20, 50, 100, "All"]}
-          isShowingAll={isShowingAll}
-        />
-      )}
-    </div>
+    </TableProvider>
   );
+};
+
+const handleDownloadSelected = async (
+  data,
+  selectedItems,
+  downloadableColumn,
+) => {
+  const { downloadApi } = await import("../../api/downloadApi");
+  const selectedData = data.filter((item) => selectedItems.has(item.id));
+
+  for (const item of selectedData) {
+    const filePath = item[downloadableColumn];
+    if (!filePath) continue;
+
+    try {
+      const blob = await downloadApi.downloadFile(filePath);
+      const extension = blob.type.split("/")[1] || "png";
+      const fileName = `${item.sku || "file"}_${downloadableColumn}.${extension}`;
+
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    } catch (error) {
+      console.error("Error downloading file:", error);
+    }
+  }
 };
 
 export default Table;
