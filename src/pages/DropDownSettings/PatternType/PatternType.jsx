@@ -130,7 +130,7 @@ const PatternTypePage = () => {
         isLoading={isLoading}
         url="/admin/settings/pattern-type/new"
         button="Add Pattern Type"
-        PageTitle="Pattern Types"
+        PageTitle={<span className="font-semibold">Pattern Types</span>}
       />
 
       <DeleteConfirmationDialog

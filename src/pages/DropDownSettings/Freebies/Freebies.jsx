@@ -3,12 +3,16 @@ import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
 import { freebieApi } from "../../../api/freebieApi";
 import { useNavigate } from "react-router-dom";
+import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
 
 const FreebiesPage = () => {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [pageSize, setPageSize] = useState(10);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const columns = [
     {
@@ -23,36 +27,46 @@ const FreebiesPage = () => {
     },
   ];
 
-  const fetchData = useCallback(
-    async (perPage = pageSize) => {
-      setIsLoading(true);
-      try {
-        let response;
-
-        if (perPage === "all") {
-          response = await freebieApi.index();
-        } else {
-          response = await freebieApi.index({ per_page: perPage });
-        }
-
-        const responseData = response.data || response;
-        setData(responseData);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        setData([]);
-      } finally {
-        setIsLoading(false);
-      }
-    },
-    [pageSize],
-  );
+  const fetchData = async () => {
+    try {
+      const response = await freebieApi.index();
+      const responseData = response.data || response;
+      setData(responseData);
+    } catch (error) {
+      setData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    fetchData(pageSize);
-  }, [fetchData, pageSize]);
+    fetchData();
+  }, []);
 
-  const handlePageSizeChange = (newPageSize) => {
-    setPageSize(newPageSize);
+  const handleDeleteClick = (rowData) => {
+    setSelectedItem(rowData);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!selectedItem) return;
+
+    setIsDeleting(true);
+    try {
+      await freebieApi.delete(selectedItem.id);
+      setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
+      setIsDeleteDialogOpen(false);
+    } catch (error) {
+      alert("Failed to delete freebie. Please try again.");
+    } finally {
+      setIsDeleting(false);
+      setSelectedItem(null);
+    }
+  };
+
+  const handleDeleteCancel = () => {
+    setIsDeleteDialogOpen(false);
+    setSelectedItem(null);
   };
 
   const handleAction = (action, rowData) => {
@@ -61,14 +75,7 @@ const FreebiesPage = () => {
         navigate(`/admin/settings/freebies/edit/${rowData.id}`);
         break;
       case "delete":
-        if (window.confirm(`Are you sure you want to delete ${rowData.name}?`)) {
-          freebieApi
-            .delete(rowData.id)
-            .then(() => fetchData(pageSize))
-            .catch((error) => {
-              console.error("Error deleting freebie:", error);
-            });
-        }
+        handleDeleteClick(rowData);
         break;
     }
   };
@@ -102,10 +109,17 @@ const FreebiesPage = () => {
         config={tableConfig}
         onAction={handleAction}
         isLoading={isLoading}
-        onPageSizeChange={handlePageSizeChange}
         url="/admin/settings/freebies/new"
         button="Add Freebie"
         PageTitle="Freebies"
+      />
+
+      <DeleteConfirmationDialog
+        isOpen={isDeleteDialogOpen}
+        onClose={handleDeleteCancel}
+        onConfirm={handleDeleteConfirm}
+        itemName={selectedItem?.name}
+        isLoading={isDeleting}
       />
     </AdminLayout>
   );

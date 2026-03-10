@@ -8,6 +8,7 @@ import { typesInitialState } from "../../../constants/formInitialState/typesInit
 import { typesSchema } from "../../../validations/typesSchema";
 import { validateForm, hasErrors } from "../../../utils/validation";
 import { patternTypeApi } from "../../../api/patternTypeApi";
+import AlertMessage from "../../../components/common/AlertMessage";
 
 const EditPatternType = () => {
   const { id } = useParams();
@@ -41,6 +42,12 @@ const EditPatternType = () => {
       ...prev,
       [name]: value,
     }));
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -66,8 +73,14 @@ const EditPatternType = () => {
       setTimeout(() => {
         navigate("/admin/settings/pattern-type");
       }, 1500);
-    } catch (error) {
-      setServerError("Failed to update pattern type.");
+    } catch (err) {
+      if (err.response?.data?.errors) {
+        setErrors(err.response.data.errors);
+      } else {
+        setServerError(
+          err.response?.data?.message || "Failed to update pattern type.",
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -106,17 +119,19 @@ const EditPatternType = () => {
     >
       <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
         {submitSuccess && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-green-800 font-medium">
-              Pattern Type updated successfully!
-            </p>
-          </div>
+          <AlertMessage
+            type="success"
+            title="Pattern type updated successfully!"
+            message="The pattern type has been successfully updated in the system."
+          />
         )}
 
         {serverError && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-800 font-medium">{serverError}</p>
-          </div>
+          <AlertMessage
+            type="error"
+            title={serverError}
+            message="Please check the form and try again."
+          />
         )}
 
         <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4">
