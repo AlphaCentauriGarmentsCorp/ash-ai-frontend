@@ -155,8 +155,25 @@ export const getMenuByRole = (userRole) => {
             },
           ],
         },
+        {
+          name: "Screen Inventory",
+          icon: "fa-solid fa-tools",
+          subItems: [
+            {
+              name: "All Screen",
+              path: "/screen-inventory",
+              access: ["admin", "general_manager"],
+            },
+            {
+              name: "Add Screen",
+              path: "/screen-inventory/new",
+              access: ["admin", "general_manager"],
+            },
+          ],
+        },
       ],
     },
+
     {
       section: "Production",
       items: [

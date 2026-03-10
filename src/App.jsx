@@ -55,6 +55,9 @@ import EditSupplier from "./pages/Supplier/EditSupplier";
 import ViewSupplier from "./pages/Supplier/ViewSupplier";
 import AllMaterials from "./pages/Materials/AllMaterials";
 import AddMaterials from "./pages/Materials/AddMaterials";
+import AddScreen from "./pages/ScreenInventory/AddScreen";
+import AllScreen from "./pages/ScreenInventory/AllScreen";
+import EditScreen from "./pages/ScreenInventory/EditScreen";
 
 function App() {
   const { loading } = useAuth();
@@ -488,6 +491,30 @@ function App() {
           element={
             <ProtectedRoute>
               <AddMaterials />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/screen-inventory/new"
+          element={
+            <ProtectedRoute>
+              <AddScreen />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/screen-inventory"
+          element={
+            <ProtectedRoute>
+              <AllScreen />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/screen-inventory/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditScreen />
             </ProtectedRoute>
           }
         />
