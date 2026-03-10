@@ -52,6 +52,8 @@ import EditSupplier from "./pages/Supplier/EditSupplier";
 import ViewSupplier from "./pages/Supplier/ViewSupplier";
 import AllMaterials from "./pages/Materials/AllMaterials";
 import AddMaterials from "./pages/Materials/AddMaterials";
+import AddScreen from "./pages/ScreenInventory/AddScreen";
+
 
 function App() {
   const { loading } = useAuth();
@@ -458,6 +460,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AddMaterials />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/screen-inventory/new"
+          element={
+            <ProtectedRoute>
+              <AddScreen />
             </ProtectedRoute>
           }
         />

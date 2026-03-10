@@ -1,0 +1,162 @@
+import React, { useState } from "react";
+import AdminLayout from "../../layouts/Admin/AdminLayout";
+import Textarea from "../../components/form/Textarea";
+import FormActions from "../../components/form/FormActions";
+import Input from "../../components/form/Input";
+import { screeenInitialState } from "../../constants/formInitialState/screeenInitialState";
+import { screenSchema } from "../../validations/screenSchema";
+import { validateForm, hasErrors } from "../../utils/validation";
+import { ScreenTypeApi } from "../../api/ScreenTypeApi";
+
+const AddScreen = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState({});
+  const [formData, setFormData] = useState(screeenInitialState);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [serverError, setServerError] = useState("");
+
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    const fieldValue = type === "checkbox" ? checked : value;
+    updateField(name, fieldValue);
+  };
+
+  const updateField = (name, value) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    if (errors[name]) {
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    }
+
+    if (serverError) {
+      setServerError("");
+    }
+  };
+
+  const handleSubmit = async () => {
+    setIsSubmitting(true);
+    setSubmitSuccess(false);
+    setServerError("");
+
+    const validationErrors = validateForm(formData, screenSchema);
+
+    if (hasErrors(validationErrors)) {
+      setErrors(validationErrors);
+      setIsSubmitting(false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    try {
+      await ScreenTypeApi.create(formData);
+      setSubmitSuccess(true);
+
+      setFormData(typesInitialState);
+      setErrors({});
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } catch {
+      setServerError("Failed to create screen.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleReset = () => {
+    setFormData(screeenInitialState);
+    setErrors({});
+    setSubmitSuccess(false);
+    setServerError("");
+  };
+
+  return (
+    <AdminLayout
+      icon="fa-cog"
+      pageTitle="Add Screen"
+      path="/screen-inventory"
+      links={[
+        { label: "Home", href: "/" },
+        { label: "Screen Inventory", href: "/screen-inventory" },
+      ]}
+    >
+      <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
+        {submitSuccess && (
+          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
+            <div className="flex items-center">
+              <i className="fa-solid fa-check-circle text-green-500 mr-3"></i>
+              <div>
+                <p className="text-green-800 font-medium">
+                  Screen added successfully!
+                </p>
+                <p className="text-green-600 text-sm mt-1">
+                  The screen have been added to inventory.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {serverError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
+            <div className="flex items-center">
+              <i className="fa-solid fa-exclamation-circle text-red-500 mr-3"></i>
+              <div>
+                <p className="text-red-800 font-medium">{serverError}</p>
+                <p className="text-red-600 text-sm mt-1">
+                  Please check the form and try again.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4">
+          Screen Details
+        </h1>
+
+        <Input
+          label="Screen Name"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          error={errors.name}
+          type="text"
+          placeholder="Enter screen name"
+          required
+        />
+
+        <Input
+          label="Address"
+          name="address"
+          value={formData.address}
+          onChange={handleChange}
+          error={errors.address}
+          type="text"
+          placeholder="Enter screen address"
+          required
+        />
+
+        <Input
+          label="Screen Size"
+          name="size"
+          value={formData.size}
+          onChange={handleChange}
+          error={errors.size}
+          type="text"
+          placeholder="Enter screen size"
+          required
+        />
+      </div>
+
+      <FormActions
+        onSubmit={handleSubmit}
+        onReset={handleReset}
+        isSubmitting={isSubmitting}
+        submitText="Save"
+        resetText="Reset"
+        submittingText="Saving..."
+      />
+    </AdminLayout>
+  );
+};
+
+export default AddScreen;
