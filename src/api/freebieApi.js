@@ -16,4 +16,31 @@ export const freebieApi = {
       throw error;
     }
   },
+
+  show: async (id) => {
+    try {
+      const response = await api.get(`/freebie/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  update: async (id, payload) => {
+    try {
+      const response = await api.put(`/freebie/${id}`, payload);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  delete: async (id) => {
+    try {
+      const response = await api.delete(`/freebie/${id}`);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 };
