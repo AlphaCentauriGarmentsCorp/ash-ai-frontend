@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Textarea from "../../../components/form/Textarea";
 import FormActions from "../../../components/form/FormActions";
@@ -7,8 +8,10 @@ import { typesInitialState } from "../../../constants/formInitialState/typesInit
 import { typesSchema } from "../../../validations/typesSchema";
 import { validateForm, hasErrors } from "../../../utils/validation";
 import { patternTypeService } from "../../../services/patternTypeService";
+import AlertMessage from "../../../components/common/AlertMessage";
 
 const AddPatternType = () => {
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState(typesInitialState);
@@ -21,6 +24,12 @@ const AddPatternType = () => {
       ...prev,
       [name]: value,
     }));
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -44,8 +53,18 @@ const AddPatternType = () => {
       setFormData(typesInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
+
+      setTimeout(() => {
+        navigate(`/admin/settings/pattern-type`);
+      }, 1500);
     } catch (err) {
-      setServerError("Failed to create pattern type.");
+      if (err.response?.data?.errors) {
+        setErrors(err.response.data.errors);
+      } else {
+        setServerError(
+          err.response?.data?.message || "Failed to create pattern type.",
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -70,17 +89,19 @@ const AddPatternType = () => {
     >
       <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
         {submitSuccess && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-green-800 font-medium">
-              Pattern Type created successfully!
-            </p>
-          </div>
+          <AlertMessage
+            type="success"
+            title="Pattern Type created successfully!"
+            message="The new pattern has been added to the system."
+          />
         )}
 
         {serverError && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-800 font-medium">{serverError}</p>
-          </div>
+          <AlertMessage
+            type="error"
+            title={serverError}
+            message="Please check the form and try again."
+          />
         )}
 
         <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4">
