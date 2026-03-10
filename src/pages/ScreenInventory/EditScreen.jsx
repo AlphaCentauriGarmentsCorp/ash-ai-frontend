@@ -1,20 +1,22 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
+import { useParams, useNavigate } from "react-router-dom";
 import FormActions from "../../components/form/FormActions";
 import Input from "../../components/form/Input";
-import { useNavigate } from "react-router-dom";
 import { screeenInitialState } from "../../constants/formInitialState/screeenInitialState";
 import { screenSchema } from "../../validations/screenSchema";
 import { validateForm, hasErrors } from "../../utils/validation";
 import { ScreenTypeApi } from "../../api/ScreenTypeApi";
 
-const AddScreen = () => {
+const EditScreen = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState(screeenInitialState);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -34,6 +36,22 @@ const AddScreen = () => {
     }
   };
 
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const response = await ScreenTypeApi.show(id);
+      const responseData = response.data || response;
+      setFormData(responseData);
+    } catch (error) {
+      setFormData([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setSubmitSuccess(false);
@@ -49,10 +67,8 @@ const AddScreen = () => {
     }
 
     try {
-      await ScreenTypeApi.create(formData);
+      await ScreenTypeApi.update(id, formData);
       setSubmitSuccess(true);
-
-      setFormData(screeenInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
       setTimeout(() => {
@@ -89,10 +105,10 @@ const AddScreen = () => {
               <i className="fa-solid fa-check-circle text-green-500 mr-3"></i>
               <div>
                 <p className="text-green-800 font-medium">
-                  Screen added successfully!
+                  Screen updated successfully!
                 </p>
                 <p className="text-green-600 text-sm mt-1">
-                  The screen have been added to inventory.
+                  The screen has been updated in inventory.
                 </p>
               </div>
             </div>
@@ -174,4 +190,4 @@ const AddScreen = () => {
   );
 };
 
-export default AddScreen;
+export default EditScreen;

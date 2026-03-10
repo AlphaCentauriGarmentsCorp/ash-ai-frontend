@@ -12,4 +12,9 @@ export const screenSchema = {
     required: true,
     message: "Screen size is required.",
   },
+
+  mesh_count: {
+    required: true,
+    message: "Mesh count is required.",
+  },
 };
