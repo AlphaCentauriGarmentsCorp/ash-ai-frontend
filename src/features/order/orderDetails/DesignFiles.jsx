@@ -1,5 +1,5 @@
 import React from "react";
-import { parseJsonField } from "../../utils/formatters";
+import { parseJsonField } from "../../../utils/formatters";
 
 const DesignFiles = ({ order }) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
@@ -30,7 +30,7 @@ const DesignFiles = ({ order }) => {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 p-2 sm:p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <i className="fas fa-file-image text-gray-400 text-xs sm:text-sm flex-shrink-0"></i>
+                <i className="fas fa-file-image text-gray-400 text-xs sm:text-sm shrink-0"></i>
                 <span className="text-xs sm:text-sm truncate">
                   {file.split("/").pop()}
                 </span>
@@ -56,7 +56,7 @@ const DesignFiles = ({ order }) => {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 p-2 sm:p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <i className="fas fa-image text-gray-400 text-xs sm:text-sm flex-shrink-0"></i>
+                <i className="fas fa-image text-gray-400 text-xs sm:text-sm shrink-0"></i>
                 <span className="text-xs sm:text-sm truncate">
                   {file.split("/").pop()}
                 </span>
@@ -82,7 +82,7 @@ const DesignFiles = ({ order }) => {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 p-2 sm:p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <i className="fas fa-tag text-gray-400 text-xs sm:text-sm flex-shrink-0"></i>
+                <i className="fas fa-tag text-gray-400 text-xs sm:text-sm shrink-0"></i>
                 <span className="text-xs sm:text-sm truncate">
                   {file.split("/").pop()}
                 </span>
@@ -108,7 +108,7 @@ const DesignFiles = ({ order }) => {
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 p-2 sm:p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <i className="fas fa-gift text-gray-400 text-xs sm:text-sm flex-shrink-0"></i>
+                <i className="fas fa-gift text-gray-400 text-xs sm:text-sm shrink-0"></i>
                 <span className="text-xs sm:text-sm truncate">
                   {file.split("/").pop()}
                 </span>

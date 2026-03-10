@@ -33,7 +33,7 @@ const ShippingInformation = ({ order }) => {
         </div>
         <div className="flex justify-between p-1.5 sm:p-2">
           <p className="text-gray-500 text-xs sm:text-sm">Address</p>
-          <p className="text-xs sm:text-sm font-medium text-right max-w-[180px] sm:max-w-xs break-words">
+          <p className="text-xs sm:text-sm font-medium text-right max-w-45 sm:max-w-xs wrap-break-word">
             {order?.address || "N/A"}
           </p>
         </div>

@@ -1,5 +1,5 @@
 import React from "react";
-import { formatCurrency } from "../../utils/formatters";
+import { formatCurrency } from "../../../utils/formatters";
 
 const Pricing = ({ order }) => {
   return (
@@ -42,7 +42,7 @@ const Pricing = ({ order }) => {
           <p className="text-gray-500 text-xs sm:text-sm">
             Deposit ({order?.deposit || 0}%)
           </p>
-          <p className="text-xs sm:text-sm font-medium text-blue-600 text-right break-words max-w-[150px] sm:max-w-none">
+          <p className="text-xs sm:text-sm font-medium text-blue-600 text-right wrap-break-word max-w-37.5 sm:max-w-none">
             {formatCurrency((order?.total_price * (order?.deposit || 0)) / 100)}
           </p>
         </div>

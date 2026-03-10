@@ -8,21 +8,21 @@ import {
   hasSectionAccess,
   hasProductionAccess,
 } from "../../utils/roleAccess";
-import RoleProtected from "../../components/orderDetails/RoleProtected";
-import ClientInformation from "../../components/orderDetails/ClientInformation";
-import ShippingInformation from "../../components/orderDetails/ShippingInformation";
-import ProductDetails from "../../components/orderDetails/ProductDetails";
-import DesignFiles from "../../components/orderDetails/DesignFiles";
-import Pricing from "../../components/orderDetails/Pricing";
-import POItems from "../../components/orderDetails/POItems";
-import Logs from "../../components/orderDetails/Logs";
-import MockupCarousel from "../../components/OrderDetails/MockupCarousel";
+import RoleProtected from "../../features/order/orderDetails/RoleProtected";
+import ClientInformation from "../../features/order/orderDetails/ClientInformation";
+import ShippingInformation from "../../features/order/orderDetails/ShippingInformation";
+import ProductDetails from "../../features/order/orderDetails/ProductDetails";
+import DesignFiles from "../../features/order/orderDetails/DesignFiles";
+import Pricing from "../../features/order/orderDetails/Pricing";
+import POItems from "../../features/order/orderDetails/POItems";
+import Logs from "../../features/order/orderDetails/Logs";
+import MockupCarousel from "../../features/order/OrderDetails/MockupCarousel";
 import { useAuth } from "../../hooks/useAuth";
 
-import Cutting from "../../components/productionSection/Cutting";
-import Sewing from "../../components/productionSection/Sewing";
-import OrderVerification from "../../components/productionSection/OrderVerification";
-
+import Cutting from "../../features/order/productionSection/Cutting";
+import Sewing from "../../features/order/productionSection/Sewing";
+import OrderStage from "../../features/order/productionSection/OrderStage";
+import GraphicEditing from "../../features/order/productionSection/GraphicEditing";
 import Loader from "../../components/common/Loader";
 
 const OrderDetailsPage = () => {
@@ -82,13 +82,125 @@ const OrderDetailsPage = () => {
 
   const productionSections = [
     {
-      id: "order-verification",
-      label: "Order Verification",
-      icon: "fa-clipboard-check",
+      id: "order_stages",
+      label: "Order Stages",
+      icon: "fa-list-check",
+      tab: "production",
+    }, // Pre-Production
+    {
+      id: "graphic_editing",
+      label: "Graphic Editing",
+      icon: "fa-pencil-ruler",
       tab: "production",
     },
-    { id: "cutting", label: "Cutting", icon: "fa-cut", tab: "production" },
-    { id: "sewing", label: "Sewing", icon: "fa-stitch", tab: "production" },
+    {
+      id: "screen_making",
+      label: "Screen Making",
+      icon: "fa-th-large",
+      tab: "production",
+    },
+    {
+      id: "screen_checking",
+      label: "Screen Checking",
+      icon: "fa-eye",
+      tab: "production",
+    },
+
+    // Sample Production
+    {
+      id: "sample_material_preparation",
+      label: "Sample Material Preparation",
+      icon: "fa-boxes",
+      tab: "production",
+    },
+    {
+      id: "sample_material_receiving",
+      label: "Sample Material Receiving",
+      icon: "fa-truck-loading",
+      tab: "production",
+    },
+    {
+      id: "sample_cutting",
+      label: "Sample Cutting",
+      icon: "fa-cut",
+      tab: "production",
+    },
+    {
+      id: "sample_printing",
+      label: "Sample Printing",
+      icon: "fa-print",
+      tab: "production",
+    },
+    {
+      id: "sample_sewing",
+      label: "Sample Sewing",
+      icon: "fa-hand-paper",
+      tab: "production",
+    },
+    {
+      id: "sample_quality_assurance",
+      label: "Sample QA",
+      icon: "fa-check-circle",
+      tab: "production",
+    },
+    {
+      id: "sample_approval",
+      label: "Sample Approval",
+      icon: "fa-thumbs-up",
+      tab: "production",
+    },
+
+    // Mass Production
+    {
+      id: "production_material_preparation",
+      label: "Mass Material Preparation",
+      icon: "fa-boxes",
+      tab: "production",
+    },
+    {
+      id: "production_material_receiving",
+      label: "Mass Material Receiving",
+      icon: "fa-truck-loading",
+      tab: "production",
+    },
+    {
+      id: "production_material_cutting",
+      label: "Mass Cutting",
+      icon: "fa-cut",
+      tab: "production",
+    },
+    {
+      id: "production_printing",
+      label: "Mass Printing",
+      icon: "fa-print",
+      tab: "production",
+    },
+    {
+      id: "production_sewing",
+      label: "Mass Sewing",
+      icon: "fa-hand-paper",
+      tab: "production",
+    },
+    {
+      id: "production_revision",
+      label: "Mass Revision",
+      icon: "fa-edit",
+      tab: "production",
+    },
+    {
+      id: "production_quality_assurance",
+      label: "Mass QA",
+      icon: "fa-check-circle",
+      tab: "production",
+    },
+
+    // Delivery
+    {
+      id: "delivery",
+      label: "Delivery",
+      icon: "fa-truck",
+      tab: "production",
+    },
   ].filter((section) => hasProductionAccess(userRoles, section.id));
 
   const visibleSections =
@@ -241,9 +353,14 @@ const OrderDetailsPage = () => {
     } else {
       return (
         <div className="bg-white rounded-lg lg:rounded-xl p-4 sm:p-5 lg:p-7 border border-gray-200 lg:border-gray-300 flex flex-col gap-y-4 sm:gap-y-5">
-          {activeSection === "order-verification" &&
-            hasProductionAccess(userRoles, "order-verification") && (
-              <OrderVerification order={order} />
+          {activeSection === "order_stages" &&
+            hasProductionAccess(userRoles, "order_stages") && (
+              <OrderStage order={order} />
+            )}
+
+          {activeSection === "graphic_editing" &&
+            hasProductionAccess(userRoles, "graphic_editing") && (
+              <GraphicEditing order={order} />
             )}
 
           {activeSection === "cutting" &&

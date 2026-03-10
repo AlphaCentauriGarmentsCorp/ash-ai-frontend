@@ -619,7 +619,7 @@ export default function ViewEquipment() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8">
                   {/* Equipment Image Card */}
                   <div className="group bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden">
-                    <div className="bg-gradient-to-r from-primary/5 to-transparent px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+                    <div className="bg-linear-to-r from-primary/5 to-transparent px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
                       <div className="flex items-center space-x-2 sm:space-x-3">
                         <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/10 rounded-lg sm:rounded-xl flex items-center justify-center">
                           <i className="fa-solid fa-image text-primary text-sm sm:text-lg"></i>
@@ -644,7 +644,7 @@ export default function ViewEquipment() {
                               alt={equipment.name}
                               className="w-full h-full object-cover group-hover/image:scale-105 transition-transform duration-500"
                             />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-end justify-start p-2 sm:p-4">
+                            <div className="absolute inset-0 bg-linear-to-t from-black/50 to-transparent opacity-0 group-hover/image:opacity-100 transition-opacity duration-300 flex items-end justify-start p-2 sm:p-4">
                               <a
                                 href={`${BaseUrl}${equipment.image}`}
                                 target="_blank"
@@ -660,7 +660,7 @@ export default function ViewEquipment() {
                             </div>
                           </div>
                         ) : (
-                          <div className="aspect-square flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+                          <div className="aspect-square flex flex-col items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
                             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-xl sm:rounded-2xl shadow-inner flex items-center justify-center mb-2 sm:mb-3">
                               <i className="fa-solid fa-image text-2xl sm:text-3xl text-gray-300"></i>
                             </div>
@@ -675,7 +675,7 @@ export default function ViewEquipment() {
 
                   {/* QR Code Card */}
                   <div className="group bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden">
-                    <div className="bg-gradient-to-r from-primary/5 to-transparent px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+                    <div className="bg-linear-to-r from-primary/5 to-transparent px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
                       <div className="flex items-center space-x-2 sm:space-x-3">
                         <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/10 rounded-lg sm:rounded-xl flex items-center justify-center">
                           <i className="fa-solid fa-qrcode text-primary text-sm sm:text-lg"></i>
@@ -723,7 +723,7 @@ export default function ViewEquipment() {
                             </div>
                           </div>
                         ) : (
-                          <div className="aspect-square flex flex-col items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 p-4">
+                          <div className="aspect-square flex flex-col items-center justify-center bg-linear-to-br from-gray-50 to-gray-100 p-4">
                             <div className="w-16 h-16 sm:w-20 sm:h-20 bg-white rounded-xl sm:rounded-2xl shadow-inner flex items-center justify-center mb-2 sm:mb-3">
                               <i className="fa-solid fa-qrcode text-2xl sm:text-3xl text-gray-300"></i>
                             </div>
@@ -739,7 +739,7 @@ export default function ViewEquipment() {
 
                 {/* Documents Section */}
                 <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                  <div className="bg-gradient-to-r from-primary/5 to-transparent px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
+                  <div className="bg-linear-to-r from-primary/5 to-transparent px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-100">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-2 sm:space-x-3">
                         <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary/10 rounded-lg sm:rounded-xl flex items-center justify-center">
@@ -857,7 +857,7 @@ export default function ViewEquipment() {
                     ) : (
                       <div className="flex flex-col items-center justify-center py-12 sm:py-16 px-4">
                         <div className="relative">
-                          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl sm:rounded-3xl flex items-center justify-center mb-3 sm:mb-4">
+                          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-linear-to-br from-gray-50 to-gray-100 rounded-2xl sm:rounded-3xl flex items-center justify-center mb-3 sm:mb-4">
                             <i className="fa-solid fa-file-circle-xmark text-3xl sm:text-4xl text-gray-300"></i>
                           </div>
                         </div>

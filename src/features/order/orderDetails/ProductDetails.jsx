@@ -1,5 +1,5 @@
 import React from "react";
-import { parseJsonField } from "../../utils/formatters";
+import { parseJsonField } from "../../../utils/formatters";
 
 const ProductDetails = ({ order }) => {
   return (
@@ -53,7 +53,7 @@ const ProductDetails = ({ order }) => {
             <p className="text-gray-500 text-xs sm:text-sm">
               Print Label Placement
             </p>
-            <p className="text-xs sm:text-sm font-medium text-right max-w-[180px] sm:max-w-xs break-words">
+            <p className="text-xs sm:text-sm font-medium text-right max-w-45 sm:max-w-xs wrap-break-word">
               {order?.print_label_placement || "N/A"}
             </p>
           </div>
@@ -127,7 +127,7 @@ const ProductDetails = ({ order }) => {
           <h1 className="font-semibold text-base sm:text-lg">
             Placement Measurements
           </h1>
-          <p className="text-xs sm:text-sm mt-1 sm:mt-2 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 break-words whitespace-pre-line">
+          <p className="text-xs sm:text-sm mt-1 sm:mt-2 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 wrap-break-word whitespace-pre-line">
             {order.placement_measurements}
           </p>
         </section>
@@ -136,7 +136,7 @@ const ProductDetails = ({ order }) => {
       {order?.notes && (
         <section className="flex-col flex gap-y-2 sm:gap-y-3">
           <h1 className="font-semibold text-base sm:text-lg">Notes</h1>
-          <p className="text-xs sm:text-sm mt-1 sm:mt-2 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 break-words whitespace-pre-line">
+          <p className="text-xs sm:text-sm mt-1 sm:mt-2 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 wrap-break-word whitespace-pre-line">
             {order.notes}
           </p>
         </section>
@@ -156,17 +156,17 @@ const ProductDetails = ({ order }) => {
                     className="p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200"
                   >
                     {option.name && (
-                      <p className="text-xs sm:text-sm font-medium break-words">
+                      <p className="text-xs sm:text-sm font-medium wrap-break-word">
                         {option.name}
                       </p>
                     )}
                     {option.color && (
                       <div className="flex items-center gap-2 mt-1">
                         <span
-                          className="w-3 h-3 sm:w-4 sm:h-4 rounded-full flex-shrink-0"
+                          className="w-3 h-3 sm:w-4 sm:h-4 rounded-full shrink-0"
                           style={{ backgroundColor: option.color }}
                         ></span>
-                        <span className="text-xs text-gray-600 break-words">
+                        <span className="text-xs text-gray-600 wrap-break-word">
                           {option.color}
                         </span>
                       </div>
@@ -177,7 +177,7 @@ const ProductDetails = ({ order }) => {
               return (
                 <span
                   key={index}
-                  className="px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 text-xs sm:text-sm rounded-lg break-words"
+                  className="px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 text-xs sm:text-sm rounded-lg wrap-break-word"
                 >
                   {option}
                 </span>

@@ -17,7 +17,6 @@ export const RoleAccess = [
   { value: "subcontract", label: "Subcontract" },
 ];
 
-// Define which roles can access which sections
 export const SECTION_ACCESS = {
   client: ["admin", "general_manager", "csr", "finance"],
   shipping: ["admin", "general_manager", "csr", "warehouse_manager", "driver"],
@@ -50,38 +49,58 @@ export const SECTION_ACCESS = {
 
 // Define which roles can access which production sections
 export const PRODUCTION_ACCESS = {
-  "order-verification": [
+  // Pre-Production Stages
+  graphic_editing: ["admin", "general_manager", "graphic_artist"],
+  screen_making: ["admin", "general_manager", "screen_maker", "graphic_artist"],
+  screen_checking: ["admin", "general_manager", "quality_assurance"],
+
+  // Sample Production Stages
+  sample_material_preparation: ["admin", "general_manager", "warehouse_staff"],
+  sample_material_receiving: ["admin", "general_manager", "warehouse_staff"],
+  sample_cutting: ["admin", "general_manager", "cutter", "quality_assurance"],
+  sample_printing: ["admin", "general_manager", "printer", "graphic_artist"],
+  sample_sewing: ["admin", "general_manager", "sewer", "quality_assurance"],
+  sample_quality_assurance: ["admin", "general_manager", "quality_assurance"],
+  sample_approval: ["admin", "general_manager", "quality_assurance"],
+
+  // Mass Production Stages
+  mass_production_material_preparation: [
     "admin",
     "general_manager",
-    "csr",
+    "warehouse_staff",
+  ],
+  mass_production_material_receiving: [
+    "admin",
+    "general_manager",
+    "warehouse_staff",
+  ],
+  mass_production_material_cutting: [
+    "admin",
+    "general_manager",
+    "cutter",
     "quality_assurance",
   ],
-  "cutting": ["admin", "general_manager", "cutter", "quality_assurance"],
-  "sewing": ["admin", "general_manager", "sewer", "quality_assurance"],
-  "printing": [
+  mass_production_printing: [
     "admin",
     "general_manager",
     "printer",
     "graphic_artist",
+  ],
+  mass_production_sewing: [
+    "admin",
+    "general_manager",
+    "sewer",
     "quality_assurance",
   ],
-  "embroidery": ["admin", "general_manager", "sewer", "quality_assurance"],
-  "quality": ["admin", "general_manager", "quality_assurance"],
-  "packing": ["admin", "general_manager", "packer", "warehouse_manager"],
-  "shipping": ["admin", "general_manager", "warehouse_manager", "driver"],
-  "screen-making": [
+  mass_production_revision: ["admin", "general_manager", "quality_assurance"],
+  mass_production_quality_assurance: [
     "admin",
     "general_manager",
-    "screen_maker",
-    "graphic_artist",
+    "quality_assurance",
   ],
-  "sample-making": [
-    "admin",
-    "general_manager",
-    "sample_maker",
-    "graphic_artist",
-  ],
-  "subcontract": ["admin", "general_manager", "subcontract", "purchasing"],
+
+  // Delivery Stage
+  delivery: ["admin", "general_manager", "warehouse_manager", "driver"],
 };
 
 export const hasSectionAccess = (userRoles = [], section) => {
