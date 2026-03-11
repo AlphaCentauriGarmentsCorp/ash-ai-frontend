@@ -8,10 +8,11 @@ import {
 } from "../../../constants/formOptions/screenOptions";
 
 const GraphicEditing = ({ order }) => {
-  const [labelPlacements, setLabelPlacements] = useState([]);
-  const [sizeLabelImage, setSizeLabelImage] = useState(null);
   const [formData, setFormData] = useState({
+    sizeLabelImage: null,
     placement_type: "",
+    notes: "",
+    placements: [],
   });
 
   const handleChange = (e) => {
@@ -24,24 +25,27 @@ const GraphicEditing = ({ order }) => {
 
   const handleAddPlacement = () => {
     if (formData.placement_type) {
-      setLabelPlacements([
-        ...labelPlacements,
-        {
-          id: Date.now(),
-          type: formData.placement_type,
-          colorCount: "",
-          pantones: {},
-          mockupImage: null,
-        },
-      ]);
-      setFormData({ placement_type: "" });
+      const newPlacement = {
+        id: Date.now(),
+        type: formData.placement_type,
+        colorCount: "",
+        pantones: {},
+        mockupImage: null,
+      };
+
+      setFormData((prev) => ({
+        ...prev,
+        placements: [...prev.placements, newPlacement],
+        placement_type: "",
+      }));
     }
   };
 
   const handleColorCountChange = (placementId, e) => {
     const { value } = e.target;
-    setLabelPlacements((prev) =>
-      prev.map((placement) =>
+    setFormData((prev) => ({
+      ...prev,
+      placements: prev.placements.map((placement) =>
         placement.id === placementId
           ? {
               ...placement,
@@ -55,13 +59,14 @@ const GraphicEditing = ({ order }) => {
             }
           : placement,
       ),
-    );
+    }));
   };
 
   const handlePantoneChange = (placementId, colorIndex, e) => {
     const { value } = e.target;
-    setLabelPlacements((prev) =>
-      prev.map((placement) =>
+    setFormData((prev) => ({
+      ...prev,
+      placements: prev.placements.map((placement) =>
         placement.id === placementId
           ? {
               ...placement,
@@ -72,7 +77,7 @@ const GraphicEditing = ({ order }) => {
             }
           : placement,
       ),
-    );
+    }));
   };
 
   const handleMockupUpload = (placementId, e) => {
@@ -80,30 +85,35 @@ const GraphicEditing = ({ order }) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setLabelPlacements((prev) =>
-          prev.map((placement) =>
+        setFormData((prev) => ({
+          ...prev,
+          placements: prev.placements.map((placement) =>
             placement.id === placementId
               ? { ...placement, mockupImage: reader.result }
               : placement,
           ),
-        );
+        }));
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleRemoveMockup = (placementId) => {
-    setLabelPlacements((prev) =>
-      prev.map((placement) =>
+    setFormData((prev) => ({
+      ...prev,
+      placements: prev.placements.map((placement) =>
         placement.id === placementId
           ? { ...placement, mockupImage: null }
           : placement,
       ),
-    );
+    }));
   };
 
   const handleRemovePlacement = (placementId) => {
-    setLabelPlacements((prev) => prev.filter((p) => p.id !== placementId));
+    setFormData((prev) => ({
+      ...prev,
+      placements: prev.placements.filter((p) => p.id !== placementId),
+    }));
   };
 
   const handleSizeLabelImageUpload = (e) => {
@@ -111,14 +121,35 @@ const GraphicEditing = ({ order }) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setSizeLabelImage(reader.result);
+        setFormData((prev) => ({
+          ...prev,
+          sizeLabelImage: reader.result,
+        }));
       };
       reader.readAsDataURL(file);
     }
   };
 
   const handleRemoveSizeLabelImage = () => {
-    setSizeLabelImage(null);
+    setFormData((prev) => ({
+      ...prev,
+      sizeLabelImage: null,
+    }));
+  };
+
+  const handleSubmit = () => {
+    const submissionData = {
+      ...formData,
+      orderId: order?.id || null,
+      metadata: {
+        totalPlacements: formData.placements.length,
+        submittedAt: new Date().toISOString(),
+        hasSizeLabel: !!formData.sizeLabelImage,
+      },
+    };
+    console.log("Complete formData:", formData);
+
+    alert("Data logged to console. Check the browser console for details.");
   };
 
   const getAddButtonClasses = (isEnabled) => {
@@ -128,6 +159,15 @@ const GraphicEditing = ({ order }) => {
       return `${baseClasses} bg-primary text-white hover:bg-secondary cursor-pointer`;
     }
     return `${baseClasses} bg-light text-gray cursor-not-allowed`;
+  };
+
+  // Check if form is valid for submission
+  const isFormValid = () => {
+    return (
+      formData.placements.length > 0 ||
+      formData.sizeLabelImage ||
+      formData.notes
+    );
   };
 
   return (
@@ -144,8 +184,8 @@ const GraphicEditing = ({ order }) => {
         </div>
         <span className="text-xs sm:text-sm text-gray flex items-center shrink-0">
           <i className="fas fa-print mr-1 text-primary"></i>
-          {labelPlacements.length} placement
-          {labelPlacements.length !== 1 ? "s" : ""}
+          {formData.placements.length} placement
+          {formData.placements.length !== 1 ? "s" : ""}
         </span>
       </div>
 
@@ -158,7 +198,7 @@ const GraphicEditing = ({ order }) => {
         <div className="flex flex-col md:flex-row gap-6">
           <div className="md:w-48 shrink-0">
             <div className="flex justify-center">
-              {!sizeLabelImage ? (
+              {!formData.sizeLabelImage ? (
                 <div
                   className="w-40 h-40 border-2 border-dashed border-light2 bg-light flex flex-col items-center justify-center cursor-pointer transition-colors hover:bg-light2/50"
                   onClick={() =>
@@ -178,7 +218,7 @@ const GraphicEditing = ({ order }) => {
               ) : (
                 <div className="relative group w-40 h-40">
                   <img
-                    src={sizeLabelImage}
+                    src={formData.sizeLabelImage}
                     alt="Size label"
                     className="w-40 h-40 object-contain border-2 border-light2"
                   />
@@ -251,7 +291,7 @@ const GraphicEditing = ({ order }) => {
         </div>
       </div>
 
-      {labelPlacements.length > 0 ? (
+      {formData.placements.length > 0 ? (
         <div className="space-y-4">
           <h2 className="text-md font-medium text-primary">
             <i className="fas fa-list mr-2 text-primary"></i>
@@ -259,7 +299,7 @@ const GraphicEditing = ({ order }) => {
           </h2>
 
           <div className="space-y-4">
-            {labelPlacements.map((placement) => (
+            {formData.placements.map((placement) => (
               <div
                 key={placement.id}
                 className="rounded-lg border border-gray-200 bg-white relative"
@@ -414,7 +454,13 @@ const GraphicEditing = ({ order }) => {
       <div className="flex justify-end pt-4 border-t border-light2">
         <button
           type="button"
-          className="px-6 py-2.5 rounded-md font-medium text-sm flex items-center gap-2 shadow-sm transition-colors bg-primary text-white hover:bg-secondary"
+          onClick={handleSubmit}
+          disabled={!isFormValid()}
+          className={`px-6 py-2.5 rounded-md font-medium text-sm flex items-center gap-2 shadow-sm transition-colors ${
+            isFormValid()
+              ? "bg-primary text-white hover:bg-secondary cursor-pointer"
+              : "bg-light text-gray cursor-not-allowed"
+          }`}
         >
           <i className="fas fa-save"></i>
           Save
