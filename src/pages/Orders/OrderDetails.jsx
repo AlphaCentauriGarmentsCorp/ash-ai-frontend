@@ -23,6 +23,9 @@ import Cutting from "../../features/order/productionSection/Cutting";
 import Sewing from "../../features/order/productionSection/Sewing";
 import OrderStage from "../../features/order/productionSection/OrderStage";
 import GraphicEditing from "../../features/order/productionSection/GraphicEditing";
+import ScreenMaking from "../../features/order/productionSection/ScreenMaking";
+import ScreenChecking from "../../features/order/productionSection/ScreenChecking";
+import SampleMaterials from "../../features/order/productionSection/SampleMaterials";
 import Loader from "../../components/common/Loader";
 
 const OrderDetailsPage = () => {
@@ -357,17 +360,27 @@ const OrderDetailsPage = () => {
             hasProductionAccess(userRoles, "order_stages") && (
               <OrderStage order={order} />
             )}
-
           {activeSection === "graphic_editing" &&
             hasProductionAccess(userRoles, "graphic_editing") && (
               <GraphicEditing order={order} />
+            )}
+          {activeSection === "screen_making" &&
+            hasProductionAccess(userRoles, "screen_maker") && (
+              <ScreenMaking order={order} />
+            )}
+          {activeSection === "screen_checking" &&
+            hasProductionAccess(userRoles, "screen_checking") && (
+              <ScreenChecking order={order} />
+            )}
+          {activeSection === "sample_material_preparation" &&
+            hasProductionAccess(userRoles, "sample_material_preparation") && (
+              <SampleMaterials order={order} />
             )}
 
           {activeSection === "cutting" &&
             hasProductionAccess(userRoles, "cutting") && (
               <Cutting order={order} />
             )}
-
           {activeSection === "sewing" &&
             hasProductionAccess(userRoles, "sewing") && (
               <Sewing order={order} />
@@ -560,7 +573,7 @@ const OrderDetailsPage = () => {
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="content lg:col-span-3 lg:max-h-[120vh] lg:overflow-y-auto lg:pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="content lg:col-span-3  lg:pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {renderContent()}
           </div>
         </div>
