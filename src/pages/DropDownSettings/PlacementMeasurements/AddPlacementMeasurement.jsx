@@ -21,6 +21,12 @@ const AddPlacementMeasurement = () => {
       ...prev,
       [name]: value,
     }));
+     if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -44,8 +50,14 @@ const AddPlacementMeasurement = () => {
       setFormData(typesInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch {
-      setServerError("Failed to create placement measurement.");
+   } catch (err) {
+      if (err.response?.data?.errors) {
+        setErrors(err.response.data.errors);
+      } else {
+        setServerError(
+          err.response?.data?.message || "Failed to create placement measurement.",
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
