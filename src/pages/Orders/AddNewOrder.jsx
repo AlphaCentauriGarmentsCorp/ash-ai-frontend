@@ -8,10 +8,12 @@ import { useClients } from "../../features/order/addOrder/hooks/useClients";
 import { useDropdownOptions } from "../../features/order/addOrder/hooks/useDropdownOptions";
 import { useFabricMaterials } from "../../features/order/addOrder/hooks/useFabricMaterials";
 import { useOptions } from "../../features/order/addOrder/hooks/useOptions";
+import { useSampleSizes } from "../../features/order/addOrder/hooks/useSampleSizes"; // Add this import
 import { OrderForm } from "../../features/order/addOrder/components/OrderForm";
 import {
   createSizeObjects,
   calculateUnitPrice,
+  calculateSampleSummary, // Add this
 } from "../../features/order/addOrder/utils/orderHelpers";
 
 export default function AddNewOrder() {
@@ -32,6 +34,24 @@ export default function AddNewOrder() {
     resetForm,
     validate,
   } = useOrderForm();
+
+  // Initialize sample sizes hook
+  const {
+    samples: sampleSizes,
+    errors: sampleErrors,
+    summary: sampleSummary,
+    addSample: handleAddSample,
+    removeSample: handleRemoveSample,
+    updateSampleField: handleSampleFieldChange,
+    validate: validateSamples,
+    resetSamples,
+  } = useSampleSizes(formData.samples || [], (updatedSamples) => {
+    // Update formData when samples change
+    setFormData((prev) => ({
+      ...prev,
+      samples: updatedSamples,
+    }));
+  });
 
   const {
     clients,
@@ -68,14 +88,23 @@ export default function AddNewOrder() {
     setOptionsErrors,
   } = useOptions();
 
+  // Combine all calculations
   const calculations = useOrderCalculations(
     formData.sizes,
     formData.deposit_percentage,
   );
 
+  // Combine all calculations with sample summary
+  const combinedSummary = {
+    ...calculations,
+    samples: sampleSummary,
+    totalPieces: (calculations.totalQuantity || 0) + sampleSummary.totalPieces,
+    totalAmount: (calculations.totalAmount || 0) + sampleSummary.totalAmount,
+  };
+
   useEffect(() => {
-    setErrors((prev) => ({ ...prev, ...optionsErrors }));
-  }, [optionsErrors, setErrors]);
+    setErrors((prev) => ({ ...prev, ...optionsErrors, samples: sampleErrors }));
+  }, [optionsErrors, sampleErrors, setErrors]);
 
   useEffect(() => {
     if (formData.client) {
@@ -165,7 +194,7 @@ export default function AddNewOrder() {
         sizes: prev.sizes.filter((size) => size.id !== id),
       }));
     },
-    [formData.sizes.length, setFormData],
+    [setFormData],
   );
 
   const handleAddOption = useCallback(
@@ -176,29 +205,31 @@ export default function AddNewOrder() {
   );
 
   const handleSubmit = async (e) => {
+    e.preventDefault();
     setIsSubmitting(true);
     setServerError("");
     setSubmitSuccess(false);
 
-    const isValid = validate();
+    // Validate main form
+    const isFormValid = validate();
 
-    if (!isValid) {
+    // Validate samples
+    const areSamplesValid = validateSamples();
+
+    if (!isFormValid || !areSamplesValid) {
       setIsSubmitting(false);
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
 
     try {
-      // Make sure calculations are up to date
-      const updatedCalculations = calculations;
-
-      // Prepare data for submission with all required fields
+      // Prepare data for submission
       const submitData = {
         ...formData,
         // Include calculated fields
-        total_quantity: updatedCalculations.totalQuantity,
-        total_amount: updatedCalculations.totalAmount,
-        average_unit_price: updatedCalculations.averageUnitPrice,
+        total_quantity: combinedSummary.totalPieces,
+        total_amount: combinedSummary.totalAmount,
+        average_unit_price: calculations.averageUnitPrice,
         // Map selected options
         selectedOptions: selectedOptions.map(({ name, color, applyToAll }) => ({
           name,
@@ -207,18 +238,19 @@ export default function AddNewOrder() {
         })),
         // Filter sizes with quantity > 0
         sizes: formData.sizes.filter((size) => size.quantity > 0),
+        // Include samples (filter out empty ones if needed)
+        samples: sampleSizes.filter(
+          (sample) => sample.size && sample.quantity > 0,
+        ),
       };
 
-      console.log("Submitting data:", submitData); // Debug log
+      console.log("Submitting data:", submitData);
 
       await orderService.createOrder(submitData);
 
       setSubmitSuccess(true);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
-
-      // Optional: Redirect after success
-      // setTimeout(() => navigate('/orders'), 2000);
     } catch (err) {
       console.error("Submission error details:", err);
 
@@ -248,8 +280,9 @@ export default function AddNewOrder() {
 
   const handleReset = useCallback(() => {
     resetForm();
+    resetSamples();
     setSubmitSuccess(false);
-  }, [resetForm]);
+  }, [resetForm, resetSamples]);
 
   if (loading) {
     return (
@@ -290,7 +323,7 @@ export default function AddNewOrder() {
         handleReset={handleReset}
         isSubmitting={isSubmitting}
         submitSuccess={submitSuccess}
-        summary={calculations}
+        summary={combinedSummary}
         clients={clients}
         clientsLoading={clientsLoading}
         clientBrands={clientBrands}
@@ -304,6 +337,13 @@ export default function AddNewOrder() {
         fabricTypeOptions={fabricTypeOptions}
         fabricSupplierOptions={fabricSupplierOptions}
         selectedOptions={selectedOptions}
+        // Add sample sizes props
+        samples={sampleSizes}
+        onSampleChange={handleSampleFieldChange}
+        onAddSample={handleAddSample}
+        onRemoveSample={handleRemoveSample}
+        sampleErrors={sampleErrors}
+        sampleSummary={sampleSummary}
       />
     </AdminLayout>
   );

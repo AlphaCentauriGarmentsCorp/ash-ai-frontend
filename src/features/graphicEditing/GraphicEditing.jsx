@@ -1,195 +1,64 @@
-import React, { useState } from "react";
-import Input from "../../../components/form/Input";
-import Select from "../../../components/form/Select";
-import Textarea from "../../../components/form/Textarea";
-import {
-  placementOptions,
-  colorCountOptions,
-} from "../../../constants/formOptions/screenOptions";
+import React from "react";
+import Input from "../../components/form/Input";
+import Select from "../../components/form/Select";
+import Textarea from "../../components/form/Textarea";
+import { useGraphicEditing } from "./hooks/useGraphicEditing";
+import { getPlacementLabel } from "./utlis/graphicEditingUtils";
 
 const GraphicEditing = ({ order }) => {
-  const [formData, setFormData] = useState({
-    sizeLabelImage: null,
-    placement_type: "",
-    notes: "",
-    placements: [],
-  });
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleAddPlacement = () => {
-    if (formData.placement_type) {
-      const newPlacement = {
-        id: Date.now(),
-        type: formData.placement_type,
-        colorCount: "",
-        pantones: {},
-        mockupImage: null,
-      };
-
-      setFormData((prev) => ({
-        ...prev,
-        placements: [...prev.placements, newPlacement],
-        placement_type: "",
-      }));
-    }
-  };
-
-  const handleColorCountChange = (placementId, e) => {
-    const { value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      placements: prev.placements.map((placement) =>
-        placement.id === placementId
-          ? {
-              ...placement,
-              colorCount: value,
-              pantones: Array(parseInt(value))
-                .fill("")
-                .reduce((acc, _, i) => {
-                  acc[`color_${i + 1}`] = "";
-                  return acc;
-                }, {}),
-            }
-          : placement,
-      ),
-    }));
-  };
-
-  const handlePantoneChange = (placementId, colorIndex, e) => {
-    const { value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      placements: prev.placements.map((placement) =>
-        placement.id === placementId
-          ? {
-              ...placement,
-              pantones: {
-                ...placement.pantones,
-                [`color_${colorIndex + 1}`]: value,
-              },
-            }
-          : placement,
-      ),
-    }));
-  };
-
-  const handleMockupUpload = (placementId, e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({
-          ...prev,
-          placements: prev.placements.map((placement) =>
-            placement.id === placementId
-              ? { ...placement, mockupImage: reader.result }
-              : placement,
-          ),
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveMockup = (placementId) => {
-    setFormData((prev) => ({
-      ...prev,
-      placements: prev.placements.map((placement) =>
-        placement.id === placementId
-          ? { ...placement, mockupImage: null }
-          : placement,
-      ),
-    }));
-  };
-
-  const handleRemovePlacement = (placementId) => {
-    setFormData((prev) => ({
-      ...prev,
-      placements: prev.placements.filter((p) => p.id !== placementId),
-    }));
-  };
-
-  const handleSizeLabelImageUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData((prev) => ({
-          ...prev,
-          sizeLabelImage: reader.result,
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleRemoveSizeLabelImage = () => {
-    setFormData((prev) => ({
-      ...prev,
-      sizeLabelImage: null,
-    }));
-  };
-
-  const handleSubmit = () => {
-    const submissionData = {
-      ...formData,
-      orderId: order?.id || null,
-      metadata: {
-        totalPlacements: formData.placements.length,
-        submittedAt: new Date().toISOString(),
-        hasSizeLabel: !!formData.sizeLabelImage,
-      },
-    };
-    console.log("Complete formData:", formData);
-
-    alert("Data logged to console. Check the browser console for details.");
-  };
-
-  const getAddButtonClasses = (isEnabled) => {
-    const baseClasses =
-      "w-full sm:w-auto px-4 sm:px-6 py-2.5 rounded-md font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 mb-1 sm:mb-4";
-    if (isEnabled) {
-      return `${baseClasses} bg-primary text-white hover:bg-secondary cursor-pointer`;
-    }
-    return `${baseClasses} bg-light text-gray cursor-not-allowed`;
-  };
-
-  // Check if form is valid for submission
-  const isFormValid = () => {
-    return (
-      formData.placements.length > 0 ||
-      formData.sizeLabelImage ||
-      formData.notes
-    );
-  };
+  const {
+    formData,
+    handleChange,
+    handleSizeLabelImageUpload,
+    handleRemoveSizeLabelImage,
+    handleAddPlacement,
+    handleRemovePlacement,
+    handleColorCountChange,
+    handlePantoneChange,
+    handleMockupUpload,
+    handleRemoveMockup,
+    handleSubmit,
+    getAddButtonClasses,
+    isFormValid,
+    stats,
+    placementOptions,
+    colorCountOptions,
+  } = useGraphicEditing(order);
 
   return (
     <section className="flex flex-col gap-y-6 font-poppins">
+      {}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-5">
         <div className="flex-1 min-w-0">
-          <h1 className="text-lg sm:text-xl font-semibold text-primary truncate">
-            Graphic Editing
-          </h1>
+          <div className="flex items-center gap-2 mb-1">
+            <h1 className="text-lg sm:text-xl font-semibold text-primary truncate">
+              Graphic Editing
+            </h1>
+          </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2 sm:line-clamp-1">
             Define print placements, number of colors, and upload mockup images
             for this order.
           </p>
         </div>
-        <span className="text-xs sm:text-sm text-gray flex items-center shrink-0">
-          <i className="fas fa-print mr-1 text-primary"></i>
-          {formData.placements.length} placement
-          {formData.placements.length !== 1 ? "s" : ""}
-        </span>
+
+        {}
+        <div className="flex items-center gap-3 shrink-0">
+          {stats.hasSizeLabel && (
+            <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-md flex items-center gap-1">
+              <i className="fas fa-check-circle text-xs"></i>
+              Size Label
+            </span>
+          )}
+          <span className="text-xs sm:text-sm text-gray flex items-center">
+            <i className="fas fa-print mr-1 text-primary"></i>
+            {stats.totalPlacements} placement
+            {stats.totalPlacements !== 1 ? "s" : ""}
+          </span>
+        </div>
       </div>
 
-      <div className="rounded-lg border border-gray-200 bg-white p-4 ">
+      {}
+      <div className="rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-sm sm:text-md font-medium mb-3 text-primary">
           <i className="fas fa-tag mr-2 text-primary"></i>
           Size Label Image
@@ -260,6 +129,7 @@ const GraphicEditing = ({ order }) => {
         </div>
       </div>
 
+      {}
       <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
         <h2 className="text-sm sm:text-md font-medium mb-3 sm:mb-4 text-primary">
           <i className="fas fa-plus-circle mr-2 text-primary"></i>
@@ -286,11 +156,12 @@ const GraphicEditing = ({ order }) => {
             className={getAddButtonClasses(!!formData.placement_type)}
           >
             <i className="fas fa-plus"></i>
-            <span className="sm:inline">Add</span>
+            <span className="sm:inline">Add Placement</span>
           </button>
         </div>
       </div>
 
+      {}
       {formData.placements.length > 0 ? (
         <div className="space-y-4">
           <h2 className="text-md font-medium text-primary">
@@ -299,21 +170,25 @@ const GraphicEditing = ({ order }) => {
           </h2>
 
           <div className="space-y-4">
-            {formData.placements.map((placement) => (
+            {formData.placements.map((placement, index) => (
               <div
                 key={placement.id}
                 className="rounded-lg border border-gray-200 bg-white relative"
               >
                 <div className="px-4 py-3 border-b border-gray-200 rounded-t-lg bg-light">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-medium text-primary">
-                      {placementOptions.find(
-                        (opt) => opt.value === placement.type,
-                      )?.label || placement.type}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                        #{index + 1}
+                      </span>
+                      <h3 className="font-medium text-primary">
+                        {getPlacementLabel(placement.type, placementOptions)}
+                      </h3>
+                    </div>
                     <button
                       onClick={() => handleRemovePlacement(placement.id)}
                       className="text-gray hover:text-primary transition-colors"
+                      title="Remove placement"
                     >
                       <i className="fas fa-times"></i>
                     </button>
@@ -322,6 +197,7 @@ const GraphicEditing = ({ order }) => {
 
                 <div className="p-4">
                   <div className="flex flex-col md:flex-row gap-6">
+                    {}
                     <div className="md:w-48 shrink-0">
                       <div className="flex justify-center">
                         {!placement.mockupImage ? (
@@ -334,7 +210,9 @@ const GraphicEditing = ({ order }) => {
                             }
                           >
                             <i className="fas fa-cloud-upload-alt text-xl mb-1 text-gray"></i>
-                            <span className="text-xs text-gray">Upload</span>
+                            <span className="text-xs text-gray">
+                              Upload Mockup
+                            </span>
                             <input
                               id={`file-${placement.id}`}
                               type="file"
@@ -382,6 +260,7 @@ const GraphicEditing = ({ order }) => {
                       </div>
                     </div>
 
+                    {}
                     <div className="flex-1">
                       <div className="relative mb-3 z-40">
                         <Select
@@ -437,9 +316,13 @@ const GraphicEditing = ({ order }) => {
         <div className="rounded-lg py-12 text-center bg-light border-dashed border-2 border-light2">
           <i className="fas fa-print text-3xl mb-2 text-gray"></i>
           <p className="text-sm text-gray">No placements added yet</p>
+          <p className="text-xs text-gray-500 mt-1">
+            Add your first print placement above
+          </p>
         </div>
       )}
 
+      {}
       <Textarea
         label="Artist Notes"
         name="notes"
@@ -447,23 +330,28 @@ const GraphicEditing = ({ order }) => {
         onChange={handleChange}
         rows={5}
         resizable
-        required
-        placeholder="Enter artist notes"
+        placeholder="Enter artist notes, special instructions, or comments"
       />
 
+      {}
       <div className="flex justify-end pt-4 border-t border-light2">
         <button
           type="button"
-          onClick={handleSubmit}
-          disabled={!isFormValid()}
+          onClick={() => {
+            const result = handleSubmit();
+            alert(
+              `Data saved! Check console for details. ${result.orderId ? `Order ID: ${result.orderId}` : ""}`,
+            );
+          }}
+          disabled={!isFormValid}
           className={`px-6 py-2.5 rounded-md font-medium text-sm flex items-center gap-2 shadow-sm transition-colors ${
-            isFormValid()
+            isFormValid
               ? "bg-primary text-white hover:bg-secondary cursor-pointer"
               : "bg-light text-gray cursor-not-allowed"
           }`}
         >
           <i className="fas fa-save"></i>
-          Save
+          Save Graphic Details
         </button>
       </div>
     </section>

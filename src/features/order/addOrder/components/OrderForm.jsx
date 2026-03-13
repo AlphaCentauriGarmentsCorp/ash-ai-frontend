@@ -11,6 +11,7 @@ import { SummarySection } from "./sections/SummarySection";
 import { DesignFilesSection } from "./sections/DesignFilesSection";
 import { FreebiesSection } from "./sections/FreebiesSection";
 import { PaymentSection } from "./sections/PaymentSection";
+import { SampleSizesSection } from "./sections/SampleSizesSection";
 
 export const OrderForm = ({
   formData,
@@ -42,6 +43,12 @@ export const OrderForm = ({
   fabricTypeOptions,
   fabricSupplierOptions,
   selectedOptions,
+  // New sample props
+  samples = [],
+  onSampleChange,
+  onAddSample,
+  onRemoveSample,
+  sampleErrors,
 }) => {
   const renderSuccessMessage = () => {
     if (!submitSuccess) return null;
@@ -55,9 +62,9 @@ export const OrderForm = ({
               Order submitted successfully!
             </p>
             <p className="text-green-600 text-sm mt-1">
-              {selectedOptions.length} option(s) and{" "}
-              {formData.sizes.filter((s) => s.quantity > 0).length} size(s) have
-              been saved.
+              {selectedOptions.length} option(s),{" "}
+              {formData.sizes.filter((s) => s.quantity > 0).length} size(s), and{" "}
+              {samples.length} sample(s) have been saved.
             </p>
           </div>
         </div>
@@ -138,6 +145,16 @@ export const OrderForm = ({
           onAddSize={handleAddSize}
           onRemoveSize={handleRemoveSize}
           errors={errors}
+        />
+
+        {/* Add Sample Sizes Section here */}
+        <SampleSizesSection
+          samples={samples}
+          onSampleChange={onSampleChange}
+          onAddSample={onAddSample}
+          onRemoveSample={onRemoveSample}
+          errors={{ ...errors, samples: sampleErrors }}
+          sizeLabelOptions={sizeLabelOptions}
         />
 
         <SummarySection summary={summary} />

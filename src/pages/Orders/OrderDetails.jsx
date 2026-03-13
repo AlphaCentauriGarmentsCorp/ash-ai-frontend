@@ -21,8 +21,8 @@ import { useAuth } from "../../hooks/useAuth";
 
 import Cutting from "../../features/order/productionSection/Cutting";
 import Sewing from "../../features/order/productionSection/Sewing";
-import OrderStage from "../../features/order/productionSection/OrderStage";
-import GraphicEditing from "../../features/order/productionSection/GraphicEditing";
+import OrderStage from "../../features/orderStages/OrderStage";
+import GraphicEditing from "../../features/graphicEditing/GraphicEditing";
 import ScreenMaking from "../../features/order/productionSection/ScreenMaking";
 import ScreenChecking from "../../features/order/productionSection/ScreenChecking";
 import SampleMaterials from "../../features/order/productionSection/SampleMaterials";
@@ -83,13 +83,13 @@ const OrderDetailsPage = () => {
       section.id === "all" || hasSectionAccess(userRoles, section.id),
   );
 
-  const productionSections = [
+  const baseProductionSections = [
     {
       id: "order_stages",
       label: "Order Stages",
       icon: "fa-list-check",
       tab: "production",
-    }, // Pre-Production
+    },
     {
       id: "graphic_editing",
       label: "Graphic Editing",
@@ -204,12 +204,58 @@ const OrderDetailsPage = () => {
       icon: "fa-truck",
       tab: "production",
     },
-  ].filter((section) => hasProductionAccess(userRoles, section.id));
+  ];
+
+  // Filter production sections based on order stages and user roles
+  const productionSections = React.useMemo(() => {
+    if (!order || !order.orderStages || order.orderStages.length === 0) {
+      // If no order stages data, only show order_stages
+      return baseProductionSections.filter(
+        (section) =>
+          section.id === "order_stages" &&
+          hasProductionAccess(userRoles, section.id),
+      );
+    }
+
+    // Extract stage values from the array of stage objects
+    const availableStages = order.orderStages.map((stageObj) => stageObj.stage);
+
+    return baseProductionSections.filter((section) => {
+      // Always include order_stages regardless of available stages
+      if (section.id === "order_stages") {
+        return hasProductionAccess(userRoles, section.id);
+      }
+
+      // For other sections, only show if they exist in orderStages and user has access
+      return (
+        availableStages.includes(section.id) &&
+        hasProductionAccess(userRoles, section.id)
+      );
+    });
+  }, [order, userRoles]);
 
   const visibleSections =
     activeTab === "order" ? orderSections : productionSections;
 
   const getProductionStatus = (sectionId) => {
+    // Special case for order_stages - if there are any stages configured, mark as completed
+    if (sectionId === "order_stages") {
+      // If there are order stages in the data, mark as completed
+      if (order?.orderStages && order.orderStages.length > 0) {
+        return "completed";
+      }
+      return "in-progress";
+    }
+
+    // For other sections, use real status data from the API if available
+    if (order?.orderStages) {
+      const stageObj = order.orderStages.find((s) => s.stage === sectionId);
+      if (stageObj) {
+        return stageObj.status;
+      }
+    }
+
+    // Fallback to mock status
     const mockStatus = {
       "cutting": "in-progress",
       "printing": "pending",
@@ -262,6 +308,10 @@ const OrderDetailsPage = () => {
       setLoading(true);
       const response = await orderApi.getOrder(po_code);
       setOrder(response.data);
+
+      if (response.data) {
+        setActiveSection(activeTab === "order" ? "all" : "order_stages");
+      }
     } catch (err) {
       setError(err.message || "Failed to fetch order details");
     } finally {
@@ -271,6 +321,17 @@ const OrderDetailsPage = () => {
 
   const handleSectionSelect = (sectionId) => {
     setActiveSection(sectionId);
+    setIsSidebarOpen(false);
+  };
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab === "production" && productionSections.length > 0) {
+      // Set to first available production section (should be order_stages if nothing else)
+      setActiveSection(productionSections[0].id);
+    } else {
+      setActiveSection("all");
+    }
     setIsSidebarOpen(false);
   };
 
@@ -358,8 +419,9 @@ const OrderDetailsPage = () => {
         <div className="bg-white rounded-lg lg:rounded-xl p-4 sm:p-5 lg:p-7 border border-gray-200 lg:border-gray-300 flex flex-col gap-y-4 sm:gap-y-5">
           {activeSection === "order_stages" &&
             hasProductionAccess(userRoles, "order_stages") && (
-              <OrderStage order={order} />
+              <OrderStage order={order} onStagesUpdated={fetchOrderDetails} />
             )}
+
           {activeSection === "graphic_editing" &&
             hasProductionAccess(userRoles, "graphic_editing") && (
               <GraphicEditing order={order} />
@@ -377,12 +439,12 @@ const OrderDetailsPage = () => {
               <SampleMaterials order={order} />
             )}
 
-          {activeSection === "cutting" &&
-            hasProductionAccess(userRoles, "cutting") && (
+          {activeSection === "production_material_cutting" &&
+            hasProductionAccess(userRoles, "production_material_cutting") && (
               <Cutting order={order} />
             )}
-          {activeSection === "sewing" &&
-            hasProductionAccess(userRoles, "sewing") && (
+          {activeSection === "production_sewing" &&
+            hasProductionAccess(userRoles, "production_sewing") && (
               <Sewing order={order} />
             )}
         </div>
@@ -452,11 +514,7 @@ const OrderDetailsPage = () => {
         {/* Tab Navigation */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 mb-4 sm:mb-5 border-b border-gray-200 pb-2">
           <button
-            onClick={() => {
-              setActiveTab("order");
-              setActiveSection("all");
-              setIsSidebarOpen(false);
-            }}
+            onClick={() => handleTabChange("order")}
             className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${
               activeTab === "order"
                 ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
@@ -468,11 +526,7 @@ const OrderDetailsPage = () => {
           </button>
 
           <button
-            onClick={() => {
-              setActiveTab("production");
-              setActiveSection(productionSections[0]?.id || "cutting");
-              setIsSidebarOpen(false);
-            }}
+            onClick={() => handleTabChange("production")}
             className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${
               activeTab === "production"
                 ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
@@ -480,7 +534,14 @@ const OrderDetailsPage = () => {
             }`}
           >
             <i className="fas fa-cogs"></i>
-            <span className="truncate">Production Options</span>
+            <span className="truncate">
+              Production Options
+              {order.orderStages?.length > 0 && (
+                <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
+                  {order.orderStages.length}
+                </span>
+              )}
+            </span>
           </button>
         </div>
 
@@ -500,6 +561,10 @@ const OrderDetailsPage = () => {
             <span className="font-medium text-sm flex items-center gap-2">
               <i className="fas fa-bars text-gray-500"></i>
               {activeTab === "order" ? "Order Sections" : "Production Sections"}
+              {activeTab === "production" &&
+                productionSections.length === 0 && (
+                  <span className="text-xs text-gray-400">(No stages)</span>
+                )}
             </span>
             <i
               className={`fas fa-chevron-${isSidebarOpen ? "up" : "down"} text-gray-400`}
@@ -524,56 +589,65 @@ const OrderDetailsPage = () => {
                 </div>
               )}
 
-              {visibleSections.map((section) => (
-                <button
-                  key={section.id}
-                  onClick={() => handleSectionSelect(section.id)}
-                  className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 rounded-xl lg:rounded-2xl border p-3 sm:p-4 lg:p-5 transition-all ${
-                    activeSection === section.id
-                      ? "bg-blue-50 border-primary shadow-sm"
-                      : "bg-white border-gray-200 lg:border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  <span className="font-semibold text-xs sm:text-sm flex items-center gap-2">
-                    <i
-                      className={`fas ${section.icon} ${
-                        activeSection === section.id
-                          ? "text-primary/90"
-                          : "text-gray-500"
-                      }`}
-                    ></i>
-                    <span className="text-left">{section.label}</span>
-                  </span>
+              {visibleSections.length > 0 ? (
+                visibleSections.map((section) => (
+                  <button
+                    key={section.id}
+                    onClick={() => handleSectionSelect(section.id)}
+                    className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 rounded-xl lg:rounded-2xl border p-3 sm:p-4 lg:p-5 transition-all ${
+                      activeSection === section.id
+                        ? "bg-blue-50 border-primary shadow-sm"
+                        : "bg-white border-gray-200 lg:border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    <span className="font-semibold text-xs sm:text-sm flex items-center gap-2">
+                      <i
+                        className={`fas ${section.icon} ${
+                          activeSection === section.id
+                            ? "text-primary/90"
+                            : "text-gray-500"
+                        }`}
+                      ></i>
+                      <span className="text-left">{section.label}</span>
+                    </span>
 
-                  <span className="flex items-center gap-x-2 w-full sm:w-auto justify-between sm:justify-end">
-                    {activeTab === "production" && (
-                      <span
-                        className={`text-[10px] sm:text-xs px-2 py-1 rounded-full flex items-center gap-1 ${getStatusColor(getProductionStatus(section.id))}`}
-                      >
-                        <i
-                          className={`fas ${getStatusIcon(getProductionStatus(section.id))}`}
-                        ></i>
-                        <span className="hidden xs:inline capitalize">
-                          {getProductionStatus(section.id).replace("-", " ")}
+                    <span className="flex items-center gap-x-2 w-full sm:w-auto justify-between sm:justify-end">
+                      {activeTab === "production" && (
+                        <span
+                          className={`text-[10px] sm:text-xs px-2 py-1 rounded-full flex items-center gap-1 ${getStatusColor(getProductionStatus(section.id))}`}
+                        >
+                          <i
+                            className={`fas ${getStatusIcon(getProductionStatus(section.id))}`}
+                          ></i>
+                          <span className="hidden xs:inline capitalize">
+                            {getProductionStatus(section.id).replace("-", " ")}
+                          </span>
                         </span>
-                      </span>
-                    )}
+                      )}
 
-                    <i
-                      className={`fas fa-chevron-right text-base sm:text-lg transition-transform duration-300 ease-in-out ${
-                        activeSection === section.id
-                          ? "text-primary/90 rotate-90 lg:rotate-90"
-                          : "text-gray-300 rotate-0"
-                      }`}
-                    ></i>
-                  </span>
-                </button>
-              ))}
+                      <i
+                        className={`fas fa-chevron-right text-base sm:text-lg transition-transform duration-300 ease-in-out ${
+                          activeSection === section.id
+                            ? "text-primary/90 rotate-90 lg:rotate-90"
+                            : "text-gray-300 rotate-0"
+                        }`}
+                      ></i>
+                    </span>
+                  </button>
+                ))
+              ) : (
+                <div className="bg-white border border-gray-200 rounded-xl p-6 text-center">
+                  <i className="fas fa-info-circle text-gray-400 text-3xl mb-2"></i>
+                  <p className="text-gray-500 text-sm">
+                    No production stages available for this order
+                  </p>
+                </div>
+              )}
             </div>
           </div>
 
           {/* Scrollable Content Area */}
-          <div className="content lg:col-span-3  lg:pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="content lg:col-span-3 lg:pr-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
             {renderContent()}
           </div>
         </div>
