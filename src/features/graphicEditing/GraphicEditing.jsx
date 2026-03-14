@@ -23,17 +23,32 @@ const GraphicEditing = ({ order }) => {
     stats,
     placementOptions,
     colorCountOptions,
+    baseUrl,
   } = useGraphicEditing(order);
+
+  // Helper to get full image URL
+  const getImageUrl = (imagePath) => {
+    if (!imagePath) return null;
+    if (imagePath.startsWith("data:") || imagePath.startsWith("http")) {
+      return imagePath;
+    }
+    return `${baseUrl}${imagePath}`;
+  };
 
   return (
     <section className="flex flex-col gap-y-6 font-poppins">
-      {}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-5">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
             <h1 className="text-lg sm:text-xl font-semibold text-primary truncate">
               Graphic Editing
             </h1>
+            {order?.orderDesign && (
+              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                Editing Existing Design
+              </span>
+            )}
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2 sm:line-clamp-1">
             Define print placements, number of colors, and upload mockup images
@@ -41,7 +56,7 @@ const GraphicEditing = ({ order }) => {
           </p>
         </div>
 
-        {}
+        {/* Stats */}
         <div className="flex items-center gap-3 shrink-0">
           {stats.hasSizeLabel && (
             <span className="text-xs bg-green-50 text-green-700 px-2 py-1 rounded-md flex items-center gap-1">
@@ -57,7 +72,7 @@ const GraphicEditing = ({ order }) => {
         </div>
       </div>
 
-      {}
+      {/* Size Label Image */}
       <div className="rounded-lg border border-gray-200 bg-white p-4">
         <h2 className="text-sm sm:text-md font-medium mb-3 text-primary">
           <i className="fas fa-tag mr-2 text-primary"></i>
@@ -90,6 +105,10 @@ const GraphicEditing = ({ order }) => {
                     src={formData.sizeLabelImage}
                     alt="Size label"
                     className="w-40 h-40 object-contain border-2 border-light2"
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "/placeholder-image.png"; // Add a placeholder image
+                    }}
                   />
                   <div className="absolute inset-0 bg-black/50 bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <div className="flex gap-2">
@@ -112,6 +131,13 @@ const GraphicEditing = ({ order }) => {
                       </button>
                     </div>
                   </div>
+                  {formData.sizeLabelPath && (
+                    <div className="absolute top-0 right-0 mt-1 mr-1">
+                      <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">
+                        Existing
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -128,8 +154,7 @@ const GraphicEditing = ({ order }) => {
           </div>
         </div>
       </div>
-
-      {}
+      {/* Add Print Placement */}
       <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
         <h2 className="text-sm sm:text-md font-medium mb-3 sm:mb-4 text-primary">
           <i className="fas fa-plus-circle mr-2 text-primary"></i>
@@ -161,7 +186,7 @@ const GraphicEditing = ({ order }) => {
         </div>
       </div>
 
-      {}
+      {/* Placements List */}
       {formData.placements.length > 0 ? (
         <div className="space-y-4">
           <h2 className="text-md font-medium text-primary">
@@ -184,6 +209,11 @@ const GraphicEditing = ({ order }) => {
                       <h3 className="font-medium text-primary">
                         {getPlacementLabel(placement.type, placementOptions)}
                       </h3>
+                      {placement.existingMockup && (
+                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
+                          Existing
+                        </span>
+                      )}
                     </div>
                     <button
                       onClick={() => handleRemovePlacement(placement.id)}
@@ -197,7 +227,7 @@ const GraphicEditing = ({ order }) => {
 
                 <div className="p-4">
                   <div className="flex flex-col md:flex-row gap-6">
-                    {}
+                    {/* Mockup Image */}
                     <div className="md:w-48 shrink-0">
                       <div className="flex justify-center">
                         {!placement.mockupImage ? (
@@ -229,6 +259,10 @@ const GraphicEditing = ({ order }) => {
                               src={placement.mockupImage}
                               alt="Placement mockup"
                               className="w-40 h-40 object-cover border-2 border-light2"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "/placeholder-image.png";
+                              }}
                             />
                             <div className="absolute inset-0 bg-black/50 bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
                               <div className="flex gap-2">
@@ -260,9 +294,9 @@ const GraphicEditing = ({ order }) => {
                       </div>
                     </div>
 
-                    {}
+                    {/* Color Configuration */}
                     <div className="flex-1">
-                      <div className="relative mb-3 z-40">
+                      <div className="relative mb-3">
                         <Select
                           label="Number of Colors"
                           name={`colors_${placement.id}`}
@@ -322,7 +356,7 @@ const GraphicEditing = ({ order }) => {
         </div>
       )}
 
-      {}
+      {/* Notes */}
       <Textarea
         label="Artist Notes"
         name="notes"
@@ -333,16 +367,11 @@ const GraphicEditing = ({ order }) => {
         placeholder="Enter artist notes, special instructions, or comments"
       />
 
-      {}
+      {/* Submit Button */}
       <div className="flex justify-end pt-4 border-t border-light2">
         <button
           type="button"
-          onClick={() => {
-            const result = handleSubmit();
-            alert(
-              `Data saved! Check console for details. ${result.orderId ? `Order ID: ${result.orderId}` : ""}`,
-            );
-          }}
+          onClick={handleSubmit}
           disabled={!isFormValid}
           className={`px-6 py-2.5 rounded-md font-medium text-sm flex items-center gap-2 shadow-sm transition-colors ${
             isFormValid
@@ -351,7 +380,9 @@ const GraphicEditing = ({ order }) => {
           }`}
         >
           <i className="fas fa-save"></i>
-          Save Graphic Details
+          {order?.orderDesign
+            ? "Update Graphic Details"
+            : "Save Graphic Details"}
         </button>
       </div>
     </section>

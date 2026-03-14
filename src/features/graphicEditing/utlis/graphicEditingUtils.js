@@ -1,6 +1,7 @@
 export const processImageUpload = (file) => {
   return new Promise((resolve, reject) => {
     const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+
     if (!validTypes.includes(file.type)) {
       reject(new Error("Invalid file type. Please upload an image."));
       return;
@@ -14,12 +15,16 @@ export const processImageUpload = (file) => {
     }
 
     const reader = new FileReader();
+
     reader.onloadend = () => {
-      resolve(reader.result);
+      resolve({
+        preview: reader.result,
+        file: file,
+      });
     };
-    reader.onerror = () => {
-      reject(new Error("Error reading file."));
-    };
+
+    reader.onerror = () => reject(new Error("Error reading file."));
+
     reader.readAsDataURL(file);
   });
 };
@@ -56,19 +61,81 @@ export const validatePlacement = (placement) => {
 };
 
 export const formatGraphicDataForSubmit = (formData, order = null) => {
-  const cleanedPlacements = formData.placements.map((placement) => ({
-    id: placement.id,
-    type: placement.type,
-    pantones: placement.pantones,
-    mockupImage: placement.mockupImage,
-  }));
+  const data = new FormData();
 
-  return {
-    orderId: order?.id || null,
-    sizeLabelImage: formData.sizeLabelImage,
-    placements: cleanedPlacements,
-    artistNotes: formData.notes || "",
+  data.append("order_id", order?.id || "");
+  data.append("notes", formData.notes || "");
+
+  if (formData.sizeLabelFile && formData.sizeLabelFile instanceof File) {
+    data.append("size_label", formData.sizeLabelFile);
+  }
+
+  formData.placements.forEach((placement, index) => {
+    if (placement.id && typeof placement.id === "number" && placement.id > 0) {
+      data.append(`placements[${index}][id]`, placement.id);
+    }
+
+    data.append(`placements[${index}][type]`, placement.type);
+    data.append(`placements[${index}][color_count]`, placement.colorCount || 0);
+
+    if (placement.pantones && Object.keys(placement.pantones).length > 0) {
+      Object.entries(placement.pantones).forEach(([key, value]) => {
+        data.append(`placements[${index}][pantones][${key}]`, value);
+      });
+    }
+
+    if (placement.mockupFile && placement.mockupFile instanceof File) {
+      data.append(`placements[${index}][mockup]`, placement.mockupFile);
+    }
+  });
+
+  return data;
+};
+
+export const mapExistingDesignToFormData = (orderDesign, baseUrl) => {
+  const formData = {
+    sizeLabelImage: null,
+    sizeLabelFile: null,
+    placement_type: "",
+    notes: orderDesign.notes || "",
+    placements: [],
   };
+
+  if (orderDesign.size_label) {
+    const sizeLabelPath = orderDesign.size_label;
+    formData.sizeLabelImage = sizeLabelPath.startsWith("http")
+      ? sizeLabelPath
+      : `${baseUrl}${sizeLabelPath}`;
+    formData.sizeLabelFile = null;
+  }
+
+  if (orderDesign.placements && orderDesign.placements.length > 0) {
+    formData.placements = orderDesign.placements.map((placement) => {
+      let mockupImage = null;
+      if (placement.mockup_image) {
+        mockupImage = placement.mockup_image.startsWith("http")
+          ? placement.mockup_image
+          : `${baseUrl}${placement.mockup_image}`;
+      }
+
+      const colorCount = placement.pantones
+        ? Object.keys(placement.pantones).length.toString()
+        : "";
+
+      const id = parseInt(placement.id, 10);
+
+      return {
+        id: id,
+        type: placement.type,
+        colorCount: colorCount,
+        pantones: placement.pantones || {},
+        mockupImage: mockupImage,
+        mockupFile: null,
+      };
+    });
+  }
+
+  return formData;
 };
 
 export const generateSummary = (formData) => {

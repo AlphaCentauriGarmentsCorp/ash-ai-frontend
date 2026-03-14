@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useEffect } from "react";
 import {
   placementOptions,
   colorCountOptions,
@@ -7,15 +7,30 @@ import {
   processImageUpload,
   formatGraphicDataForSubmit,
   validatePlacement,
+  mapExistingDesignToFormData,
 } from "../utlis/graphicEditingUtils";
+import { graphicDesignApi } from "../../../api/graphicDesignApi";
 
 export const useGraphicEditing = (initialOrder = null) => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
+
   const [formData, setFormData] = useState({
     sizeLabelImage: null,
+    sizeLabelFile: null,
     placement_type: "",
     notes: "",
     placements: [],
   });
+
+  useEffect(() => {
+    if (initialOrder?.orderDesign) {
+      const existingData = mapExistingDesignToFormData(
+        initialOrder.orderDesign,
+        baseUrl,
+      );
+      setFormData(existingData);
+    }
+  }, [initialOrder, baseUrl]);
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -27,11 +42,14 @@ export const useGraphicEditing = (initialOrder = null) => {
 
   const handleSizeLabelImageUpload = useCallback(async (e) => {
     const file = e.target.files[0];
+
     if (file) {
       const imageData = await processImageUpload(file);
+
       setFormData((prev) => ({
         ...prev,
-        sizeLabelImage: imageData,
+        sizeLabelImage: imageData.preview,
+        sizeLabelFile: imageData.file,
       }));
     }
   }, []);
@@ -40,6 +58,7 @@ export const useGraphicEditing = (initialOrder = null) => {
     setFormData((prev) => ({
       ...prev,
       sizeLabelImage: null,
+      sizeLabelFile: null,
     }));
   }, []);
 
@@ -53,6 +72,7 @@ export const useGraphicEditing = (initialOrder = null) => {
         colorCount: "",
         pantones: {},
         mockupImage: null,
+        mockupFile: null,
       };
 
       return {
@@ -111,13 +131,19 @@ export const useGraphicEditing = (initialOrder = null) => {
 
   const handleMockupUpload = useCallback(async (placementId, e) => {
     const file = e.target.files[0];
+
     if (file) {
       const imageData = await processImageUpload(file);
+
       setFormData((prev) => ({
         ...prev,
         placements: prev.placements.map((placement) =>
           placement.id === placementId
-            ? { ...placement, mockupImage: imageData }
+            ? {
+                ...placement,
+                mockupImage: imageData.preview,
+                mockupFile: imageData.file,
+              }
             : placement,
         ),
       }));
@@ -129,30 +155,35 @@ export const useGraphicEditing = (initialOrder = null) => {
       ...prev,
       placements: prev.placements.map((placement) =>
         placement.id === placementId
-          ? { ...placement, mockupImage: null }
+          ? {
+              ...placement,
+              mockupImage: null,
+              mockupFile: null,
+            }
           : placement,
       ),
     }));
   }, []);
 
-  const handleSubmit = useCallback(() => {
-    const submissionData = formatGraphicDataForSubmit(formData, initialOrder);
-
-    console.log("Data: ", submissionData);
-
+  const handleSubmit = useCallback(async () => {
     const validationResults = formData.placements.map((p) =>
       validatePlacement(p),
     );
+
     const hasInvalidPlacements = validationResults.some((r) => !r.isValid);
 
     if (hasInvalidPlacements) {
-      console.warn(
-        "Some placements have validation issues:",
-        validationResults.filter((r) => !r.isValid),
-      );
+      return;
     }
 
-    return submissionData;
+    const submissionData = formatGraphicDataForSubmit(formData, initialOrder);
+
+    try {
+      const response = await graphicDesignApi.create(submissionData);
+      return response;
+    } catch (error) {
+      throw error;
+    }
   }, [formData, initialOrder]);
 
   const isFormValid = useMemo(() => {
@@ -213,6 +244,7 @@ export const useGraphicEditing = (initialOrder = null) => {
     stats,
     placementOptions,
     colorCountOptions,
+    baseUrl,
   };
 };
 

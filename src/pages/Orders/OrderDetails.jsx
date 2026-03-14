@@ -310,7 +310,14 @@ const OrderDetailsPage = () => {
       setOrder(response.data);
 
       if (response.data) {
-        setActiveSection(activeTab === "order" ? "all" : "order_stages");
+        if (activeTab === "production") {
+          const sectionExists = productionSections.some(
+            (section) => section.id === activeSection,
+          );
+          setActiveSection(sectionExists ? activeSection : "order_stages");
+        } else {
+          setActiveSection(activeSection);
+        }
       }
     } catch (err) {
       setError(err.message || "Failed to fetch order details");
@@ -318,7 +325,6 @@ const OrderDetailsPage = () => {
       setLoading(false);
     }
   };
-
   const handleSectionSelect = (sectionId) => {
     setActiveSection(sectionId);
     setIsSidebarOpen(false);
@@ -424,7 +430,7 @@ const OrderDetailsPage = () => {
 
           {activeSection === "graphic_editing" &&
             hasProductionAccess(userRoles, "graphic_editing") && (
-              <GraphicEditing order={order} />
+              <GraphicEditing order={order} onSuccess={fetchOrderDetails} />
             )}
           {activeSection === "screen_making" &&
             hasProductionAccess(userRoles, "screen_maker") && (

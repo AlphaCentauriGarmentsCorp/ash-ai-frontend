@@ -339,7 +339,7 @@ const ScreenMaking = ({ order }) => {
             return (
               <div
                 key={placement.id}
-                className="rounded-lg border border-gray-200 bg-white overflow-hidden"
+                className="rounded-lg border border-gray-200 bg-white "
               >
                 {/* Placement Header - Clickable */}
                 <button
@@ -378,7 +378,7 @@ const ScreenMaking = ({ order }) => {
                       {/* Mockup Image */}
                       <div className="md:w-32 shrink-0">
                         {placement.mockupImage ? (
-                          <div className="border border-gray-200 rounded-lg overflow-hidden">
+                          <div className="border border-gray-200 rounded-lg ">
                             <img
                               src={placement.mockupImage}
                               alt={`${getPlacementLabel(placement.type)} mockup`}
