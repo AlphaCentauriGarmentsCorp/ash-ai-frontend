@@ -5,7 +5,7 @@ import Textarea from "../../components/form/Textarea";
 import { useGraphicEditing } from "./hooks/useGraphicEditing";
 import { getPlacementLabel } from "./utlis/graphicEditingUtils";
 
-const GraphicEditing = ({ order }) => {
+const GraphicEditing = ({ order, onSuccess }) => {
   const {
     formData,
     handleChange,
@@ -24,7 +24,8 @@ const GraphicEditing = ({ order }) => {
     placementOptions,
     colorCountOptions,
     baseUrl,
-  } = useGraphicEditing(order);
+    isSubmitting,
+  } = useGraphicEditing(order, onSuccess);
 
   // Helper to get full image URL
   const getImageUrl = (imagePath) => {
@@ -85,9 +86,11 @@ const GraphicEditing = ({ order }) => {
               {!formData.sizeLabelImage ? (
                 <div
                   className="w-40 h-40 border-2 border-dashed border-light2 bg-light flex flex-col items-center justify-center cursor-pointer transition-colors hover:bg-light2/50"
-                  onClick={() =>
-                    document.getElementById("size-label-upload").click()
-                  }
+                  onClick={() => {
+                    if (!isSubmitting) {
+                      document.getElementById("size-label-upload").click();
+                    }
+                  }}
                 >
                   <i className="fas fa-cloud-upload-alt text-xl mb-1 text-gray"></i>
                   <span className="text-xs text-gray">Upload Size Label</span>
@@ -97,6 +100,7 @@ const GraphicEditing = ({ order }) => {
                     accept="image/*"
                     onChange={handleSizeLabelImageUpload}
                     className="hidden"
+                    disabled={isSubmitting}
                   />
                 </div>
               ) : (
@@ -107,7 +111,7 @@ const GraphicEditing = ({ order }) => {
                     className="w-40 h-40 object-contain border-2 border-light2"
                     onError={(e) => {
                       e.target.onerror = null;
-                      e.target.src = "/placeholder-image.png"; // Add a placeholder image
+                      e.target.src = "/placeholder-image.png";
                     }}
                   />
                   <div className="absolute inset-0 bg-black/50 bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
@@ -118,6 +122,7 @@ const GraphicEditing = ({ order }) => {
                           accept="image/*"
                           onChange={handleSizeLabelImageUpload}
                           className="hidden"
+                          disabled={isSubmitting}
                         />
                         <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm text-gray hover:text-primary transition-colors">
                           <i className="fas fa-sync-alt text-xs"></i>
@@ -125,7 +130,8 @@ const GraphicEditing = ({ order }) => {
                       </label>
                       <button
                         onClick={handleRemoveSizeLabelImage}
-                        className="w-8 h-8 cursor-pointer rounded-full bg-white flex items-center justify-center shadow-sm text-gray hover:text-primary transition-colors"
+                        disabled={isSubmitting}
+                        className="w-8 h-8 cursor-pointer rounded-full bg-white flex items-center justify-center shadow-sm text-gray hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <i className="fas fa-trash-alt text-xs"></i>
                       </button>
@@ -154,6 +160,7 @@ const GraphicEditing = ({ order }) => {
           </div>
         </div>
       </div>
+
       {/* Add Print Placement */}
       <div className="rounded-lg border border-gray-200 bg-white p-4 sm:p-5">
         <h2 className="text-sm sm:text-md font-medium mb-3 sm:mb-4 text-primary">
@@ -172,12 +179,13 @@ const GraphicEditing = ({ order }) => {
               placeholder="Select placement location"
               searchable
               icon={<i className="fas fa-map-marker-alt text-gray"></i>}
+              disabled={isSubmitting}
             />
           </div>
           <button
             type="button"
             onClick={handleAddPlacement}
-            disabled={!formData.placement_type}
+            disabled={!formData.placement_type || isSubmitting}
             className={getAddButtonClasses(!!formData.placement_type)}
           >
             <i className="fas fa-plus"></i>
@@ -209,15 +217,11 @@ const GraphicEditing = ({ order }) => {
                       <h3 className="font-medium text-primary">
                         {getPlacementLabel(placement.type, placementOptions)}
                       </h3>
-                      {placement.existingMockup && (
-                        <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
-                          Existing
-                        </span>
-                      )}
                     </div>
                     <button
                       onClick={() => handleRemovePlacement(placement.id)}
-                      className="text-gray hover:text-primary transition-colors"
+                      disabled={isSubmitting}
+                      className="text-gray hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title="Remove placement"
                     >
                       <i className="fas fa-times"></i>
@@ -233,11 +237,13 @@ const GraphicEditing = ({ order }) => {
                         {!placement.mockupImage ? (
                           <div
                             className="w-40 h-40 border-2 border-dashed border-light2 bg-light flex flex-col items-center justify-center cursor-pointer transition-colors hover:bg-light2/50"
-                            onClick={() =>
-                              document
-                                .getElementById(`file-${placement.id}`)
-                                .click()
-                            }
+                            onClick={() => {
+                              if (!isSubmitting) {
+                                document
+                                  .getElementById(`file-${placement.id}`)
+                                  .click();
+                              }
+                            }}
                           >
                             <i className="fas fa-cloud-upload-alt text-xl mb-1 text-gray"></i>
                             <span className="text-xs text-gray">
@@ -251,6 +257,7 @@ const GraphicEditing = ({ order }) => {
                                 handleMockupUpload(placement.id, e)
                               }
                               className="hidden"
+                              disabled={isSubmitting}
                             />
                           </div>
                         ) : (
@@ -274,6 +281,7 @@ const GraphicEditing = ({ order }) => {
                                       handleMockupUpload(placement.id, e)
                                     }
                                     className="hidden"
+                                    disabled={isSubmitting}
                                   />
                                   <span className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm text-gray hover:text-primary transition-colors">
                                     <i className="fas fa-sync-alt text-xs"></i>
@@ -283,7 +291,8 @@ const GraphicEditing = ({ order }) => {
                                   onClick={() =>
                                     handleRemoveMockup(placement.id)
                                   }
-                                  className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm text-gray hover:text-primary transition-colors"
+                                  disabled={isSubmitting}
+                                  className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-sm text-gray hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
                                   <i className="fas fa-trash-alt text-xs"></i>
                                 </button>
@@ -308,6 +317,7 @@ const GraphicEditing = ({ order }) => {
                           placeholder="Select number of colors"
                           menuPosition="fixed"
                           icon={<i className="fas fa-palette text-gray"></i>}
+                          disabled={isSubmitting}
                         />
                       </div>
 
@@ -334,6 +344,7 @@ const GraphicEditing = ({ order }) => {
                                 icon={
                                   <i className="fas fa-droplet text-gray"></i>
                                 }
+                                disabled={isSubmitting}
                               />
                             ))}
                           </div>
@@ -365,6 +376,7 @@ const GraphicEditing = ({ order }) => {
         rows={5}
         resizable
         placeholder="Enter artist notes, special instructions, or comments"
+        disabled={isSubmitting}
       />
 
       {/* Submit Button */}
@@ -372,17 +384,26 @@ const GraphicEditing = ({ order }) => {
         <button
           type="button"
           onClick={handleSubmit}
-          disabled={!isFormValid}
+          disabled={!isFormValid || isSubmitting}
           className={`px-6 py-2.5 rounded-md font-medium text-sm flex items-center gap-2 shadow-sm transition-colors ${
-            isFormValid
+            isFormValid && !isSubmitting
               ? "bg-primary text-white hover:bg-secondary cursor-pointer"
               : "bg-light text-gray cursor-not-allowed"
           }`}
         >
-          <i className="fas fa-save"></i>
-          {order?.orderDesign
-            ? "Update Graphic Details"
-            : "Save Graphic Details"}
+          {isSubmitting ? (
+            <>
+              <i className="fas fa-spinner fa-pulse"></i>
+              Saving...
+            </>
+          ) : (
+            <>
+              <i className="fas fa-save"></i>
+              {order?.orderDesign
+                ? "Update Graphic Details"
+                : "Save Graphic Details"}
+            </>
+          )}
         </button>
       </div>
     </section>

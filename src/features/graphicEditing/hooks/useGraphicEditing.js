@@ -11,7 +11,7 @@ import {
 } from "../utlis/graphicEditingUtils";
 import { graphicDesignApi } from "../../../api/graphicDesignApi";
 
-export const useGraphicEditing = (initialOrder = null) => {
+export const useGraphicEditing = (initialOrder = null, onSuccess = null) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
 
   const [formData, setFormData] = useState({
@@ -21,6 +21,7 @@ export const useGraphicEditing = (initialOrder = null) => {
     notes: "",
     placements: [],
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (initialOrder?.orderDesign) {
@@ -176,15 +177,23 @@ export const useGraphicEditing = (initialOrder = null) => {
       return;
     }
 
-    const submissionData = formatGraphicDataForSubmit(formData, initialOrder);
+    setIsSubmitting(true);
 
     try {
+      const submissionData = formatGraphicDataForSubmit(formData, initialOrder);
       const response = await graphicDesignApi.create(submissionData);
+
+      if (onSuccess) {
+        await onSuccess();
+      }
+
       return response;
     } catch (error) {
       throw error;
+    } finally {
+      setIsSubmitting(false);
     }
-  }, [formData, initialOrder]);
+  }, [formData, initialOrder, onSuccess]);
 
   const isFormValid = useMemo(() => {
     return (
@@ -217,14 +226,17 @@ export const useGraphicEditing = (initialOrder = null) => {
     };
   }, [formData.placements]);
 
-  const getAddButtonClasses = useCallback((isEnabled) => {
-    const baseClasses =
-      "w-full sm:w-auto px-4 sm:px-6 py-2.5 rounded-md font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 mb-1 sm:mb-4";
-    if (isEnabled) {
-      return `${baseClasses} bg-primary text-white hover:bg-secondary cursor-pointer`;
-    }
-    return `${baseClasses} bg-light text-gray cursor-not-allowed`;
-  }, []);
+  const getAddButtonClasses = useCallback(
+    (isEnabled) => {
+      const baseClasses =
+        "w-full sm:w-auto px-4 sm:px-6 py-2.5 rounded-md font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 mb-1 sm:mb-4";
+      if (isEnabled && !isSubmitting) {
+        return `${baseClasses} bg-primary text-white hover:bg-secondary cursor-pointer`;
+      }
+      return `${baseClasses} bg-light text-gray cursor-not-allowed`;
+    },
+    [isSubmitting],
+  );
 
   return {
     formData,
@@ -245,6 +257,7 @@ export const useGraphicEditing = (initialOrder = null) => {
     placementOptions,
     colorCountOptions,
     baseUrl,
+    isSubmitting,
   };
 };
 
