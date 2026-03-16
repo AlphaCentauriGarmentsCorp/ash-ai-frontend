@@ -84,8 +84,8 @@ const AddPrintMethod = () => {
       {submitSuccess && (
           <AlertMessage
             type="success"
-            title="Placement Measurement created successfully!"
-            message="The placement measurement has been added to the system."
+            title="Print Method created successfully!"
+            message="The print method has been added to the system."
           />
         )}
 

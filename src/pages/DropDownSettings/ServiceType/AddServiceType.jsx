@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Textarea from "../../../components/form/Textarea";
 import FormActions from "../../../components/form/FormActions";
@@ -7,8 +8,10 @@ import { typesInitialState } from "../../../constants/formInitialState/typesInit
 import { typesSchema } from "../../../validations/typesSchema";
 import { validateForm, hasErrors } from "../../../utils/validation";
 import { serviceTypeApi } from "../../../api/serviceTypeApi";
+import AlertMessage from "../../../components/common/AlertMessage";
 
 const AddServiceType = () => {
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState(typesInitialState);
@@ -44,8 +47,18 @@ const AddServiceType = () => {
       setFormData(typesInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch {
-      setServerError("Failed to create service type.");
+
+    setTimeout(() => {
+        navigate(`/admin/settings/service-type`);
+      }, 1500);
+   } catch (err) {
+      if (err.response?.data?.errors) {
+        setErrors(err.response.data.errors);
+      } else {
+        setServerError(
+          err.response?.data?.message || "Failed to create service type.",
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -69,6 +82,22 @@ const AddServiceType = () => {
         { label: "Service Type", href: "/admin/settings/service-type" },
       ]}
     >
+      {submitSuccess && (
+          <AlertMessage
+            type="success"
+            title="Service Type created successfully!"
+            message="The service type has been added to the system."
+          />
+        )}
+
+        {serverError && (
+          <AlertMessage
+            type="error"
+            title={serverError}
+            message="Please check the form and try again."
+          />
+        )}
+        
       <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
         {submitSuccess && (
           <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
