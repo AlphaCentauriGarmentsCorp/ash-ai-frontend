@@ -41,6 +41,12 @@ const EditPlacementMeasurement = () => {
       ...prev,
       [name]: value,
     }));
+     if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -66,8 +72,14 @@ const EditPlacementMeasurement = () => {
       setTimeout(() => {
         navigate("/admin/settings/placement-measurements");
       }, 1500);
-    } catch {
-      setServerError("Failed to update placement measurement.");
+    } catch (err) {
+      if (err.response?.data?.errors) {
+        setErrors(err.response.data.errors);
+      } else {
+        setServerError(
+          err.response?.data?.message || "Failed to edit placement measurement.",
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }

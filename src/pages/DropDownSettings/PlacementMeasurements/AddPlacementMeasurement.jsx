@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Textarea from "../../../components/form/Textarea";
 import FormActions from "../../../components/form/FormActions";
@@ -7,8 +8,10 @@ import { typesInitialState } from "../../../constants/formInitialState/typesInit
 import { typesSchema } from "../../../validations/typesSchema";
 import { validateForm, hasErrors } from "../../../utils/validation";
 import { placementMeasurementApi } from "../../../api/placementMeasurementApi";
+import AlertMessage from "../../../components/common/AlertMessage";
 
 const AddPlacementMeasurement = () => {
+    const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState(typesInitialState);
@@ -21,6 +24,12 @@ const AddPlacementMeasurement = () => {
       ...prev,
       [name]: value,
     }));
+     if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -44,8 +53,18 @@ const AddPlacementMeasurement = () => {
       setFormData(typesInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch {
-      setServerError("Failed to create placement measurement.");
+
+        setTimeout(() => {
+        navigate(`/admin/settings/placement-measurements`);
+      }, 1500);
+   } catch (err) {
+      if (err.response?.data?.errors) {
+        setErrors(err.response.data.errors);
+      } else {
+        setServerError(
+          err.response?.data?.message || "Failed to create placement measurement.",
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -73,18 +92,21 @@ const AddPlacementMeasurement = () => {
       ]}
     >
       <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
+        
         {submitSuccess && (
-          <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-md">
-            <p className="text-green-800 font-medium">
-              Placement Measurement created successfully!
-            </p>
-          </div>
+          <AlertMessage
+            type="success"
+            title="Placement Measurement created successfully!"
+            message="The placement measurement has been added to the system."
+          />
         )}
 
         {serverError && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-800 font-medium">{serverError}</p>
-          </div>
+          <AlertMessage
+            type="error"
+            title={serverError}
+            message="Please check the form and try again."
+          />
         )}
 
         <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4">

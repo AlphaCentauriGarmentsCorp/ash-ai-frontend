@@ -35,12 +35,18 @@ const EditFreebie = () => {
     }
   };
 
-  const handleChange = (e) => {
+   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
       [name]: value,
     }));
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -66,8 +72,14 @@ const EditFreebie = () => {
       setTimeout(() => {
         navigate("/admin/settings/freebies");
       }, 1500);
-    } catch {
-      setServerError("Failed to update freebie.");
+    } catch (err) {
+      if (err.response?.data?.errors) {
+        setErrors(err.response.data.errors);
+      } else {
+        setServerError(
+          err.response?.data?.message || "Failed to update freebie.",
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
