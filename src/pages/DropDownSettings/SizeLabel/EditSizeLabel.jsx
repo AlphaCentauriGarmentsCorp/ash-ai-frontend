@@ -41,6 +41,12 @@ const EditSizeLabel = () => {
       ...prev,
       [name]: value,
     }));
+     if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -64,10 +70,16 @@ const EditSizeLabel = () => {
       window.scrollTo({ top: 0, behavior: "smooth" });
 
       setTimeout(() => {
-        navigate("/admin/settings/size-label");
+        navigate("/admin/settings/print-label-placement");
       }, 1500);
-    } catch (error) {
-      setServerError("Failed to update size label.");
+    } catch (err) {
+      if (err.response?.data?.errors) {
+        setErrors(err.response.data.errors);
+      } else {
+        setServerError(
+          err.response?.data?.message || "Failed to edit print label placement.",
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
