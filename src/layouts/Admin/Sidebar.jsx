@@ -153,6 +153,7 @@ export default function Sidebar({
           overflow-y-auto transition-all duration-300
           ${showContent ? "h-[calc(100%-80px)] opacity-100" : "h-0 opacity-0"}
         `}
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {menu.map((section, sIdx) => (
             <div key={sIdx} className="mt-5">
