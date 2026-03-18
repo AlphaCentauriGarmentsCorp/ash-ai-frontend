@@ -28,7 +28,7 @@ const AddSupplier = () => {
     setSubmitSuccess(false);
     setServerError("");
 
-    const validationErrors = validateForm(formData, supplierSchema);
+    const validationErrors = validateFormss(formData, supplierSchema);
 
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);

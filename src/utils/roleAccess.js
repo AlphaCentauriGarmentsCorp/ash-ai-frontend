@@ -47,66 +47,69 @@ export const SECTION_ACCESS = {
   logs: ["admin", "general_manager", "quality_assurance", "warehouse_manager"],
 };
 
-// Define which roles can access which production sections
 export const PRODUCTION_ACCESS = {
-  // Pre-Production Stages
+  order_stages: ["admin", "general_manager"],
+
   graphic_editing: ["admin", "general_manager", "graphic_artist"],
   screen_making: ["admin", "general_manager", "screen_maker", "graphic_artist"],
   screen_checking: ["admin", "general_manager", "quality_assurance"],
 
-  // Sample Production Stages
-  sample_material_preparation: ["admin", "general_manager", "warehouse_staff"],
-  sample_material_receiving: ["admin", "general_manager", "warehouse_staff"],
+  sample_material_preparation: [
+    "admin",
+    "general_manager",
+    "warehouse_manager",
+    "purchasing",
+  ],
+  sample_material_receiving: [
+    "admin",
+    "general_manager",
+    "warehouse_manager",
+    "purchasing",
+  ],
   sample_cutting: ["admin", "general_manager", "cutter", "quality_assurance"],
   sample_printing: ["admin", "general_manager", "printer", "graphic_artist"],
   sample_sewing: ["admin", "general_manager", "sewer", "quality_assurance"],
   sample_quality_assurance: ["admin", "general_manager", "quality_assurance"],
   sample_approval: ["admin", "general_manager", "quality_assurance"],
 
-  // Mass Production Stages
-  mass_production_material_preparation: [
+  production_material_preparation: [
     "admin",
     "general_manager",
-    "warehouse_staff",
+    "warehouse_manager",
+    "purchasing",
   ],
-  mass_production_material_receiving: [
+  production_material_receiving: [
     "admin",
     "general_manager",
-    "warehouse_staff",
+    "warehouse_manager",
+    "purchasing",
   ],
-  mass_production_material_cutting: [
+  production_material_cutting: [
     "admin",
     "general_manager",
     "cutter",
     "quality_assurance",
   ],
-  mass_production_printing: [
+  production_printing: [
     "admin",
     "general_manager",
     "printer",
     "graphic_artist",
   ],
-  mass_production_sewing: [
-    "admin",
-    "general_manager",
-    "sewer",
-    "quality_assurance",
-  ],
-  mass_production_revision: ["admin", "general_manager", "quality_assurance"],
-  mass_production_quality_assurance: [
+  production_sewing: ["admin", "general_manager", "sewer", "quality_assurance"],
+  production_revision: ["admin", "general_manager", "quality_assurance"],
+  production_quality_assurance: [
     "admin",
     "general_manager",
     "quality_assurance",
   ],
 
-  // Delivery Stage
   delivery: ["admin", "general_manager", "warehouse_manager", "driver"],
 };
 
 export const hasSectionAccess = (userRoles = [], section) => {
   if (!userRoles || !Array.isArray(userRoles) || !section) return false;
 
-  // Admin always has access
   if (userRoles.includes("admin")) return true;
 
   const allowedRoles = SECTION_ACCESS[section];
@@ -117,7 +120,6 @@ export const hasProductionAccess = (userRoles = [], productionSection) => {
   if (!userRoles || !Array.isArray(userRoles) || !productionSection)
     return false;
 
-  // Admin always has access
   if (userRoles.includes("admin")) return true;
 
   const allowedRoles = PRODUCTION_ACCESS[productionSection];
