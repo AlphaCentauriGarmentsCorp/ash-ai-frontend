@@ -27,7 +27,7 @@ import ScreenMaking from "../../features/screenMaking/ScreenMaking";
 import ScreenChecking from "../../features/screenChecking/ScreenChecking";
 import SampleMaterials from "../../features/order/productionSection/SampleMaterials";
 import SampleCutting from "../../features/sampleCutting/SampleCutting";
-
+import SamplePrinting from "../../features/samplePrinting/SamplePrinting";
 import Loader from "../../components/common/Loader";
 
 const OrderDetailsPage = () => {
@@ -452,9 +452,9 @@ const OrderDetailsPage = () => {
               <SampleCutting order={order} />
             )}
 
-          {activeSection === "production_sewing" &&
-            hasProductionAccess(userRoles, "production_sewing") && (
-              <Sewing order={order} />
+          {activeSection === "sample_printing" &&
+            hasProductionAccess(userRoles, "sample_printing") && (
+              <SamplePrinting order={order} />
             )}
         </div>
       );
