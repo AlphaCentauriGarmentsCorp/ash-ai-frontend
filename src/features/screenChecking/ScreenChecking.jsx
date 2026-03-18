@@ -1,57 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { ScreenCheckingApi } from "../../api/ScreenCheckingApi";
 
-const ScreenChecking = ({ order }) => {
+const ScreenChecking = ({ order, onSuccess, onError }) => {
+  const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
+
+  const [screenData, setScreenData] = useState({
+    notes: order?.orderDesign?.notes || "",
+    sizeLabelImage: null,
+    placements: [],
+  });
+
   // Track expanded placements
   const [expandedPlacements, setExpandedPlacements] = useState({});
-
-  // Sample data structure based on the provided data (after assignment)
-  const [screenData, setScreenData] = useState({
-    notes: "Artist Noteasdasd",
-    placement_type: "",
-    sizeLabelImage: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAA",
-    placements: [
-      {
-        colorCount: "3",
-        id: 1773187362473,
-        mockupImage: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAgAAAQABAA",
-        pantones: {
-          color_1: "aa",
-          color_2: "cc",
-          color_3: "dddd",
-        },
-        type: "center_chest",
-        screens: {
-          color_1: 2,
-          color_2: 3,
-          color_3: 4,
-        },
-      },
-      {
-        colorCount: "7",
-        id: 1773187370516,
-        mockupImage: null,
-        pantones: {
-          color_1: "asdas",
-          color_2: "23423",
-          color_3: "dasd",
-          color_4: "xcvc",
-          color_5: "zxcz",
-          color_6: "qweq",
-          color_7: "rtyr",
-        },
-        type: "upper_back",
-        screens: {
-          color_1: 5,
-          color_2: 6,
-          color_3: null,
-          color_4: null,
-          color_5: null,
-          color_6: null,
-          color_7: null,
-        },
-      },
-    ],
-  });
 
   // Track checked screens and their status
   const [screenChecks, setScreenChecks] = useState({});
@@ -61,87 +21,163 @@ const ScreenChecking = ({ order }) => {
 
   // Track overall verification status
   const [verificationStatus, setVerificationStatus] = useState({
-    overall: "pending", // pending, in_progress, verified
+    overall: "pending",
     verifiedCount: 0,
     totalCount: 0,
   });
 
-  // Screen inventory data from API
-  const [screenInventory] = useState([
-    {
-      id: 2,
-      name: "Carla Harmon",
-      mesh_count: "75",
-      address: "21x25-120-113",
-      size: "21x25",
-      last_maintenance: null,
-      total_use: 0,
-      condition: "Good",
-      created_at: "2026-03-11T00:45:19.000000Z",
-      updated_at: "2026-03-11T00:45:19.000000Z",
-    },
-    {
-      id: 3,
-      name: "John Smith",
-      mesh_count: "110",
-      address: "21x25-120-114",
-      size: "21x25",
-      last_maintenance: "2026-02-15",
-      total_use: 45,
-      condition: "Good",
-      created_at: "2026-01-10T00:45:19.000000Z",
-      updated_at: "2026-03-10T00:45:19.000000Z",
-    },
-    {
-      id: 4,
-      name: "Jane Doe",
-      mesh_count: "156",
-      address: "21x25-120-115",
-      size: "21x25",
-      last_maintenance: "2026-03-01",
-      total_use: 23,
-      condition: "Needs Cleaning",
-      created_at: "2026-02-05T00:45:19.000000Z",
-      updated_at: "2026-03-11T00:45:19.000000Z",
-    },
-    {
-      id: 5,
-      name: "Bob Johnson",
-      mesh_count: "230",
-      address: "21x25-120-116",
-      size: "21x25",
-      last_maintenance: "2026-02-28",
-      total_use: 67,
-      condition: "Good",
-      created_at: "2025-12-15T00:45:19.000000Z",
-      updated_at: "2026-03-09T00:45:19.000000Z",
-    },
-    {
-      id: 6,
-      name: "Bob Johnson",
-      mesh_count: "230",
-      address: "21x25-120-116",
-      size: "21x25",
-      last_maintenance: "2026-02-28",
-      total_use: 67,
-      condition: "Good",
-      created_at: "2025-12-15T00:45:19.000000Z",
-      updated_at: "2026-03-09T00:45:19.000000Z",
-    },
-  ]);
+  // Screen inventory data from screenAssignment
+  const [screenInventory, setScreenInventory] = useState([]);
+
+  // Current screen checking data (most recent)
+  const [currentScreenCheck, setCurrentScreenCheck] = useState(null);
+
+  // Loading states
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+
+  // Helper function to get image URL
+  const getImageUrl = (path) => {
+    if (!path) return null;
+
+    if (path.startsWith("data:") || path.startsWith("http")) {
+      return path;
+    }
+
+    if (path.startsWith("/storage") && baseUrl) {
+      return `${baseUrl}${path}`;
+    }
+
+    return path;
+  };
+
+  // Load existing screen checking data from order prop
+  useEffect(() => {
+    if (order?.screenChecking && order.screenChecking.length > 0) {
+      // Get the most recent screen checking record (assuming they're ordered by created_at desc)
+      const latestCheck = order.screenChecking[0]; // or sort if needed
+      console.log("Latest screen check:", latestCheck);
+      setCurrentScreenCheck(latestCheck);
+
+      if (latestCheck && latestCheck.items) {
+        // Pre-fill screen checks with existing data
+        const preFilledChecks = {};
+        const preFilledIssues = {};
+
+        latestCheck.items.forEach((item) => {
+          const key = `${item.placement_id}-${item.color_index - 1}-${item.screen_id}`;
+          preFilledChecks[key] = {
+            clean: item.clean === true || item.clean === 1,
+            no_damage: item.no_damage === true || item.no_damage === 1,
+            emulsion_ok: item.emulsion_ok === true || item.emulsion_ok === 1,
+            verified: item.verified === true || item.verified === 1,
+            updatedAt: item.verified_at || new Date().toISOString(),
+          };
+
+          if (item.issues) {
+            preFilledIssues[key] = item.issues;
+          }
+        });
+
+        setScreenChecks(preFilledChecks);
+        setScreenIssues(preFilledIssues);
+      }
+    }
+  }, [order]);
+
+  // Initialize data from props
+  useEffect(() => {
+    if (order?.orderDesign?.placements && order?.screenAssignment) {
+      console.log("Order data:", order);
+
+      // Build screen inventory from assignments
+      const inventoryMap = new Map();
+      order.screenAssignment.forEach((assignment) => {
+        if (assignment.screen && !inventoryMap.has(assignment.screen.id)) {
+          inventoryMap.set(assignment.screen.id, {
+            ...assignment.screen,
+            condition: determineScreenCondition(assignment.screen),
+          });
+        }
+      });
+      setScreenInventory(Array.from(inventoryMap.values()));
+
+      // Transform placements data
+      const transformedPlacements = order.orderDesign.placements.map(
+        (placement) => {
+          // Get assignments for this placement
+          const placementAssignments = order.screenAssignment.filter(
+            (a) => a.placement_id === placement.id,
+          );
+
+          // Build screens object
+          const screens = {};
+          const pantones = { ...placement.pantones };
+
+          placementAssignments.forEach((assignment) => {
+            const colorKey = `color_${assignment.color_index}`;
+            screens[colorKey] = assignment.screen_id;
+          });
+
+          return {
+            id: placement.id,
+            colorCount: Object.keys(placement.pantones || {}).length.toString(),
+            mockupImage: getImageUrl(placement.mockup_image),
+            pantones: pantones,
+            type: placement.type,
+            screens: screens,
+          };
+        },
+      );
+
+      setScreenData({
+        notes: order.orderDesign.notes || "",
+        sizeLabelImage: getImageUrl(order.orderDesign.size_label),
+        placements: transformedPlacements,
+      });
+
+      // Auto-expand first placement
+      if (transformedPlacements.length > 0) {
+        setExpandedPlacements({
+          [transformedPlacements[0].id]: true,
+        });
+      }
+    }
+  }, [order, baseUrl]);
+
+  // Update verification counts when screenChecks change
+  useEffect(() => {
+    updateVerificationCounts();
+  }, [screenChecks, screenData.placements]);
+
+  // Helper function to determine screen condition based on available data
+  const determineScreenCondition = (screen) => {
+    if (screen.total_use > 100) {
+      return "Needs Maintenance";
+    } else if (screen.total_use > 50) {
+      return "Fair";
+    } else {
+      return "Good";
+    }
+  };
 
   // Helper function to get placement label
   const getPlacementLabel = (type) => {
     const placementLabels = {
-      center_chest: "Center Chest",
-      upper_back: "Upper Back",
       left_chest: "Left Chest",
+      center_chest: "Center Chest",
       right_chest: "Right Chest",
+      center_back: "Center Back",
       full_back: "Full Back",
       left_sleeve: "Left Sleeve",
       right_sleeve: "Right Sleeve",
+      upper_back: "Upper Back",
     };
-    return placementLabels[type] || type;
+    return (
+      placementLabels[type] ||
+      type?.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()) ||
+      "Unknown Placement"
+    );
   };
 
   // Get screen condition class
@@ -149,10 +185,10 @@ const ScreenChecking = ({ order }) => {
     switch (condition?.toLowerCase()) {
       case "good":
         return "text-green-600 bg-green-50";
-      case "needs cleaning":
+      case "fair":
         return "text-yellow-600 bg-yellow-50";
-      case "damaged":
-        return "text-red-600 bg-red-50";
+      case "needs maintenance":
+        return "text-orange-600 bg-orange-50";
       default:
         return "text-gray-600 bg-gray-50";
     }
@@ -166,7 +202,6 @@ const ScreenChecking = ({ order }) => {
     }));
   };
 
-  // Handle screen check
   const handleScreenCheck = (
     placementId,
     colorIndex,
@@ -176,17 +211,20 @@ const ScreenChecking = ({ order }) => {
   ) => {
     const key = `${placementId}-${colorIndex}-${screenId}`;
 
-    setScreenChecks((prev) => ({
-      ...prev,
-      [key]: {
-        ...prev[key],
-        [field]: value,
-        updatedAt: new Date().toISOString(),
-      },
-    }));
+    setScreenChecks((prev) => {
+      const boolValue = value === true;
 
-    // Update verification counts
-    setTimeout(() => updateVerificationCounts(), 0);
+      const updated = {
+        ...prev,
+        [key]: {
+          ...prev[key],
+          [field]: boolValue,
+          updatedAt: new Date().toISOString(),
+        },
+      };
+
+      return updated;
+    });
   };
 
   // Handle issue/comment change
@@ -230,7 +268,11 @@ const ScreenChecking = ({ order }) => {
 
   // Get screen details by ID
   const getScreenById = (id) => {
-    return screenInventory.find((s) => s.id === id);
+    return (
+      screenInventory.find((s) => s.id === id) ||
+      order?.screenAssignment?.find((a) => a.screen_id === id)?.screen ||
+      null
+    );
   };
 
   // Calculate total screens to check
@@ -268,8 +310,159 @@ const ScreenChecking = ({ order }) => {
     }
   };
 
+  const handleSubmit = async () => {
+    if (getTotalScreensToCheck() === 0) {
+      setSubmitError("No screens to verify");
+      setIsSubmitting(false);
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      const screens = [];
+
+      for (const placement of screenData.placements) {
+        for (const [colorKey, screenId] of Object.entries(placement.screens)) {
+          if (!screenId) continue;
+
+          const colorIndex = Number(colorKey.split("_")[1]);
+          const key = `${placement.id}-${colorIndex - 1}-${screenId}`;
+
+          const screenCheck = screenChecks[key] || {};
+          const issue = screenIssues[key] || "";
+
+          const clean = screenCheck.clean === true ? true : false;
+          const noDamage = screenCheck.no_damage === true ? true : false;
+          const emulsion = screenCheck.emulsion_ok === true ? true : false;
+          const verified = screenCheck.verified === true ? true : false;
+
+          const screenItem = {
+            placement_id: placement.id,
+            screen_id: screenId,
+            color_index: colorIndex,
+            pantone: placement.pantones?.[`color_${colorIndex}`] || null,
+            checks: {
+              clean: clean,
+              no_damage: noDamage,
+              emulsion_ok: emulsion,
+              verified: verified,
+            },
+            issues: issue && issue.trim() !== "" ? issue : null,
+            verified_at: verified
+              ? screenCheck.updatedAt
+                ? screenCheck.updatedAt.split("T")[0]
+                : new Date().toISOString().split("T")[0]
+              : null,
+          };
+
+          screens.push(screenItem);
+        }
+      }
+
+      if (screens.length === 0) {
+        setSubmitError("No screens to verify");
+        setIsSubmitting(false);
+        return;
+      }
+
+      // Determine status based on verification progress
+      let status = "in_progress";
+      if (
+        verificationStatus.verifiedCount === verificationStatus.totalCount &&
+        verificationStatus.totalCount > 0
+      ) {
+        status = "completed";
+      } else if (verificationStatus.verifiedCount === 0) {
+        status = "pending";
+      }
+
+      // Prepare payload
+      const payload = {
+        order_id: order.id,
+        status: status,
+        verification_date: new Date().toISOString().split("T")[0],
+        screens: screens,
+      };
+
+      // If we have an existing screen check, update it, otherwise create new
+      let response = await ScreenCheckingApi.create(payload);
+
+      onSuccess?.(response);
+    } catch (error) {
+      console.error("Submission error:", error);
+      console.error("Error response:", error.response?.data);
+
+      if (error.response?.data?.errors) {
+        const validationErrors = error.response.data.errors;
+        const errorMessages = Object.values(validationErrors).flat().join(", ");
+        setSubmitError(`Validation failed: ${errorMessages}`);
+      } else {
+        setSubmitError(
+          error.response?.data?.message || "Submission failed. Try again.",
+        );
+      }
+
+      onError?.([error]);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Get screen address safely
+  const getScreenAddress = (screen) => {
+    return screen?.address || "No address";
+  };
+
+  // Get screen mesh count safely
+  const getScreenMeshCount = (screen) => {
+    return screen?.mesh_count || "N/A";
+  };
+
+  // Get screen size safely
+  const getScreenSize = (screen) => {
+    return screen?.size || "N/A";
+  };
+
+  // Get screen condition safely
+  const getScreenCondition = (screen) => {
+    return screen?.condition || "Good";
+  };
+
+  // Get screen total use
+  const getScreenTotalUse = (screen) => {
+    return screen?.total_use || 0;
+  };
+
+  // If no data, show loading or empty state
+  if (!order?.orderDesign?.placements || !order?.screenAssignment) {
+    return (
+      <div className="flex items-center justify-center p-8 min-h-[50vh]">
+        <div className="text-center">
+          <i className="fas fa-warning text-gray-500 text-3xl mb-2"></i>
+          <p className="text-gray-500">
+            Complete Screen Making & Screen Checking First
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <section className="flex flex-col gap-y-4 sm:gap-y-6 font-poppins">
+      {/* Error Message */}
+      {submitError && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 sm:p-4">
+          <div className="flex items-center gap-2 text-red-700">
+            <i className="fas fa-exclamation-circle"></i>
+            <span className="text-xs sm:text-sm">{submitError}</span>
+          </div>
+        </div>
+      )}
+
+      {/* Success Message if there are existing checks */}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-5">
         <div className="flex-1 min-w-0">
@@ -277,7 +470,8 @@ const ScreenChecking = ({ order }) => {
             Screen Checking
           </h1>
           <p className="text-[10px] sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
-            Verify and inspect screens before production
+            Verify all printing screens to ensure screens are clean, undamaged,
+            and properly prepared.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -296,6 +490,31 @@ const ScreenChecking = ({ order }) => {
           </span>
         </div>
       </div>
+
+      {currentScreenCheck && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+          <div className="flex items-center gap-2 text-blue-700">
+            <i className="fas fa-info-circle"></i>
+            <span className="text-xs sm:text-sm">
+              Loaded existing screen checking data from{" "}
+              {(() => {
+                const dt = new Date(currentScreenCheck.created_at);
+                const date = dt.toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                });
+                const time = dt.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+                return `${date} ${time}`;
+              })()}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4">
@@ -374,6 +593,10 @@ const ScreenChecking = ({ order }) => {
                 src={screenData.sizeLabelImage}
                 alt="Size label"
                 className="w-full h-full object-contain"
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = "/placeholder-image.png";
+                }}
               />
             </div>
             <div>
@@ -445,6 +668,10 @@ const ScreenChecking = ({ order }) => {
                               src={placement.mockupImage}
                               alt={`${getPlacementLabel(placement.type)} mockup`}
                               className="w-20 h-20 sm:w-32 sm:h-32 object-cover"
+                              onError={(e) => {
+                                e.target.onerror = null;
+                                e.target.src = "/placeholder-image.png";
+                              }}
                             />
                           </div>
                         ) : (
@@ -523,19 +750,20 @@ const ScreenChecking = ({ order }) => {
                                       </div>
                                       <div>
                                         <p className="text-xs sm:text-sm font-medium text-primary">
-                                          {screen.address}
+                                          {getScreenAddress(screen)}
                                         </p>
                                         <p className="text-[8px] sm:text-xs text-gray-500">
                                           Color: {placement.pantones[colorKey]}{" "}
-                                          | Mesh: {screen.mesh_count} | Size:{" "}
-                                          {screen.size}
+                                          | Mesh: {getScreenMeshCount(screen)} |
+                                          Size: {getScreenSize(screen)} | Uses:{" "}
+                                          {getScreenTotalUse(screen)}
                                         </p>
                                       </div>
                                     </div>
                                     <span
-                                      className={`px-2 py-1 rounded-full text-[8px] sm:text-xs ${getScreenConditionClass(screen.condition)}`}
+                                      className={`px-2 py-1 rounded-full text-[8px] sm:text-xs ${getScreenConditionClass(getScreenCondition(screen))}`}
                                     >
-                                      {screen.condition || "Unknown"}
+                                      {getScreenCondition(screen)}
                                     </span>
                                   </div>
 
@@ -564,13 +792,13 @@ const ScreenChecking = ({ order }) => {
                                     <label className="flex items-center gap-2 p-2 bg-light rounded border border-gray-200">
                                       <input
                                         type="checkbox"
-                                        checked={screenCheck.noDamage || false}
+                                        checked={screenCheck.no_damage || false}
                                         onChange={(e) =>
                                           handleScreenCheck(
                                             placement.id,
                                             index,
                                             screenId,
-                                            "noDamage",
+                                            "no_damage",
                                             e.target.checked,
                                           )
                                         }
@@ -584,13 +812,15 @@ const ScreenChecking = ({ order }) => {
                                     <label className="flex items-center gap-2 p-2 bg-light rounded border border-gray-200">
                                       <input
                                         type="checkbox"
-                                        checked={screenCheck.emulsion || false}
+                                        checked={
+                                          screenCheck.emulsion_ok || false
+                                        }
                                         onChange={(e) =>
                                           handleScreenCheck(
                                             placement.id,
                                             index,
                                             screenId,
-                                            "emulsion",
+                                            "emulsion_ok",
                                             e.target.checked,
                                           )
                                         }
@@ -752,8 +982,8 @@ const ScreenChecking = ({ order }) => {
                     const screenCheck = screenChecks[checkKey] || {};
                     const checksPassed = [
                       screenCheck.clean,
-                      screenCheck.noDamage,
-                      screenCheck.emulsion,
+                      screenCheck.no_damage,
+                      screenCheck.emulsion_ok,
                     ].filter(Boolean).length;
 
                     return (
@@ -778,14 +1008,14 @@ const ScreenChecking = ({ order }) => {
                         </td>
                         <td className="px-2 sm:px-4 py-1.5 sm:py-2">
                           <span className="text-[10px] sm:text-sm font-medium text-primary">
-                            {screen.address}
+                            {getScreenAddress(screen)}
                           </span>
                         </td>
                         <td className="px-2 sm:px-4 py-1.5 sm:py-2">
                           <span
-                            className={`px-1.5 py-0.5 rounded-full text-[8px] sm:text-xs ${getScreenConditionClass(screen.condition)}`}
+                            className={`px-1.5 py-0.5 rounded-full text-[8px] sm:text-xs ${getScreenConditionClass(getScreenCondition(screen))}`}
                           >
-                            {screen.condition || "Unknown"}
+                            {getScreenCondition(screen)}
                           </span>
                         </td>
                         <td className="px-2 sm:px-4 py-1.5 sm:py-2">
@@ -828,37 +1058,32 @@ const ScreenChecking = ({ order }) => {
       )}
 
       {/* Action Buttons */}
+      {/* Action Buttons */}
       <div className="flex justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-200">
-        <button className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-md border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors flex items-center">
-          <i className="fas fa-print mr-1.5 text-gray-400"></i>
-          Print Report
-        </button>
+        {/* <button className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-md border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 transition-colors flex items-center">
+    <i className="fas fa-print mr-1.5 text-gray-400"></i>
+    Print Report
+  </button> */}
         <button
           className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md transition-colors text-xs sm:text-sm flex items-center ${
-            verificationStatus.verifiedCount === getTotalScreensToCheck() &&
-            getTotalScreensToCheck() > 0
+            getTotalScreensToCheck() > 0 && !isSubmitting
               ? "bg-primary text-white hover:bg-secondary cursor-pointer"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
           }`}
-          disabled={
-            verificationStatus.verifiedCount !== getTotalScreensToCheck() ||
-            getTotalScreensToCheck() === 0
-          }
-          onClick={() => {
-            if (
-              verificationStatus.verifiedCount === getTotalScreensToCheck() &&
-              getTotalScreensToCheck() > 0
-            ) {
-              console.log("All screens verified", {
-                checks: screenChecks,
-                issues: screenIssues,
-                timestamp: new Date().toISOString(),
-              });
-            }
-          }}
+          disabled={getTotalScreensToCheck() === 0 || isSubmitting}
+          onClick={handleSubmit}
         >
-          <i className="fas fa-check-circle mr-1 sm:mr-2"></i>
-          Complete Verification
+          {isSubmitting ? (
+            <>
+              <i className="fas fa-spinner fa-spin mr-1 sm:mr-2"></i>
+              Submitting...
+            </>
+          ) : (
+            <>
+              <i className="fas fa-save mr-1 sm:mr-2"></i>
+              {currentScreenCheck ? "Update Progress" : "Save Progress"}
+            </>
+          )}
         </button>
       </div>
     </section>

@@ -45,11 +45,6 @@ const GraphicEditing = ({ order, onSuccess }) => {
             <h1 className="text-lg sm:text-xl font-semibold text-primary truncate">
               Graphic Editing
             </h1>
-            {order?.orderDesign && (
-              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                Editing Existing Design
-              </span>
-            )}
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-1 line-clamp-2 sm:line-clamp-1">
             Define print placements, number of colors, and upload mockup images
@@ -72,6 +67,32 @@ const GraphicEditing = ({ order, onSuccess }) => {
           </span>
         </div>
       </div>
+
+      {order?.orderDesign && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+          <div className="flex items-center gap-2 text-blue-700">
+            <i className="fas fa-info-circle"></i>
+            <span className="text-xs sm:text-sm">
+              Loaded existing graphic design data from{" "}
+              {(() => {
+                const dt = new Date(order.orderDesign.updated_at);
+                const date = dt.toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                });
+                const time = dt.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+                return `${date} ${time}`;
+              })()}
+              .
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Size Label Image */}
       <div className="rounded-lg border border-gray-200 bg-white p-4">

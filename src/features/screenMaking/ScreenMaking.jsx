@@ -3,7 +3,7 @@ import Select from "../../components/form/Select";
 import { ScreenTypeApi } from "../../api/ScreenTypeApi";
 import { ScreenMakingApi } from "../../api/ScreenMakingApi";
 
-const ScreenMaking = ({ order }) => {
+const ScreenMaking = ({ order, onSuccess }) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
 
   const [expandedPlacements, setExpandedPlacements] = useState({});
@@ -290,6 +290,11 @@ const ScreenMaking = ({ order }) => {
         assignments: assignments,
       });
       console.log("Screen assignments saved:", response);
+
+      if (onSuccess) {
+        await onSuccess();
+      }
+
       setSubmitSuccess(
         "Screens have been successfully assigned and marked as ready!",
       );
@@ -314,7 +319,7 @@ const ScreenMaking = ({ order }) => {
 
   if (loading || screensLoading) {
     return (
-      <section className="flex flex-col gap-y-4 sm:gap-y-6 font-poppins">
+      <section className="flex flex-col items-center justify-center gap-y-4 sm:gap-y-6 min-h-[50vh]">
         <div className="text-center py-8">
           <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
           <p className="text-gray-500">Loading screen making data...</p>
@@ -325,7 +330,7 @@ const ScreenMaking = ({ order }) => {
 
   if (!order) {
     return (
-      <section className="flex flex-col gap-y-4 sm:gap-y-6 font-poppins">
+      <section className="flex flex-col gap-y-4 sm:gap-y-6 ">
         <div className="text-center py-8">
           <p className="text-gray-500">No order data available</p>
         </div>
@@ -335,7 +340,7 @@ const ScreenMaking = ({ order }) => {
 
   if (screenError) {
     return (
-      <section className="flex flex-col gap-y-4 sm:gap-y-6 font-poppins">
+      <section className="flex flex-col gap-y-4 sm:gap-y-6 ">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
           <i className="fas fa-exclamation-circle text-red-500 text-2xl mb-2"></i>
           <p className="text-red-600 text-sm">
@@ -353,12 +358,12 @@ const ScreenMaking = ({ order }) => {
   }
 
   return (
-    <section className="flex flex-col gap-y-4 sm:gap-y-6 font-poppins">
+    <section className="flex flex-col gap-y-4 sm:gap-y-6 ">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-5">
         <div className="flex-1 min-w-0">
           <h1 className="text-base sm:text-xl font-semibold text-primary truncate">
-            Screen Making - {order.po_code}
+            Screen Making
           </h1>
           <p className="text-[10px] sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
             Review and manage screens needed for order based on graphic data.
@@ -373,14 +378,39 @@ const ScreenMaking = ({ order }) => {
             <i className="fas fa-check-circle mr-1"></i>
             {getTotalAssignedScreens()} assigned
           </span>
-          {hasExistingAssignments && (
-            <span className="text-[10px] sm:text-sm text-blue-600 flex items-center shrink-0">
-              <i className="fas fa-edit mr-1"></i>
-              Edit Mode
-            </span>
-          )}
         </div>
       </div>
+
+      {hasExistingAssignments && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+          <div className="flex items-center gap-2 text-blue-700">
+            <i className="fas fa-info-circle"></i>
+            <span className="text-xs sm:text-sm">
+              Loaded existing screen making data from{" "}
+              {(() => {
+                const earliestTimestamp = Math.min(
+                  ...order.screenAssignment.map((sa) =>
+                    new Date(sa.updated_at).getTime(),
+                  ),
+                );
+                const dt = new Date(earliestTimestamp);
+                const date = dt.toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                });
+                const time = dt.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+                return `${date} ${time}`;
+              })()}
+              .
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 sm:gap-4">

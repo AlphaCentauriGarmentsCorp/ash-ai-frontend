@@ -183,7 +183,37 @@ const OrderStage = ({ order, onStagesUpdated }) => {
         </div>
       </div>
 
-      {}
+      {order.orderStages.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
+          <div className="flex items-center gap-2 text-blue-700">
+            <i className="fas fa-info-circle"></i>
+            <span className="text-xs sm:text-sm">
+              Loaded existing order stages data from{" "}
+              {(() => {
+                const earliestTimestamp = Math.min(
+                  ...order.orderStages.map((sa) =>
+                    new Date(sa.updated_at).getTime(),
+                  ),
+                );
+                const dt = new Date(earliestTimestamp);
+                const date = dt.toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                });
+                const time = dt.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                });
+                return `${date} ${time}`;
+              })()}
+              .
+            </span>
+          </div>
+        </div>
+      )}
+
       {!hasSelectedStages && !isLoading && (
         <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2">
           <i className="fas fa-info-circle text-amber-500 text-sm"></i>
