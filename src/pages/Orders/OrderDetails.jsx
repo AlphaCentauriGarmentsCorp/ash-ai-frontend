@@ -23,7 +23,7 @@ import Cutting from "../../features/order/productionSection/Cutting";
 import Sewing from "../../features/order/productionSection/Sewing";
 import OrderStage from "../../features/orderStages/OrderStage";
 import GraphicEditing from "../../features/graphicEditing/GraphicEditing";
-import ScreenMaking from "../../features/order/productionSection/ScreenMaking";
+import ScreenMaking from "../../features/screenMaking/ScreenMaking";
 import ScreenChecking from "../../features/order/productionSection/ScreenChecking";
 import SampleMaterials from "../../features/order/productionSection/SampleMaterials";
 import Loader from "../../components/common/Loader";
