@@ -4,6 +4,7 @@ import Table from "../../components/table/Table";
 import { ScreenTypeApi } from "../../api/ScreenTypeApi";
 import DeleteConfirmationDialog from "../../components/common/DeleteConfirmationDialog";
 import { useNavigate } from "react-router-dom";
+import { filter } from "jszip";
 
 const MaterialsPage = () => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const MaterialsPage = () => {
   const columns = [
     {
       key: "name",
-      label: "Name",
+      label: "Design Name",
       sortable: true,
     },
     {
@@ -29,6 +30,24 @@ const MaterialsPage = () => {
       key: "size",
       label: "Size",
       sortable: true,
+    },
+    {
+      key: "last_maintenance",
+      label: "Last Maintenance",
+      sortable: true,
+    },
+    {
+      key: "total_use",
+      label: "Total Use",
+      sortable: true,
+      position: "center",
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      filterable: true,
+      position: "center",
     },
   ];
 
@@ -93,7 +112,7 @@ const MaterialsPage = () => {
     pagination: true,
     search: true,
     filters: true,
-    actions: ["edit", "delete"],
+    actions: ["view", "edit", "delete"],
     pageSize: 10,
     emptyMessage: "No screen found",
     searchPlaceholder: "Search screen...",
@@ -118,7 +137,7 @@ const MaterialsPage = () => {
         isLoading={isLoading}
         url="/screen-inventory/new"
         button="Add Screen"
-        PageTitle="Screens"
+        PageTitle="Printing Screens"
       />
 
       <DeleteConfirmationDialog
