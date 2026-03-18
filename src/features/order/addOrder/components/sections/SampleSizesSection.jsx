@@ -28,7 +28,7 @@ export const SampleSizesSection = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {/* Size Field */}
           <div>
-            {sizeLabelOptions.length > 0 ? (
+            {sizeLabelOptions.length < 0 ? (
               <Select
                 label="Size"
                 name={`sample_size_${sample.id}`}
@@ -95,7 +95,7 @@ export const SampleSizesSection = ({
           <Input
             label="Total"
             type="text"
-            value={`$${((sample.quantity || 0) * (sample.unit_price || 0)).toFixed(2)}`}
+            value={`${((sample.quantity || 0) * (sample.unit_price || 0)).toFixed(2)}`}
             readOnly
             className="bg-gray-50"
           />
@@ -144,7 +144,7 @@ export const SampleSizesSection = ({
         </div>
 
         {/* Summary section */}
-        {samples.length > 0 && (
+        {/* {samples.length > 0 && (
           <div className="mt-8 p-6 bg-blue-50 rounded-lg border border-blue-100">
             <h4 className="text-base font-semibold text-blue-800 mb-4">
               Sample Summary
@@ -211,7 +211,7 @@ export const SampleSizesSection = ({
               </div>
             </div>
           </div>
-        )}
+        )} */}
       </div>
     </Section>
   );
