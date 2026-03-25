@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import Select from "../../components/form/Select";
 
-const SamplePrinting = ({ order, onSuccess }) => {
+const MassPrinting = ({ order, onSuccess }) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
 
   const [expandedPlacements, setExpandedPlacements] = useState({});
+  const [expandedSections, setExpandedSections] = useState({
+    sampleReference: true,
+  });
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(null);
@@ -37,6 +40,37 @@ const SamplePrinting = ({ order, onSuccess }) => {
     },
   ];
 
+  // Mock sample paint usage data (would come from API in production)
+  const mockSamplePaintData = {
+    totalPaintUsed: 2.5,
+    leftoverPaint: 0.8,
+    paintUnit: "L",
+    placements: [
+      {
+        type: "center_chest",
+        colors: [
+          { pantone: "PMS 185 C", paintColor: "Red", formula: "2:1:0.5" },
+          { pantone: "PMS 109 C", paintColor: "Yellow", formula: "1:2:0.3" },
+        ],
+      },
+      {
+        type: "upper_back",
+        colors: [
+          { pantone: "PMS 286 C", paintColor: "Blue", formula: "1.5:1:0.4" },
+          { pantone: "PMS 347 C", paintColor: "Green", formula: "2:1:0.6" },
+        ],
+      },
+      {
+        type: "left_sleeve",
+        colors: [
+          { pantone: "PMS 427 C", paintColor: "Silver", formula: "1:1:0.2" },
+        ],
+      },
+    ],
+    notes: "Sample Printer notes here",
+    timestamp: "2024-03-20T14:30:00",
+  };
+
   // Calculate total sample quantity
   const totalSampleQuantity =
     order?.samples?.reduce(
@@ -44,14 +78,24 @@ const SamplePrinting = ({ order, onSuccess }) => {
       0,
     ) || 0;
 
+  // Calculate total mass quantity
+  const totalMassQuantity = order?.total_quantity || 0;
+
+  const toggleSection = (section) => {
+    setExpandedSections((prev) => ({
+      ...prev,
+      [section]: !prev[section],
+    }));
+  };
+
   useEffect(() => {
-    console.log("SamplePrinting - Order prop received:", order);
+    console.log("MassPrinting - Order prop received:", order);
     setLoading(false);
   }, [order]);
 
   useEffect(() => {
     if (order?.orderDesign) {
-      console.log("SamplePrinting - OrderDesign found:", order.orderDesign);
+      console.log("MassPrinting - OrderDesign found:", order.orderDesign);
       const orderDesign = order.orderDesign;
 
       const basePlacements =
@@ -79,19 +123,19 @@ const SamplePrinting = ({ order, onSuccess }) => {
         }) || [];
 
       setPrintData({
+        notes: orderDesign.notes || "",
         placements: basePlacements,
         totalPaintUsed: "",
         leftoverPaint: "",
         paintUnit: "L",
-        notes: "",
       });
 
-      console.log("SamplePrinting - Print data set:", {
+      console.log("MassPrinting - Print data set:", {
         notes: orderDesign.notes,
         placements: basePlacements,
       });
     } else {
-      console.log("SamplePrinting - No orderDesign found in order:", order);
+      console.log("MassPrinting - No orderDesign found in order:", order);
     }
   }, [order]);
 
@@ -272,7 +316,7 @@ const SamplePrinting = ({ order, onSuccess }) => {
         <div className="flex-1 min-w-0">
           <h1 className="text-base sm:text-xl font-semibold text-primary truncate flex items-center gap-2">
             <i className="fas fa-print"></i>
-            Sample Printing
+            Mass Printing
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
             Record paint colors, formulas, and usage for order #
@@ -325,12 +369,12 @@ const SamplePrinting = ({ order, onSuccess }) => {
         <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
           <div className="flex items-center gap-2 sm:gap-3">
             <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <i className="fas fa-flask text-primary text-sm sm:text-base"></i>
+              <i className="fas fa-tshirt text-primary text-sm sm:text-base"></i>
             </div>
             <div>
-              <p className="text-xs text-gray-500">Total Samples</p>
+              <p className="text-xs text-gray-500">Total Quantity</p>
               <p className="text-lg sm:text-2xl font-semibold text-primary">
-                {totalSampleQuantity}
+                {totalMassQuantity}
               </p>
             </div>
           </div>
@@ -351,254 +395,198 @@ const SamplePrinting = ({ order, onSuccess }) => {
         </div>
       </div>
 
-      {/* Samples Details Section */}
-      {order?.samples && order.samples.length > 0 && (
-        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-          <div className="px-3 sm:px-4 py-2 sm:py-3 bg-light border-b border-gray-200">
-            <h2 className="text-xs sm:text-sm font-medium text-primary flex items-center gap-2">
+      {/* Sample Printing Reference Section - Collapsible */}
+      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden transition-shadow">
+        <button
+          onClick={() => toggleSection("sampleReference")}
+          className="w-full px-5 sm:px-6 py-3.5 sm:py-4 bg-light border-b border-gray-200 hover:bg-light/80 transition-colors flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3">
+            <i
+              className={`fas fa-chevron-${expandedSections.sampleReference ? "down" : "right"} text-primary text-sm`}
+            ></i>
+            <h2 className="text-xs font-medium text-primary flex items-center gap-2">
               <i className="fas fa-flask"></i>
-              Sample Details
+              Sample Printing Reference
             </h2>
+            <span className="px-2.5 py-1 bg-primary/10 text-primary text-xs rounded-full flex items-center gap-1">
+              <i className="fas fa-chart-line"></i>
+              {totalSampleQuantity} Samples
+            </span>
           </div>
-          <div className="p-3 sm:p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {order.samples.map((sample) => (
-                <div
-                  key={sample.id}
-                  className="bg-light/50 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                      Sample
+          <div className="text-xs sm:text-sm text-gray-500 bg-white px-3 py-1.5 rounded-full flex items-center gap-1.5">
+            <i className="fas fa-palette"></i>
+            {mockSamplePaintData.placements.reduce(
+              (sum, p) => sum + p.colors.length,
+              0,
+            )}{" "}
+            Colors
+          </div>
+        </button>
+
+        {expandedSections.sampleReference && (
+          <div className="p-5 sm:p-6">
+            {/* Sample Details */}
+            {order?.samples && order.samples.length > 0 && (
+              <div className="mb-6">
+                <h3 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                  <i className="fas fa-flask text-primary"></i>
+                  Sample Details
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {order.samples.map((sample) => (
+                    <div
+                      key={sample.id}
+                      className="bg-light/50 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors"
+                    >
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                          Sample
+                        </span>
+                        <div className="flex items-center gap-1.5 bg-primary/5 px-2 py-0.5 rounded-full">
+                          <i className="fas fa-boxes text-primary text-xs"></i>
+                          <span className="text-xs font-semibold text-primary">
+                            Qty: {sample.quantity}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1.5 text-xs text-gray-600">
+                        <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                          <i className="fas fa-ruler text-primary/60 w-3.5"></i>
+                          <span className="font-medium text-gray-700">
+                            Size:
+                          </span>
+                          <span className="font-semibold text-primary">
+                            {sample.size}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Sample Paint Usage Summary */}
+            <div className="mb-6 p-4 bg-light rounded-lg border border-primary/10">
+              <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                <i className="fas fa-chart-simple"></i>
+                Sample Paint Usage Summary
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <i className="fas fa-flask text-primary"></i>
+                      Total Paint Used
                     </span>
-                    <div className="flex items-center gap-1.5 bg-primary/5 px-2 py-0.5 rounded-full">
-                      <i className="fas fa-boxes text-primary text-xs"></i>
-                      <span className="text-xs font-semibold text-primary">
-                        Qty: {sample.quantity}
-                      </span>
-                    </div>
+                    <span className="text-lg font-bold text-primary">
+                      {mockSamplePaintData.totalPaintUsed}{" "}
+                      {getUnitSymbol(mockSamplePaintData.paintUnit)}
+                    </span>
                   </div>
-                  <div className="flex flex-col gap-1.5 text-xs text-gray-600">
-                    <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
-                      <i className="fas fa-ruler text-primary/60 w-3.5"></i>
-                      <span className="font-medium text-gray-700">Size:</span>
-                      <span className="font-semibold text-primary">
-                        {sample.size}
-                      </span>
-                    </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-primary rounded-full h-2"
+                      style={{
+                        width: `${
+                          (mockSamplePaintData.totalPaintUsed /
+                            (mockSamplePaintData.totalPaintUsed +
+                              mockSamplePaintData.leftoverPaint)) *
+                          100
+                        }%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+                <div className="bg-white rounded-lg p-3 border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs text-gray-500 flex items-center gap-1">
+                      <i className="fas fa-arrow-left text-primary"></i>
+                      Leftover Paint
+                    </span>
+                    <span className="text-lg font-bold text-orange-600">
+                      {mockSamplePaintData.leftoverPaint}{" "}
+                      {getUnitSymbol(mockSamplePaintData.paintUnit)}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className="bg-orange-500 rounded-full h-2"
+                      style={{
+                        width: `${
+                          (mockSamplePaintData.leftoverPaint /
+                            (mockSamplePaintData.totalPaintUsed +
+                              mockSamplePaintData.leftoverPaint)) *
+                          100
+                        }%`,
+                      }}
+                    ></div>
+                  </div>
+                </div>
+              </div>
+              {mockSamplePaintData.notes && (
+                <div className="mt-3 p-2 bg-white/50 rounded-lg border border-gray-200">
+                  <p className="text-xs text-gray-600 flex items-start gap-2">
+                    <i className="fas fa-pencil-alt text-primary text-xs mt-0.5"></i>
+                    <span>{mockSamplePaintData.notes}</span>
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Sample Color Formulas Reference */}
+            <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+              <i className="fas fa-palette"></i>
+              Sample Color Formulas Reference
+            </h4>
+            <div className="space-y-3 mb-4">
+              {mockSamplePaintData.placements.map((placement, idx) => (
+                <div
+                  key={idx}
+                  className="bg-light rounded-lg p-3 border border-gray-200"
+                >
+                  <h5 className="text-xs font-semibold text-primary mb-2">
+                    {getPlacementLabel(placement.type)}
+                  </h5>
+                  <div className="space-y-2">
+                    {placement.colors.map((color, colorIdx) => (
+                      <div
+                        key={colorIdx}
+                        className="grid grid-cols-3 gap-2 text-xs"
+                      >
+                        <div className="bg-white p-2 rounded border border-gray-200">
+                          <span className="text-gray-500">Pantone:</span>
+                          <span className="ml-1 font-medium text-primary">
+                            {color.pantone}
+                          </span>
+                        </div>
+                        <div className="bg-white p-2 rounded border border-gray-200">
+                          <span className="text-gray-500">Paint:</span>
+                          <span className="ml-1 font-medium">
+                            {color.paintColor}
+                          </span>
+                        </div>
+                        <div className="bg-white p-2 rounded border border-gray-200">
+                          <span className="text-gray-500">Formula:</span>
+                          <span className="ml-1 font-mono text-primary">
+                            {color.formula}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        </div>
-      )}
-
-      {/* Placements with Colors */}
-      <div className="space-y-3 sm:space-y-4">
-        <h2 className="text-sm sm:text-md font-medium text-primary">
-          <i className="fas fa-palette mr-1.5 sm:mr-2"></i>
-          Colors by Placement
-        </h2>
-
-        <div className="space-y-2 sm:space-y-3">
-          {printData.placements.length === 0 ? (
-            <div className="text-center py-8 bg-white rounded-lg border border-gray-200">
-              <p className="text-gray-500 text-sm">
-                No placements found for this order
-              </p>
-            </div>
-          ) : (
-            printData.placements.map((placement) => {
-              const isExpanded = expandedPlacements[placement.id] || true;
-              const colorCount = parseInt(placement.colorCount);
-
-              return (
-                <div
-                  key={placement.id}
-                  className="rounded-lg border border-gray-200 bg-white overflow-hidden"
-                >
-                  {/* Placement Header */}
-                  <button
-                    onClick={() => togglePlacement(placement.id)}
-                    className="w-full px-3 sm:px-4 py-2 sm:py-3 bg-light border-b border-gray-200 hover:bg-light/80 transition-colors"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2 sm:gap-3">
-                        <i
-                          className={`fas fa-chevron-${isExpanded ? "down" : "right"} text-primary text-xs sm:text-sm transition-transform`}
-                        ></i>
-                        <h3 className="text-xs sm:font-medium text-primary">
-                          {getPlacementLabel(placement.type)}
-                        </h3>
-                        <span className="px-1.5 sm:px-2 py-0.5 sm:py-1 bg-primary/10 text-primary text-[8px] sm:text-xs rounded-full">
-                          {placement.colorCount} colors
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Expanded Content */}
-                  {isExpanded && (
-                    <div className="p-3 sm:p-4">
-                      <div className="flex flex-col md:flex-row gap-4 sm:gap-6">
-                        {/* Mockup Image */}
-                        <div className="md:w-32 shrink-0">
-                          {placement.mockupImage ? (
-                            <div className="border border-gray-200 rounded-lg overflow-hidden">
-                              <img
-                                src={getImageUrl(placement.mockupImage)}
-                                alt={`${getPlacementLabel(placement.type)} mockup`}
-                                className="w-20 h-20 sm:w-32 sm:h-32 object-cover"
-                                onError={(e) => {
-                                  e.target.src =
-                                    "https://via.placeholder.com/150?text=No+Image";
-                                }}
-                              />
-                            </div>
-                          ) : (
-                            <div className="w-20 h-20 sm:w-32 sm:h-32 bg-light border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center">
-                              <i className="fas fa-image text-gray-400 text-base sm:text-2xl mb-0.5 sm:mb-1"></i>
-                              <span className="text-[8px] sm:text-xs text-gray-400">
-                                No mockup
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        {/* Colors with Paint and Formula */}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="text-xs sm:text-sm font-medium text-gray-700 mb-2 sm:mb-3">
-                            Pantone Colors & Paint Details
-                          </h4>
-
-                          <div className="grid grid-cols-1 gap-4">
-                            {Array.from({ length: colorCount }).map(
-                              (_, index) => {
-                                const colorData =
-                                  placement.colors[`color_${index + 1}`];
-
-                                return (
-                                  <div
-                                    key={index}
-                                    className="bg-light rounded-lg p-3 sm:p-4 border border-gray-200"
-                                  >
-                                    <div className="flex flex-col gap-3">
-                                      {/* Color Header with Pantone */}
-                                      <div className="flex items-center gap-2">
-                                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-primary/20 flex items-center justify-center">
-                                          <span className="text-[8px] sm:text-xs font-medium text-primary">
-                                            {index + 1}
-                                          </span>
-                                        </div>
-                                        <div className="flex-1">
-                                          <p className="text-[8px] sm:text-xs text-gray-500">
-                                            Color {index + 1} - Pantone
-                                          </p>
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-xs sm:text-sm font-medium text-primary">
-                                              {colorData?.pantone || "Not set"}
-                                            </span>
-                                          </div>
-                                        </div>
-                                      </div>
-
-                                      {/* Paint Color Input */}
-                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                        <div>
-                                          <label
-                                            htmlFor={`paintColor_${placement.id}_${index}`}
-                                            className="block text-[8px] sm:text-xs font-medium text-gray-600 mb-1"
-                                          >
-                                            Paint Color
-                                          </label>
-                                          <input
-                                            type="text"
-                                            id={`paintColor_${placement.id}_${index}`}
-                                            value={colorData?.paintColor || ""}
-                                            onChange={(e) =>
-                                              handlePaintChange(
-                                                placement.id,
-                                                index,
-                                                "paintColor",
-                                                e.target.value,
-                                              )
-                                            }
-                                            className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                            placeholder="e.g., Process Blue"
-                                            disabled={submitting}
-                                          />
-                                        </div>
-
-                                        {/* Formula Input */}
-                                        <div>
-                                          <label
-                                            htmlFor={`formula_${placement.id}_${index}`}
-                                            className="block text-[8px] sm:text-xs font-medium text-gray-600 mb-1"
-                                          >
-                                            Formula
-                                          </label>
-                                          <input
-                                            type="text"
-                                            id={`formula_${placement.id}_${index}`}
-                                            value={colorData?.formula || ""}
-                                            onChange={(e) =>
-                                              handlePaintChange(
-                                                placement.id,
-                                                index,
-                                                "formula",
-                                                e.target.value,
-                                              )
-                                            }
-                                            className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                            placeholder="e.g., 2:1:0.5"
-                                            disabled={submitting}
-                                          />
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                );
-                              },
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })
-          )}
-        </div>
-      </div>
-
-      {/* Graphic Artist Notes */}
-      <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
-        <div className="px-5 sm:px-6 py-3.5 sm:py-4 bg-light border-b border-gray-200">
-          <h3 className="text-xs font-medium text-primary flex items-center gap-2">
-            <i className="fas fa-pencil-alt"></i>
-            Graphic Artist Notes
-          </h3>
-        </div>
-
-        <div className="p-5 sm:p-6">
-          <textarea
-            id="artist_notes"
-            name="notes"
-            readOnly
-            value={order.orderDesign?.notes || ""}
-            rows={4}
-            className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm resize-y"
-            disabled={submitting}
-          />
-        </div>
+        )}
       </div>
 
       {/* Color Summary Table */}
       <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
         <div className="px-3 sm:px-4 py-2 sm:py-3 bg-light border-b border-gray-200">
-          <h2 className="text-xs sm:text-sm font-medium text-primary">
+          <h2 className="text-xs  font-medium text-primary">
             <i className="fas fa-list mr-1.5 sm:mr-2"></i>
             Color Summary
           </h2>
@@ -741,7 +729,20 @@ const SamplePrinting = ({ order, onSuccess }) => {
         </div>
       </div>
 
-      {/* Printer Notes */}
+      {/* Artist Notes */}
+      {printData.notes && (
+        <div className="rounded-lg border border-gray-200 bg-white p-3 sm:p-4">
+          <h2 className="text-xs sm:text-md font-medium mb-1.5 sm:mb-2 text-primary">
+            <i className="fas fa-pencil-alt mr-1.5 sm:mr-2"></i>
+            Artist Notes
+          </h2>
+          <p className="text-[10px] sm:text-sm text-gray-600 bg-light p-2 sm:p-3 rounded-lg">
+            {printData.notes}
+          </p>
+        </div>
+      )}
+
+      {/* Printer Notes Input */}
       <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
         <div className="px-5 sm:px-6 py-3.5 sm:py-4 bg-light border-b border-gray-200">
           <h3 className="text-xs font-medium text-primary flex items-center gap-2">
@@ -773,6 +774,7 @@ const SamplePrinting = ({ order, onSuccess }) => {
           </div>
         </div>
       )}
+
       {submitError && (
         <div className="rounded-lg bg-red-50 border border-red-200 p-3 sm:p-4">
           <div className="flex items-center gap-2">
@@ -833,4 +835,4 @@ const SamplePrinting = ({ order, onSuccess }) => {
   );
 };
 
-export default SamplePrinting;
+export default MassPrinting;

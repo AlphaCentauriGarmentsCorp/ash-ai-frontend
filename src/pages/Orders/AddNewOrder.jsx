@@ -98,7 +98,7 @@ export default function AddNewOrder() {
   const combinedSummary = {
     ...calculations,
     samples: sampleSummary,
-    totalPieces: (calculations.totalQuantity || 0) + sampleSummary.totalPieces,
+    totalPieces: calculations.totalQuantity || 0,
     totalAmount: (calculations.totalAmount || 0) + sampleSummary.totalAmount,
   };
 

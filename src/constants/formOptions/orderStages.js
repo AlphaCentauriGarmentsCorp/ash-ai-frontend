@@ -66,7 +66,7 @@ export const OrderStages = [
   },
   {
     group: "Mass Production",
-    value: "production_material_cutting",
+    value: "production_cutting",
     label: "Material Cutting",
   },
   {
