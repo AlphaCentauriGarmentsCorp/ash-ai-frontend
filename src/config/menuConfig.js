@@ -31,6 +31,22 @@ export const getMenuByRole = (userRole) => {
           ],
         },
         {
+          name: "Quotation",
+          icon: "fa-solid fa-file-invoice",
+          subItems: [
+            {
+              name: "Add Quotation",
+              path: "/quotation",
+              access: ["admin", "general_manager"],
+            },
+            // {
+            //   name: "All Quotation",
+            //   path: "/quotation",
+            //   access: ["admin", "general_manager"],
+            // },
+          ],
+        },
+        {
           name: "Clients",
           icon: "fa-solid fa-users",
           subItems: [
