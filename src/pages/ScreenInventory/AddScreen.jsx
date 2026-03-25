@@ -118,14 +118,13 @@ const AddScreen = () => {
         </h1>
 
         <Input
-          label="Screen Name"
+          label="Design Name"
           name="name"
           value={formData.name}
           onChange={handleChange}
           error={errors.name}
           type="text"
-          placeholder="Enter screen name"
-          required
+          placeholder="Enter design name"
         />
 
         <Input

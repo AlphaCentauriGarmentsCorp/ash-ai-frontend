@@ -35,6 +35,35 @@ const MaterialsPage = () => {
       key: "last_maintenance",
       label: "Last Maintenance",
       sortable: true,
+      render: (item) =>
+        item.last_maintenance ? (
+          new Date(item.last_maintenance).toLocaleDateString("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+          })
+        ) : (
+          <>
+            <span className="text-gray-400 italic">No last maintenance</span>
+          </>
+        ),
+    },
+    {
+      key: "last_used",
+      label: "Last Used",
+      sortable: true,
+      render: (item) =>
+        item.last_used ? (
+          new Date(item.last_used).toLocaleDateString("en-US", {
+            month: "short",
+            day: "2-digit",
+            year: "numeric",
+          })
+        ) : (
+          <>
+            <span className="text-gray-400 italic">Screen never used</span>
+          </>
+        ),
     },
     {
       key: "total_use",

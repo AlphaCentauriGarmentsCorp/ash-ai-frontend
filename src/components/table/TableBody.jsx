@@ -52,7 +52,7 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
     if (!hasValue) {
       return (
         <span className="text-gray-400 italic">
-          No {formatColumnKey(column.key)}
+          No {formatColumnKey(column.label)}
         </span>
       );
     }
