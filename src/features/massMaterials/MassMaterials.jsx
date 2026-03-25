@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import Input from "../../../components/form/Input";
-import Select from "../../../components/form/Select";
+import Input from "../../components/form/Input";
+import Select from "../../components/form/Select";
 
-const SampleMaterials = ({ order }) => {
+const MassMaterial = ({ order }) => {
   // Track expanded sections
   const [expandedSections, setExpandedSections] = useState({
     fabrics: true,
@@ -13,16 +13,19 @@ const SampleMaterials = ({ order }) => {
   // Extract order data from props
   const orderData = {
     id: order?.po_code,
-    totalQuantity:
-      order?.samples?.reduce(
-        (sum, sample) => sum + (parseInt(sample.quantity) || 0),
-        0,
-      ) || 0,
+    quantity: order?.total_quantity,
     garment: order?.apparel_type,
     color: order?.fabric_color,
-    samples: order?.samples || [],
-    estimatedFabric: "250 meters",
+    sizes: order?.items?.map((item) => item.size) || [],
+    estimatedFabric: "250 meters", // This would need to be calculated or come from API
+    estimatedThread: "5000 meters", // This would need to be calculated or come from API
   };
+
+  // Calculate quantities per size for display
+  const sizeQuantities = order?.items?.reduce((acc, item) => {
+    acc[item.size] = (acc[item.size] || 0) + parseInt(item.quantity);
+    return acc;
+  }, {});
 
   // Fabrics data (separate)
   const [fabricsInventory] = useState([
@@ -34,7 +37,7 @@ const SampleMaterials = ({ order }) => {
       resin_type: "Hard Resin",
       variant: "Normal",
       available: 500,
-      unit: "meters",
+      unit: "kg",
       location: "FAB-A01",
       price: "180.00",
     },
@@ -46,7 +49,7 @@ const SampleMaterials = ({ order }) => {
       resin_type: "Hard Resin",
       variant: "Ribbings",
       available: 300,
-      unit: "meters",
+      unit: "kg",
       location: "FAB-A02",
       price: "195.00",
     },
@@ -58,7 +61,7 @@ const SampleMaterials = ({ order }) => {
       resin_type: "Hard Resin",
       variant: "Normal",
       available: 200,
-      unit: "meters",
+      unit: "kg",
       location: "FAB-A03",
       price: "180.00",
     },
@@ -70,7 +73,7 @@ const SampleMaterials = ({ order }) => {
       resin_type: "Soft Resin",
       variant: "Normal",
       available: 350,
-      unit: "meters",
+      unit: "kg",
       location: "FAB-B01",
       price: "220.00",
     },
@@ -82,7 +85,7 @@ const SampleMaterials = ({ order }) => {
       resin_type: "Soft Resin",
       variant: "Normal",
       available: 280,
-      unit: "meters",
+      unit: "kg",
       location: "FAB-B02",
       price: "220.00",
     },
@@ -94,7 +97,7 @@ const SampleMaterials = ({ order }) => {
       resin_type: "None",
       variant: "Normal",
       available: 150,
-      unit: "meters",
+      unit: "kg",
       location: "FAB-C01",
       price: "190.00",
     },
@@ -241,7 +244,7 @@ const SampleMaterials = ({ order }) => {
     name: "",
     description: "",
     quantity: "",
-    unit: "meters",
+    unit: "kg",
     estimatedCost: "",
     supplier: "",
     priority: "medium",
@@ -633,7 +636,7 @@ const SampleMaterials = ({ order }) => {
       name: "",
       description: "",
       quantity: "",
-      unit: "meters",
+      unit: "kg",
       estimatedCost: "",
       supplier: "",
       priority: "medium",
@@ -716,7 +719,7 @@ const SampleMaterials = ({ order }) => {
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
             Select materials from inventory or add items to purchase for order #
-            {order.po_code}
+            {orderData.id}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -731,7 +734,7 @@ const SampleMaterials = ({ order }) => {
         </div>
       </div>
 
-      {/* Order Summary Card - Using samples */}
+      {/* Order Summary Card - Updated to use order.items */}
       <div className="bg-white rounded-lg border border-gray-200 p-4 sm:p-5 transition-shadow">
         <h2 className="text-sm sm:text-base font-medium text-primary mb-3 flex items-center gap-2">
           <i className="fas fa-clipboard-list"></i>
@@ -740,67 +743,65 @@ const SampleMaterials = ({ order }) => {
 
         {/* Main Order Info */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          <div className="bg-light/50 p-3 rounded-lg border border-gray-200">
+          <div className="bg-light/50 p-3 rounded">
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-hashtag text-gray-400"></i>
-              Po Code
+              Order ID
             </p>
-            <p className="text-sm font-medium">{order.po_code}</p>
+            <p className="text-sm font-medium">{orderData.id}</p>
           </div>
-          <div className="bg-light/50 p-3 rounded-lg border border-gray-200">
+          <div className="bg-light/50 p-3 rounded">
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-cubes text-gray-400"></i>
-              Total Samples Quantity
+              Total Quantity
             </p>
-            <p className="text-sm font-medium">{orderData.totalQuantity} pcs</p>
+            <p className="text-sm font-medium">{orderData.quantity} pcs</p>
           </div>
-          <div className="bg-light/50 p-3 rounded-lg border border-gray-200">
+          <div className="bg-light/50 p-3 rounded">
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-tshirt text-gray-400"></i>
               Garment
             </p>
-            <p className="text-sm font-medium">{orderData.garment || "N/A"}</p>
+            <p className="text-sm font-medium">{orderData.garment}</p>
           </div>
-          <div className="bg-light/50 p-3 rounded-lg border border-gray-200">
+          <div className="bg-light/50 p-3 rounded">
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-palette text-gray-400"></i>
               Fabric Color
             </p>
-            <p className="text-sm font-medium">{orderData.color || "N/A"}</p>
+            <p className="text-sm font-medium">{orderData.color}</p>
           </div>
         </div>
 
-        {/* Samples Breakdown from order.samples */}
+        {/* Items Breakdown from order.items */}
         <div className="border-t border-gray-200 pt-4">
           <h3 className="text-xs font-medium text-gray-500 mb-3 flex items-center gap-2">
-            <i className="fas fa-shirt"></i>
-            Samples Breakdown
+            <i className="fas fa-list-ul"></i>
+            Items Breakdown
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {orderData.samples.map((sample) => (
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+            {order?.items?.map((item) => (
               <div
-                key={sample.id}
-                className="bg-light/50 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors"
+                key={item.id}
+                className="bg-light/50 p-2 rounded-lg border border-gray-100"
               >
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                    Sample
+                    {item.sku}
                   </span>
-                  <div className="flex items-center gap-1.5 bg-primary/5 px-2 py-0.5 rounded-full">
-                    <i className="fas fa-boxes text-primary text-xs"></i>
-                    <span className="text-xs font-semibold text-primary">
-                      Qty: {sample.quantity}
-                    </span>
-                  </div>
+                  <span className="text-xs text-gray-500">
+                    Qty: {item.quantity}
+                  </span>
                 </div>
-                <div className="flex flex-col gap-1.5 text-xs text-gray-600">
-                  <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
-                    <i className="fas fa-ruler text-primary/60 w-3.5"></i>
-                    <span className="font-medium text-gray-700">Size:</span>
-                    <span className="font-semibold text-primary">
-                      {sample.size}
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2 text-xs text-gray-600">
+                  <span className="flex items-center gap-1">
+                    <i className="fas fa-ruler text-gray-400"></i>
+                    {item.size}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <i className="fas fa-palette text-gray-400"></i>
+                    {item.color}
+                  </span>
                 </div>
               </div>
             ))}
@@ -808,32 +809,32 @@ const SampleMaterials = ({ order }) => {
         </div>
 
         {/* Estimated Materials (if available from API) */}
-        <div className="border-t border-gray-200 mt-4 pt-4 ">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-light/50 p-3 rounded-lg border border-gray-200">
+        <div className="border-t border-gray-200 mt-4 pt-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-light/50 p-3 rounded">
               <p className="text-xs text-gray-500 flex items-center gap-1">
                 <i className="fas fa-cut text-gray-400"></i>
                 Est. Fabric
               </p>
               <p className="text-sm font-medium">{orderData.estimatedFabric}</p>
             </div>
-
-            <div className="bg-light/50 p-3 rounded-lg border border-gray-200">
+            <div className="bg-light/50 p-3 rounded">
+              <p className="text-xs text-gray-500 flex items-center gap-1">
+                <i className="fas fa-thread text-gray-400"></i>
+                Est. Thread
+              </p>
+              <p className="text-sm font-medium">{orderData.estimatedThread}</p>
+            </div>
+            <div className="bg-light/50 p-3 rounded">
               <p className="text-xs text-gray-500 flex items-center gap-1">
                 <i className="fas fa-calendar text-gray-400"></i>
                 Deadline
               </p>
               <p className="text-sm font-medium">
-                {order?.deadline
-                  ? new Date(order.deadline).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "2-digit",
-                      year: "numeric",
-                    })
-                  : "Not set"}
+                {order?.deadline || "Not set"}
               </p>
             </div>
-            <div className="bg-light/50 p-3 rounded-lg border border-gray-200">
+            <div className="bg-light/50 p-3 rounded">
               <p className="text-xs text-gray-500 flex items-center gap-1">
                 <i className="fas fa-flag text-gray-400"></i>
                 Priority
@@ -1641,4 +1642,4 @@ const SampleMaterials = ({ order }) => {
   );
 };
 
-export default SampleMaterials;
+export default MassMaterial;

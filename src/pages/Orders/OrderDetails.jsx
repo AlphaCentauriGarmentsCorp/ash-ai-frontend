@@ -18,9 +18,8 @@ import POItems from "../../features/order/orderDetails/POItems";
 import Logs from "../../features/order/orderDetails/Logs";
 import MockupCarousel from "../../features/order/OrderDetails/MockupCarousel";
 import { useAuth } from "../../hooks/useAuth";
+import Loader from "../../components/common/Loader";
 
-import Cutting from "../../features/order/productionSection/Cutting";
-import Sewing from "../../features/order/productionSection/Sewing";
 import OrderStage from "../../features/orderStages/OrderStage";
 import GraphicEditing from "../../features/graphicEditing/GraphicEditing";
 import ScreenMaking from "../../features/screenMaking/ScreenMaking";
@@ -28,7 +27,10 @@ import ScreenChecking from "../../features/screenChecking/ScreenChecking";
 import SampleMaterials from "../../features/order/productionSection/SampleMaterials";
 import SampleCutting from "../../features/sampleCutting/SampleCutting";
 import SamplePrinting from "../../features/samplePrinting/SamplePrinting";
-import Loader from "../../components/common/Loader";
+
+import MassMaterials from "../../features/massMaterials/MassMaterials";
+import MassCutting from "../../features/massCutting/MassCutting";
+import MassPrinting from "../../features/massPrinting/MassPrinting";
 
 const OrderDetailsPage = () => {
   const { po_code } = useParams();
@@ -169,7 +171,7 @@ const OrderDetailsPage = () => {
       tab: "production",
     },
     {
-      id: "production_material_cutting",
+      id: "production_cutting",
       label: "Mass Cutting",
       icon: "fa-cut",
       tab: "production",
@@ -429,7 +431,6 @@ const OrderDetailsPage = () => {
             hasProductionAccess(userRoles, "order_stages") && (
               <OrderStage order={order} onStagesUpdated={fetchOrderDetails} />
             )}
-
           {activeSection === "graphic_editing" &&
             hasProductionAccess(userRoles, "graphic_editing") && (
               <GraphicEditing order={order} onSuccess={fetchOrderDetails} />
@@ -446,15 +447,26 @@ const OrderDetailsPage = () => {
             hasProductionAccess(userRoles, "sample_material_preparation") && (
               <SampleMaterials order={order} />
             )}
-
           {activeSection === "sample_cutting" &&
             hasProductionAccess(userRoles, "sample_cutting") && (
               <SampleCutting order={order} />
             )}
-
           {activeSection === "sample_printing" &&
             hasProductionAccess(userRoles, "sample_printing") && (
               <SamplePrinting order={order} />
+            )}
+          {activeSection === "production_material_preparation" &&
+            hasProductionAccess(
+              userRoles,
+              "production_material_preparation",
+            ) && <MassMaterials order={order} />}
+          {activeSection === "production_cutting" &&
+            hasProductionAccess(userRoles, "production_cutting") && (
+              <MassCutting order={order} />
+            )}
+          {activeSection === "production_printing" &&
+            hasProductionAccess(userRoles, "production_printing") && (
+              <MassPrinting order={order} />
             )}
         </div>
       );

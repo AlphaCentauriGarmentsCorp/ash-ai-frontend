@@ -9,37 +9,57 @@ export const useSampleSizes = (initialSamples = [], onSamplesChange) => {
   const [samples, setSamples] = useState(initialSamples);
   const [errors, setErrors] = useState({});
   const isInitialMount = useRef(true);
+  const isInternalUpdate = useRef(false);
   const prevInitialSamplesRef = useRef(initialSamples);
+  const onSamplesChangeRef = useRef(onSamplesChange);
 
+  // Store the latest onSamplesChange in a ref to avoid dependency issues
   useEffect(() => {
+    onSamplesChangeRef.current = onSamplesChange;
+  }, [onSamplesChange]);
+
+  // Sync with external initialSamples changes, but avoid loops
+  useEffect(() => {
+    // Check if initialSamples actually changed
     if (
       JSON.stringify(prevInitialSamplesRef.current) !==
       JSON.stringify(initialSamples)
     ) {
+      // Mark that this is an external update
+      isInternalUpdate.current = false;
       setSamples(initialSamples);
       prevInitialSamplesRef.current = initialSamples;
     }
   }, [initialSamples]);
 
+  // Notify parent of changes, but only for internal updates
   useEffect(() => {
+    // Skip on initial mount
     if (isInitialMount.current) {
       isInitialMount.current = false;
       return;
     }
 
-    if (onSamplesChange && samples !== initialSamples) {
-      onSamplesChange(samples);
+    // Only notify parent if this is an internal update (not from syncing with initialSamples)
+    // and if the callback exists
+    if (isInternalUpdate.current && onSamplesChangeRef.current) {
+      onSamplesChangeRef.current(samples);
     }
-  }, [samples, onSamplesChange, initialSamples]);
+
+    // Reset the flag after notification
+    isInternalUpdate.current = false;
+  }, [samples]);
 
   const summary = useMemo(() => calculateSampleSummary(samples), [samples]);
 
   const addSample = useCallback(() => {
     const newSample = createSampleSizeObject();
+    isInternalUpdate.current = true; // Mark as internal update
     setSamples((prev) => [...prev, newSample]);
   }, []);
 
   const removeSample = useCallback((id) => {
+    isInternalUpdate.current = true; // Mark as internal update
     setSamples((prev) => {
       const updatedSamples = prev.filter((sample) => sample.id !== id);
 
@@ -66,6 +86,7 @@ export const useSampleSizes = (initialSamples = [], onSamplesChange) => {
   }, []);
 
   const updateSampleField = useCallback((id, field, value) => {
+    isInternalUpdate.current = true; // Mark as internal update
     setSamples((prev) => {
       const updated = prev.map((sample) => {
         if (sample.id !== id) return sample;
@@ -108,6 +129,7 @@ export const useSampleSizes = (initialSamples = [], onSamplesChange) => {
   }, [samples]);
 
   const resetSamples = useCallback(() => {
+    isInternalUpdate.current = true; // Mark as internal update
     setSamples([]);
     setErrors({});
   }, []);

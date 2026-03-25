@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const SampleCutting = ({ order }) => {
+const MassCutting = ({ order }) => {
   const [formData, setFormData] = useState({
     notes: "",
     fabricUsed: "",
@@ -12,6 +12,7 @@ const SampleCutting = ({ order }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [expandedSections, setExpandedSections] = useState({
     cuttingItems: true,
+    sampleReference: true,
   });
 
   // Unit options
@@ -22,6 +23,15 @@ const SampleCutting = ({ order }) => {
     { value: "grams", label: "Grams (g)", icon: "fas fa-weight-hanging" },
   ];
 
+  // Mock sample fabric usage data (would come from API in production)
+  const mockSampleFabricData = {
+    fabricUsed: 15.5,
+    fabricLeft: 2.3,
+    fabricUnit: "kg",
+    notes: "Sample Cutter Notes here",
+    timestamp: "2024-03-20T10:30:00",
+  };
+
   const toggleSection = (section) => {
     setExpandedSections((prev) => ({
       ...prev,
@@ -29,16 +39,29 @@ const SampleCutting = ({ order }) => {
     }));
   };
 
-  // Helper function to aggregate quantities by size from samples
+  // Helper function to aggregate quantities by size
   const getSizeQuantities = () => {
-    if (!order?.samples) return {};
+    if (!order?.items) return {};
 
-    return order.samples.reduce((acc, sample) => {
-      const size = sample.size;
-      const quantity = parseInt(sample.quantity) || 0;
+    return order.items.reduce((acc, item) => {
+      const size = item.size;
+      const quantity = parseInt(item.quantity) || 0;
       acc[size] = (acc[size] || 0) + quantity;
       return acc;
     }, {});
+  };
+
+  // Helper function to get sample quantities for reference
+  const getSampleQuantities = () => {
+    if (!order?.samples) return [];
+
+    return order.samples.map((sample) => ({
+      id: sample.id,
+      size: sample.size,
+      quantity: sample.quantity,
+      totalPrice: sample.total_price,
+      unitPrice: sample.unit_price,
+    }));
   };
 
   const handleChange = (e) => {
@@ -57,12 +80,12 @@ const SampleCutting = ({ order }) => {
     }));
   };
 
-  const handleQuantityChange = (sampleId, value) => {
+  const handleQuantityChange = (itemId, value) => {
     setFormData((prev) => ({
       ...prev,
       cutQuantities: {
         ...prev.cutQuantities,
-        [sampleId]: value,
+        [itemId]: value,
       },
     }));
   };
@@ -91,19 +114,27 @@ const SampleCutting = ({ order }) => {
   };
 
   const sizeQuantities = getSizeQuantities();
-  const totalOrderQuantity =
+  const sampleQuantities = getSampleQuantities();
+  const totalOrderQuantity = order?.total_quantity || 0;
+  const totalSampleQuantity =
     order?.samples?.reduce(
       (sum, sample) => sum + (parseInt(sample.quantity) || 0),
       0,
     ) || 0;
 
-  // Calculate total items (number of unique samples)
-  const totalItems = order?.samples?.length || 0;
+  // Calculate total items (number of unique SKUs)
+  const totalItems = order?.items?.length || 0;
 
-  // Get unit display label
+  // Get unit label
   const getUnitLabel = (unitValue) => {
     const unit = unitOptions.find((u) => u.value === unitValue);
     return unit ? unit.label.split(" ")[0] : unitValue;
+  };
+
+  // Get unit icon
+  const getUnitIcon = (unitValue) => {
+    const unit = unitOptions.find((u) => u.value === unitValue);
+    return unit ? unit.icon : "fas fa-weight-hanging";
   };
 
   return (
@@ -113,11 +144,11 @@ const SampleCutting = ({ order }) => {
         <div className="flex-1 min-w-0">
           <h1 className="text-base sm:text-xl font-semibold text-primary truncate flex items-center gap-2">
             <i className="fas fa-cut"></i>
-            Sample Cutting
+            Mass Cutting
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
             Record cutting quantities and fabric usage for order #
-            {order?.po_code}
+            {order?.po_code || order?.id}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -135,30 +166,30 @@ const SampleCutting = ({ order }) => {
           Order Summary
         </h2>
 
-        {/* Main Order Info - Updated with Pattern Type and revised stats */}
+        {/* Main Order Info */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-          <div className="bg-light/50 p-3  rounded-lg border border-gray-200">
+          <div className="bg-light/50 p-3 rounded">
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-hashtag text-gray-400"></i>
               PO Code
             </p>
             <p className="text-sm font-medium">{order?.po_code || "N/A"}</p>
           </div>
-          <div className="bg-light/50 p-3  rounded-lg border border-gray-200">
+          <div className="bg-light/50 p-3 rounded">
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-cubes text-gray-400"></i>
               Total Qty
             </p>
             <p className="text-sm font-medium">{totalOrderQuantity} pcs</p>
           </div>
-          <div className="bg-light/50 p-3  rounded-lg border border-gray-200">
+          <div className="bg-light/50 p-3 rounded">
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-tshirt text-gray-400"></i>
-              Fabric Type 
+              Design
             </p>
-            <p className="text-sm font-medium">{order?.fabric_type || "N/A"}</p>
+            <p className="text-sm font-medium">{order?.design_name || "N/A"}</p>
           </div>
-          <div className="bg-light/50 p-3  rounded-lg border border-gray-200">
+          <div className="bg-light/50 p-3 rounded">
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-palette text-gray-400"></i>
               Fabric Color
@@ -169,9 +200,9 @@ const SampleCutting = ({ order }) => {
           </div>
         </div>
 
-        {/* Second row with Pattern Type and additional info */}
+        {/* Second row with additional info */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-light/50 p-3  rounded-lg border border-gray-200">
+          <div className="bg-light/50 p-3 rounded">
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-cut text-gray-400"></i>
               Pattern Type
@@ -182,14 +213,14 @@ const SampleCutting = ({ order }) => {
               </span>
             </p>
           </div>
-          <div className="bg-light/50 p-3  rounded-lg border border-gray-200">
+          <div className="bg-light/50 p-3 rounded">
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-tags text-gray-400"></i>
-              Total Samples
+              Total Items
             </p>
-            <p className="text-sm font-medium">{totalItems} Sample(s)</p>
+            <p className="text-sm font-medium">{totalItems} Sizes</p>
           </div>
-          <div className="bg-light/50 p-3  rounded-lg border border-gray-200">
+          <div className="bg-light/50 p-3 rounded">
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-calendar text-gray-400"></i>
               Deadline
@@ -200,7 +231,7 @@ const SampleCutting = ({ order }) => {
                 : "Not set"}
             </p>
           </div>
-          <div className="bg-light/50 p-3  rounded-lg border border-gray-200">
+          <div className="bg-light/50 p-3 rounded">
             <p className="text-xs text-gray-500 flex items-center gap-1">
               <i className="fas fa-flag text-gray-400"></i>
               Priority
@@ -222,7 +253,159 @@ const SampleCutting = ({ order }) => {
         </div>
       </div>
 
-      {/* Cutting Items Section - Updated to use samples */}
+      {/* Sample Reference Section */}
+      {sampleQuantities.length > 0 && (
+        <div className="rounded-lg border border-gray-200 bg-white overflow-hidden transition-shadow">
+          <button
+            onClick={() => toggleSection("sampleReference")}
+            className="w-full px-5 sm:px-6 py-3.5 sm:py-4 bg-light border-b border-gray-200 hover:bg-light/80 transition-colors flex items-center justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <i
+                className={`fas fa-chevron-${expandedSections.sampleReference ? "down" : "right"} text-primary text-sm`}
+              ></i>
+              <h3 className="text-xs font-medium text-primary flex items-center gap-2">
+                <i className="fas fa-flask"></i>
+                Sample Reference
+              </h3>
+              <span className="px-2.5 py-1 bg-primary/10 text-primary text-xs rounded-full flex items-center gap-1">
+                <i className="fas fa-chart-line"></i>
+                {totalSampleQuantity} Total Samples
+              </span>
+            </div>
+          </button>
+
+          {expandedSections.sampleReference && (
+            <div className="p-5 sm:p-6">
+              {/* Sample Fabric Usage Summary */}
+              <div className="mb-6 p-4 bg-light rounded-lg border border-primary/20">
+                <h4 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                  <i className="fas fa-chart-simple"></i>
+                  Sample Fabric Usage Summary
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-white rounded-lg p-3 border border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <i className="fas fa-weight-hanging text-primary"></i>
+                        Total Fabric Used
+                      </span>
+                      <span className="text-lg font-bold text-primary">
+                        {mockSampleFabricData.fabricUsed}{" "}
+                        {getUnitLabel(mockSampleFabricData.fabricUnit)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-primary rounded-full h-2"
+                        style={{
+                          width: `${
+                            (mockSampleFabricData.fabricUsed /
+                              (mockSampleFabricData.fabricUsed +
+                                mockSampleFabricData.fabricLeft)) *
+                            100
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-lg p-3 border border-gray-200">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-500 flex items-center gap-1">
+                        <i className="fas fa-arrow-left text-primary"></i>
+                        Leftover Fabric
+                      </span>
+                      <span className="text-lg font-bold text-orange-600">
+                        {mockSampleFabricData.fabricLeft}{" "}
+                        {getUnitLabel(mockSampleFabricData.fabricUnit)}
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className="bg-orange-500 rounded-full h-2"
+                        style={{
+                          width: `${
+                            (mockSampleFabricData.fabricLeft /
+                              (mockSampleFabricData.fabricUsed +
+                                mockSampleFabricData.fabricLeft)) *
+                            100
+                          }%`,
+                        }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+                {mockSampleFabricData.notes && (
+                  <div className="mt-3 p-2 bg-white/50 rounded-lg border border-gray-200">
+                    <p className="text-xs text-gray-600 flex items-start gap-2">
+                      <i className="fas fa-pencil-alt text-primary text-xs mt-0.5"></i>
+                      <span>{mockSampleFabricData.notes}</span>
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Sample Details */}
+              <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                <i className="fas fa-flask"></i>
+                Sample Details
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {sampleQuantities.map((sample) => (
+                  <div
+                    key={sample.id}
+                    className="bg-light/50 p-3 rounded-lg border border-gray-100 hover:border-gray-200 transition-colors"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                        Sample
+                      </span>
+                      <div className="flex items-center gap-1.5 bg-primary/5 px-2 py-0.5 rounded-full">
+                        <i className="fas fa-boxes text-primary text-xs"></i>
+                        <span className="text-xs font-semibold text-primary">
+                          Qty: {sample.quantity}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-1.5">
+                      <div className="flex items-center gap-2 bg-gray-50 p-2 rounded-lg border border-gray-200">
+                        <i className="fas fa-ruler text-primary/60 w-3.5"></i>
+                        <span className="font-medium text-gray-700 text-xs">
+                          Size:
+                        </span>
+                        <span className="font-semibold text-primary text-xs">
+                          {sample.size}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {/* <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <div className="flex items-start gap-2">
+                  <i className="fas fa-info-circle text-blue-500 text-sm mt-0.5"></i>
+                  <div>
+                    <p className="text-xs font-medium text-blue-700 mb-1">
+                      Sample Production Reference:
+                    </p>
+                    <p className="text-xs text-blue-600">
+                      Based on sample production,{" "}
+                      {mockSampleFabricData.fabricUsed}{" "}
+                      {getUnitLabel(mockSampleFabricData.fabricUnit)} of fabric
+                      was used with {mockSampleFabricData.fabricLeft}{" "}
+                      {getUnitLabel(mockSampleFabricData.fabricUnit)} leftover.
+                      Use this as a reference for calculating fabric
+                      requirements for mass production.
+                    </p>
+                  </div>
+                </div>
+              </div> */}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Cutting Items Section */}
       <div className="rounded-lg border border-gray-200 bg-white overflow-hidden transition-shadow">
         <button
           onClick={() => toggleSection("cuttingItems")}
@@ -232,7 +415,7 @@ const SampleCutting = ({ order }) => {
             <i
               className={`fas fa-chevron-${expandedSections.cuttingItems ? "down" : "right"} text-primary text-sm`}
             ></i>
-            <h3 className="text-xs sm:font-medium text-primary flex items-center gap-2">
+            <h3 className="text-xs font-medium text-primary flex items-center gap-2">
               <i className="fas fa-scissors"></i>
               Cutting Items
             </h3>
@@ -243,7 +426,7 @@ const SampleCutting = ({ order }) => {
                   (q) => q && parseInt(q) > 0,
                 ).length
               }{" "}
-              Samples
+              Sizes
             </span>
           </div>
           <div className="text-xs sm:text-sm text-gray-500 bg-white px-3 py-1.5 rounded-full flex items-center gap-1.5">
@@ -253,44 +436,62 @@ const SampleCutting = ({ order }) => {
         </button>
 
         {expandedSections.cuttingItems && (
-          <div className="">
+          <div className="p-5 sm:p-6">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-light/80 rounded-lg">
                   <tr>
-                    <th className="px-4 py-2.5 text-left text-[11px] font-medium text-gray-600 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
                       Size
                     </th>
-                    <th className="px-4 py-2.5 text-right text-[11px] font-medium text-gray-600 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      Color
+                    </th>
+                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-600 uppercase tracking-wider">
+                      SKU
+                    </th>
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
                       Order Qty
                     </th>
-                    <th className="px-4 py-2.5 text-right text-[11px] font-medium text-gray-600 uppercase tracking-wider">
+                    <th className="px-4 py-3 text-right text-xs font-medium text-gray-600 uppercase tracking-wider">
                       Cut Qty
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {order?.samples?.map((sample) => (
+                  {order?.items?.map((item) => (
                     <tr
-                      key={sample.id}
+                      key={item.id}
                       className="hover:bg-light/30 transition-colors"
                     >
-                      <td className="px-4 py-2.5 text-xs text-gray-700 font-medium">
-                        {sample.size}
+                      <td className="px-4 py-3 text-sm">{item.size}</td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="w-4 h-4 rounded-full border border-gray-300"
+                            style={{
+                              backgroundColor: item.color.toLowerCase(),
+                            }}
+                          />
+                          {item.color}
+                        </div>
                       </td>
-                      <td className="px-4 py-2.5 text-xs text-right text-gray-600">
-                        {sample.quantity}
+                      <td className="px-4 py-3 text-sm font-mono text-gray-600">
+                        {item.sku}
                       </td>
-                      <td className="px-4 py-2.5 text-right">
+                      <td className="px-4 py-3 text-sm text-right font-medium">
+                        {item.quantity}
+                      </td>
+                      <td className="px-4 py-3 text-sm text-right">
                         <input
                           type="number"
                           min="0"
-                          max={sample.quantity}
-                          value={formData.cutQuantities[sample.id] || ""}
+                          max={item.quantity}
+                          value={formData.cutQuantities[item.id] || ""}
                           onChange={(e) =>
-                            handleQuantityChange(sample.id, e.target.value)
+                            handleQuantityChange(item.id, e.target.value)
                           }
-                          className="w-20 px-2 py-1 border border-gray-200 rounded text-right focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-xs"
+                          className="w-24 px-2 py-1.5 border border-gray-200 rounded-lg text-right focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-sm"
                           placeholder="0"
                           disabled={isSubmitting}
                         />
@@ -300,16 +501,13 @@ const SampleCutting = ({ order }) => {
                 </tbody>
                 <tfoot className="bg-light/50">
                   <tr>
-                    <td
-                      colSpan="1"
-                      className="px-4 py-2.5 text-xs font-medium text-gray-600"
-                    >
+                    <td colSpan="3" className="px-4 py-3 text-sm font-medium">
                       Total
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-right font-semibold text-gray-700">
+                    <td className="px-4 py-3 text-sm text-right font-medium">
                       {totalOrderQuantity}
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-right font-semibold text-primary">
+                    <td className="px-4 py-3 text-sm text-right font-medium text-primary">
                       {Object.values(formData.cutQuantities).reduce(
                         (sum, val) => sum + (parseInt(val) || 0),
                         0,
@@ -463,4 +661,4 @@ const SampleCutting = ({ order }) => {
   );
 };
 
-export default SampleCutting;
+export default MassCutting;

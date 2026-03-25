@@ -84,7 +84,7 @@ export const PRODUCTION_ACCESS = {
     "warehouse_manager",
     "purchasing",
   ],
-  production_material_cutting: [
+  production_cutting: [
     "admin",
     "general_manager",
     "cutter",
