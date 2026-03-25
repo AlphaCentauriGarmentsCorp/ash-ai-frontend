@@ -28,7 +28,7 @@ const AddSupplier = () => {
     setSubmitSuccess(false);
     setServerError("");
 
-    const validationErrors = validateFormss(formData, supplierSchema);
+    const validationErrors = validateForm(formData, supplierSchema);
 
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);
@@ -41,7 +41,7 @@ const AddSupplier = () => {
       await supplierApi.create(formData);
       setSubmitSuccess(true);
 
-      setFormData(typesInitialState);
+      setFormData(supplierInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch {
