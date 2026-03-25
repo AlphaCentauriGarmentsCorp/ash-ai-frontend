@@ -58,6 +58,7 @@ import AddMaterials from "./pages/Materials/AddMaterials";
 import AddScreen from "./pages/ScreenInventory/AddScreen";
 import AllScreen from "./pages/ScreenInventory/AllScreen";
 import EditScreen from "./pages/ScreenInventory/EditScreen";
+import Quotation from "./pages/Quotation/Quotation";
 
 function App() {
   const { loading } = useAuth();
@@ -365,7 +366,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/freebies"
           element={
@@ -374,7 +374,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/freebies/new"
           element={
@@ -383,7 +382,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/freebies/edit/:id"
           element={
@@ -392,7 +390,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/placement-measurements"
           element={
@@ -401,7 +398,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/placement-measurements/new"
           element={
@@ -410,7 +406,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/placement-measurements/edit/:id"
           element={
@@ -419,7 +414,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/additional-options"
           element={
@@ -428,7 +422,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/additional-options/new"
           element={
@@ -437,7 +430,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/admin/settings/additional-options/edit/:id"
           element={
@@ -515,6 +507,14 @@ function App() {
           element={
             <ProtectedRoute>
               <EditScreen />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotation"
+          element={
+            <ProtectedRoute>
+              <Quotation />
             </ProtectedRoute>
           }
         />
