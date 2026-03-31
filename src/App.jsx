@@ -30,6 +30,9 @@ import EditSizeLabel from "./pages/DropDownSettings/SizeLabel/EditSizeLabel";
 import Courier from "./pages/DropDownSettings/Courier/Courier";
 import AddCourier from "./pages/DropDownSettings/Courier/AddCourier";
 import EditCourier from "./pages/DropDownSettings/Courier/EditCourier";
+import SewingSubcontractor from "./pages/DropDownSettings/SewingSubcontractor/SewingSubcontractor";
+import AddSewingSubcontractor from "./pages/DropDownSettings/SewingSubcontractor/AddSewingSubcontractor";
+import EditSewingSubcontractor from "./pages/DropDownSettings/SewingSubcontractor/EditSewingSubcontractor";
 import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/PrintLabelPlacement";
 import AddPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/AddPrintLabelPlacement";
 import FreebiesPage from "./pages/DropDownSettings/Freebies/Freebies";
@@ -366,6 +369,30 @@ function App() {
           element={
             <ProtectedRoute>
               <EditCourier />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/sewing-subcontractor"
+          element={
+            <ProtectedRoute>
+              <SewingSubcontractor />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/sewing-subcontractor/new"
+          element={
+            <ProtectedRoute>
+              <AddSewingSubcontractor />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/sewing-subcontractor/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditSewingSubcontractor />
             </ProtectedRoute>
           }
         />
