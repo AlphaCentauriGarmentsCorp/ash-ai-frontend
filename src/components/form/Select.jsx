@@ -210,12 +210,13 @@ const Select = ({
 
   const getContainerClasses = () => {
     let classes =
-      "text-sm mt-3 border rounded py-2 px-4 w-full transition-colors duration-200 cursor-pointer flex items-center justify-between";
+      "text-sm mt-3 border  rounded-lg py-2 px-4 w-full transition-colors duration-200 cursor-pointer flex items-center justify-between";
 
     if (disabled) {
       classes += " bg-light2 border-gray-300 text-gray-500 cursor-not-allowed";
     } else if (isOpen) {
-      classes += " bg-white border-blue-500 ring-1 ring-primary/20";
+      classes +=
+        " bg-white border-primary focus:ring-1 focus:ring-primary/20 focus:border-primary";
     } else if (error) {
       classes += " bg-white border-red-500 hover:border-red-600";
     } else {

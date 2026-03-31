@@ -58,7 +58,7 @@ const ImageUpload = ({
 
   const getButtonClasses = () => {
     let classes =
-      "text-sm mt-3 border rounded py-2 px-4 transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-blue-400 ";
+      "text-sm mt-3 border rounded-lg py-2 px-4 transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-blue-400 ";
 
     if (disabled || readOnly) {
       classes += "bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed";
