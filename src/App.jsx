@@ -27,6 +27,9 @@ import EditPrintMethod from "./pages/DropDownSettings/PrintMethod/EditPrintMetho
 import SizeLabel from "./pages/DropDownSettings/SizeLabel/SizeLabel";
 import AddSizeLabel from "./pages/DropDownSettings/SizeLabel/AddSizeLabel";
 import EditSizeLabel from "./pages/DropDownSettings/SizeLabel/EditSizeLabel";
+import Courier from "./pages/DropDownSettings/Courier/Courier";
+import AddCourier from "./pages/DropDownSettings/Courier/AddCourier";
+import EditCourier from "./pages/DropDownSettings/Courier/EditCourier";
 import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/PrintLabelPlacement";
 import AddPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/AddPrintLabelPlacement";
 import FreebiesPage from "./pages/DropDownSettings/Freebies/Freebies";
@@ -339,6 +342,30 @@ function App() {
           element={
             <ProtectedRoute>
               <EditSizeLabel />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/courier"
+          element={
+            <ProtectedRoute>
+              <Courier />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/courier/new"
+          element={
+            <ProtectedRoute>
+              <AddCourier />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/courier/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditCourier />
             </ProtectedRoute>
           }
         />
