@@ -22,7 +22,7 @@ const Input = ({
 
   const getInputClasses = () => {
     let classes =
-      "text-sm mt-1 border rounded py-2 px-4 w-full transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-blue-400";
+      "text-sm mt-1 border rounded-lg py-2 px-4 w-full transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary";
 
     if (disabled || readOnly) {
       classes += " bg-light2 placeholder-primary/80 cursor-not-allowed";
