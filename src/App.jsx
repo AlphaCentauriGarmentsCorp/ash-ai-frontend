@@ -36,6 +36,9 @@ import EditSewingSubcontractor from "./pages/DropDownSettings/SewingSubcontracto
 import PaymentMethods from "./pages/DropDownSettings/PaymentMethods/PaymentMethods";
 import AddPaymentMethods from "./pages/DropDownSettings/PaymentMethods/AddPaymentMethods";
 import EditPaymentMethods from "./pages/DropDownSettings/PaymentMethods/EditPaymentMethods";
+import ShippingMethods from "./pages/DropDownSettings/ShippingMethods/ShippingMethods";
+import AddShippingMethods from "./pages/DropDownSettings/ShippingMethods/AddShippingMethods";
+import EditShippingMethods from "./pages/DropDownSettings/ShippingMethods/EditShippingMethods";
 import PrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/PrintLabelPlacement";
 import AddPrintLabelPlacement from "./pages/DropDownSettings/PrintLabelPlacements/AddPrintLabelPlacement";
 import FreebiesPage from "./pages/DropDownSettings/Freebies/Freebies";
@@ -420,6 +423,30 @@ function App() {
           element={
             <ProtectedRoute>
               <EditPaymentMethods />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/shipping-methods"
+          element={
+            <ProtectedRoute>
+              <ShippingMethods />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/shipping-methods/new"
+          element={
+            <ProtectedRoute>
+              <AddShippingMethods />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/shipping-methods/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditShippingMethods />
             </ProtectedRoute>
           }
         />
