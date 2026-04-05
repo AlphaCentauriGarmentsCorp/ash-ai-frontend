@@ -156,15 +156,21 @@ export const getMenuByRole = (userRole) => {
               access: ["admin"],
             },
             {
-              name: "Tshirt Necklines",
-              path: "/quotation/settings/tshirt-neckline",
-              access: ["admin"],
-            },
-            {
               name: "Tshirt Sizes",
               path: "/quotation/settings/tshirt-sizes",
               access: ["admin"],
             },
+            {
+              name: "Size Prices",
+              path: "/quotation/settings/size-prices",
+              access: ["admin"],
+            },
+            {
+              name: "Tshirt Necklines",
+              path: "/quotation/settings/tshirt-neckline",
+              access: ["admin"],
+            },
+
             {
               name: "Print Types",
               path: "/quotation/settings/print-types",
