@@ -22,7 +22,7 @@ const Textarea = ({
 
   const getTextareaClasses = () => {
     let classes =
-      "text-sm mt-3 border rounded py-2 px-4 w-full transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-blue-400";
+      "text-sm mt-3 border rounded py-2 px-4 w-full transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary ";
 
     classes += resizable ? " resize-y" : " resize-none";
 

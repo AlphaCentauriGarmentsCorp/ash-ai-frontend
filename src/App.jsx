@@ -72,6 +72,10 @@ import AllScreen from "./pages/ScreenInventory/AllScreen";
 import EditScreen from "./pages/ScreenInventory/EditScreen";
 import Quotation from "./pages/Quotation/Quotation";
 
+import TshirtType from "./pages/QuotationSettings/TshirtTypes/TshirtType";
+import AddTshirtType from "./pages/QuotationSettings/TshirtTypes/AddTshirtType";
+import EditTshirtType from "./pages/QuotationSettings/TshirtTypes/EditTshirtType";
+
 function App() {
   const { loading } = useAuth();
 
@@ -623,6 +627,33 @@ function App() {
           element={
             <ProtectedRoute>
               <Quotation />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/tshirt-type"
+          element={
+            <ProtectedRoute>
+              <TshirtType />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/tshirt-type/new"
+          element={
+            <ProtectedRoute>
+              <AddTshirtType />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/tshirt-type/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditTshirtType />
             </ProtectedRoute>
           }
         />

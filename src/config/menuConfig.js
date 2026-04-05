@@ -145,6 +145,18 @@ export const getMenuByRole = (userRole) => {
             },
           ],
         },
+
+        {
+          name: "Quotation Settings",
+          icon: "fa-solid fa-cog",
+          subItems: [
+            {
+              name: "Tshirt Types",
+              path: "/quotation/settings/tshirt-type",
+              access: ["admin"],
+            },
+          ],
+        },
         {
           name: "Material Suppliers",
           icon: "fa-solid fa-user-shield",
