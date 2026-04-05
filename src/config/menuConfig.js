@@ -175,6 +175,11 @@ export const getMenuByRole = (userRole) => {
               path: "/quotation/settings/print-patterns",
               access: ["admin"],
             },
+            {
+              name: "Addons Categories",
+              path: "/quotation/settings/addon-categories",
+              access: ["admin"],
+            },
           ],
         },
         {

@@ -92,6 +92,10 @@ import TshirtSizesPage from "./pages/QuotationSettings/TshirtSizes/TshirtSizesPa
 import AddTshirtSizes from "./pages/QuotationSettings/TshirtSizes/AddTshirtSizes";
 import EditTshirtSizes from "./pages/QuotationSettings/TshirtSizes/EditTshirtSizes";
 
+import AddonCategoriesPage from "./pages/QuotationSettings/AddonCategories/AddonCategoriesPage";
+import AddAddonCategories from "./pages/QuotationSettings/AddonCategories/AddAddonCategories";
+import EditAddonCategories from "./pages/QuotationSettings/AddonCategories/EditAddonCategories";
+
 function App() {
   const { loading } = useAuth();
 
@@ -778,6 +782,33 @@ function App() {
           element={
             <ProtectedRoute>
               <EditTshirtSizes />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/addon-categories"
+          element={
+            <ProtectedRoute>
+              <AddonCategoriesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/addon-categories/new"
+          element={
+            <ProtectedRoute>
+              <AddAddonCategories />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/addon-categories/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditAddonCategories />
             </ProtectedRoute>
           }
         />
