@@ -160,6 +160,11 @@ export const getMenuByRole = (userRole) => {
               path: "/quotation/settings/tshirt-neckline",
               access: ["admin"],
             },
+            {
+              name: "Print Types",
+              path: "/quotation/settings/print-types",
+              access: ["admin"],
+            },
           ],
         },
         {

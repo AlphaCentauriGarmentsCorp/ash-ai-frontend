@@ -80,6 +80,10 @@ import TshirtNecklines from "./pages/QuotationSettings/TshirtNecklines/TshirtNec
 import AddTshirtNecklines from "./pages/QuotationSettings/TshirtNecklines/AddTshirtNecklines";
 import EditTshirtNecklines from "./pages/QuotationSettings/TshirtNecklines/EditTshirtNecklines";
 
+import PrintTypes from "./pages/QuotationSettings/PrintTypes/PrintTypesPage";
+import AddPrintTypes from "./pages/QuotationSettings/PrintTypes/AddPrintTypes";
+import EditPrintTypes from "./pages/QuotationSettings/PrintTypes/EditPrintTypes";
+
 function App() {
   const { loading } = useAuth();
 
@@ -685,6 +689,33 @@ function App() {
           element={
             <ProtectedRoute>
               <EditTshirtNecklines />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/print-types"
+          element={
+            <ProtectedRoute>
+              <PrintTypes />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/print-types/new"
+          element={
+            <ProtectedRoute>
+              <AddPrintTypes />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/print-types/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditPrintTypes />
             </ProtectedRoute>
           }
         />
