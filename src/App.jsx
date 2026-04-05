@@ -96,6 +96,10 @@ import AddonCategoriesPage from "./pages/QuotationSettings/AddonCategories/Addon
 import AddAddonCategories from "./pages/QuotationSettings/AddonCategories/AddAddonCategories";
 import EditAddonCategories from "./pages/QuotationSettings/AddonCategories/EditAddonCategories";
 
+import SizePricesPage from "./pages/QuotationSettings/SizePrices/SizePricesPage";
+import AddSizePrices from "./pages/QuotationSettings/SizePrices/AddSizePrices";
+import EditSizePrices from "./pages/QuotationSettings/SizePrices/EditSizePrices";
+
 function App() {
   const { loading } = useAuth();
 
@@ -650,7 +654,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/tshirt-type"
           element={
@@ -659,7 +662,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/tshirt-type/new"
           element={
@@ -668,7 +670,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/tshirt-type/edit/:id"
           element={
@@ -677,7 +678,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/tshirt-neckline"
           element={
@@ -686,7 +686,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/tshirt-neckline/new"
           element={
@@ -695,7 +694,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/tshirt-neckline/edit/:id"
           element={
@@ -704,7 +702,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/print-types"
           element={
@@ -713,7 +710,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/print-types/new"
           element={
@@ -722,7 +718,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/print-types/edit/:id"
           element={
@@ -731,7 +726,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/print-patterns"
           element={
@@ -740,7 +734,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/print-patterns/new"
           element={
@@ -749,7 +742,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/print-patterns/edit/:id"
           element={
@@ -758,7 +750,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/tshirt-sizes"
           element={
@@ -767,7 +758,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/tshirt-sizes/new"
           element={
@@ -776,7 +766,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/tshirt-sizes/edit/:id"
           element={
@@ -785,7 +774,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/addon-categories"
           element={
@@ -794,7 +782,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/addon-categories/new"
           element={
@@ -803,12 +790,38 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/addon-categories/edit/:id"
           element={
             <ProtectedRoute>
               <EditAddonCategories />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/size-prices"
+          element={
+            <ProtectedRoute>
+              <SizePricesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/size-prices/new"
+          element={
+            <ProtectedRoute>
+              <AddSizePrices />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/size-prices/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditSizePrices />
             </ProtectedRoute>
           }
         />
