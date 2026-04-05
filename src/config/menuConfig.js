@@ -122,6 +122,22 @@ export const getMenuByRole = (userRole) => {
               path: "/admin/settings/placement-measurements",
               access: ["admin"],
             },
+
+            {
+              name: "Courier Services",
+              path: "/admin/settings/courier",
+              access: ["admin"],
+            },
+            {
+              name: "Payment Methods",
+              path: "/admin/settings/payment-methods",
+              access: ["admin"],
+            },
+            {
+              name: "Shipping Methods",
+              path: "/admin/settings/shipping-methods",
+              access: ["admin"],
+            },
             {
               name: "Additional Options",
               path: "/admin/settings/additional-options",

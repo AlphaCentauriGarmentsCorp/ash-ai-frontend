@@ -5,7 +5,7 @@ import FormActions from "../../components/form/FormActions";
 import Input from "../../components/form/Input";
 import { supplierInitialState } from "../../constants/formInitialState/supplierInitialState";
 import { supplierSchema } from "../../validations/supplierSchema";
-import { validateForm, hasErrors } from "../../utils/validation";
+import { validateForm,   } from "../../utils/validation";
 import { supplierApi } from "../../api/supplierApi";
 
 const AddSupplier = () => {
