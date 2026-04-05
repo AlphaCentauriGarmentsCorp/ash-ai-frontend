@@ -216,7 +216,7 @@ const Select = ({
       classes += " bg-light2 border-gray-300 text-gray-500 cursor-not-allowed";
     } else if (isOpen) {
       classes +=
-        " bg-white border-primary focus:ring-1 focus:ring-primary/20 focus:border-primary";
+        " bg-white border-primary focus:ring-1 focus:ring-primary focus:border-primary";
     } else if (error) {
       classes += " bg-white border-red-500 hover:border-red-600";
     } else {
