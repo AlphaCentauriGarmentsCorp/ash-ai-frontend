@@ -7,10 +7,10 @@ import Input from "../../../components/form/Input";
 import { quotationTypeInitialState } from "../../../constants/formInitialState/quotationTypeInitialState";
 import { quotationTypeSchema } from "../../../validations/quotationTypeSchema";
 import { validateForm, hasErrors } from "../../../utils/validation";
-import { tshirtTypeApi } from "../../../api/tshirtTypeApi";
+import { tshirtNecklineApi } from "../../../api/tshirtNecklineApi";
 import AlertMessage from "../../../components/common/AlertMessage";
 
-const EditTshirtType = () => {
+const EditTshirtNeckline = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -21,22 +21,22 @@ const EditTshirtType = () => {
   const [serverError, setServerError] = useState("");
 
   useEffect(() => {
-    fetchTshirtType();
+    fetchTshirtNeckline();
   }, [id]);
 
-  const fetchTshirtType = async () => {
+  const fetchTshirtNeckline = async () => {
     setIsLoading(true);
     try {
-      const response = await tshirtTypeApi.show(id);
-      const tshirtTypeData = response.data || response;
+      const response = await tshirtNecklineApi.show(id);
+      const tshirtNecklineData = response.data || response;
       setFormData({
-        name: tshirtTypeData.name || "",
-        base_price: tshirtTypeData.base_price || "",
-        description: tshirtTypeData.description || "",
+        name: tshirtNecklineData.name || "",
+        base_price: tshirtNecklineData.base_price || "",
+        description: tshirtNecklineData.description || "",
       });
     } catch (error) {
-      console.error("Error fetching tshirt type:", error);
-      setServerError("Failed to load tshirt type data.");
+      console.error("Error fetching tshirt neckline:", error);
+      setServerError("Failed to load tshirt neckline data.");
     } finally {
       setIsLoading(false);
     }
@@ -65,18 +65,18 @@ const EditTshirtType = () => {
     }
 
     try {
-      await tshirtTypeApi.update(id, formData);
+      await tshirtNecklineApi.update(id, formData);
       setSubmitSuccess(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
       setTimeout(() => {
-        navigate(`/quotation/settings/tshirt-type`);
+        navigate(`/quotation/settings/tshirt-neckline`);
       }, 1500);
     } catch (err) {
       if (err.response?.data?.errors) {
         setErrors(err.response.data.errors);
       } else {
         setServerError(
-          err.response?.data?.message || "Failed to update tshirt type.",
+          err.response?.data?.message || "Failed to update tshirt neckline.",
         );
       }
     } finally {
@@ -85,7 +85,7 @@ const EditTshirtType = () => {
   };
 
   const handleReset = () => {
-    fetchTshirtType();
+    fetchTshirtNeckline();
     setErrors({});
     setSubmitSuccess(false);
     setServerError("");
@@ -94,13 +94,15 @@ const EditTshirtType = () => {
   if (isLoading) {
     return (
       <AdminLayout
-        icon="fa-cog"
-        pageTitle="Edit Tshirt Type"
-        path="/quotation/settings/tshirt-type/edit"
+        pageTitle="Edit Tshirt Neckline"
+        path="/quotation/settings/tshirt-neckline/edit"
         links={[
           { label: "Home", href: "/" },
           { label: "Quotation Settings", href: "#" },
-          { label: "Tshirt Type", href: "/quotation/settings/tshirt-type" },
+          {
+            label: "Tshirt Neckline",
+            href: "/quotation/settings/tshirt-neckline",
+          },
           { label: "Edit", href: "#" },
         ]}
       >
@@ -113,12 +115,15 @@ const EditTshirtType = () => {
 
   return (
     <AdminLayout
-      pageTitle="Edit Tshirt Type"
-      path="/quotation/settings/tshirt-type/edit"
+      pageTitle="Edit Tshirt Neckline"
+      path="/quotation/settings/tshirt-neckline/edit"
       links={[
         { label: "Home", href: "/" },
         { label: "Quotation Settings", href: "#" },
-        { label: "Tshirt Type", href: "/quotation/settings/tshirt-type" },
+        {
+          label: "Tshirt Neckline",
+          href: "/quotation/settings/tshirt-neckline",
+        },
         { label: "Edit", href: "#" },
       ]}
     >
@@ -126,8 +131,8 @@ const EditTshirtType = () => {
         {submitSuccess && (
           <AlertMessage
             type="success"
-            title="Tshirt Type updated successfully!"
-            message="The tshirt type has been updated in the system."
+            title="Tshirt Neckline updated successfully!"
+            message="The tshirt neckline has been updated in the system."
           />
         )}
 
@@ -139,17 +144,17 @@ const EditTshirtType = () => {
           />
         )}
         <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4">
-          Edit Tshirt Type
+          Edit Tshirt Neckline
         </h1>
 
         <Input
-          label="Tshirt Type Title"
+          label="Tshirt Neckline Title"
           name="name"
           value={formData.name}
           onChange={handleChange}
           error={errors.name}
           type="text"
-          placeholder="Enter tshirt type name"
+          placeholder="Enter tshirt neckline name"
           required
         />
 
@@ -173,7 +178,7 @@ const EditTshirtType = () => {
           rows={15}
           resizable
           required
-          placeholder="Enter tshirt type description"
+          placeholder="Enter tshirt neckline description"
         />
       </div>
 
@@ -189,4 +194,4 @@ const EditTshirtType = () => {
   );
 };
 
-export default EditTshirtType;
+export default EditTshirtNeckline;

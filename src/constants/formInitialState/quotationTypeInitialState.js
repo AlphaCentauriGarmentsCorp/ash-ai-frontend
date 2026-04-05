@@ -1,4 +1,4 @@
-export const quotationTshirtTypeInitialState = {
+export const quotationTypeInitialState = {
   name: "",
   base_price: "",
   description: "",
