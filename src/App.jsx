@@ -76,6 +76,10 @@ import TshirtType from "./pages/QuotationSettings/TshirtTypes/TshirtType";
 import AddTshirtType from "./pages/QuotationSettings/TshirtTypes/AddTshirtType";
 import EditTshirtType from "./pages/QuotationSettings/TshirtTypes/EditTshirtType";
 
+import TshirtNecklines from "./pages/QuotationSettings/TshirtNecklines/TshirtNecklines";
+import AddTshirtNecklines from "./pages/QuotationSettings/TshirtNecklines/AddTshirtNecklines";
+import EditTshirtNecklines from "./pages/QuotationSettings/TshirtNecklines/EditTshirtNecklines";
+
 function App() {
   const { loading } = useAuth();
 
@@ -654,6 +658,33 @@ function App() {
           element={
             <ProtectedRoute>
               <EditTshirtType />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/tshirt-neckline"
+          element={
+            <ProtectedRoute>
+              <TshirtNecklines />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/tshirt-neckline/new"
+          element={
+            <ProtectedRoute>
+              <AddTshirtNecklines />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/tshirt-neckline/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditTshirtNecklines />
             </ProtectedRoute>
           }
         />

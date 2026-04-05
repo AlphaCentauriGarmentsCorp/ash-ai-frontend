@@ -1,4 +1,4 @@
-export const quotationTshirtTypeSchema = {
+export const quotationTypeSchema = {
   name: {
     required: true,
     message: "Name is required.",

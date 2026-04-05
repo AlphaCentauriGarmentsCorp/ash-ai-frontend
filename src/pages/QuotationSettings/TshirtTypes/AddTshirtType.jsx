@@ -4,8 +4,8 @@ import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Textarea from "../../../components/form/Textarea";
 import FormActions from "../../../components/form/FormActions";
 import Input from "../../../components/form/Input";
-import { quotationTshirtTypeInitialState } from "../../../constants/formInitialState/quotationTshirtTypeInitialState";
-import { quotationTshirtTypeSchema } from "../../../validations/quotationTshirtTypeSchema";
+import { quotationTypeInitialState } from "../../../constants/formInitialState/quotationTypeInitialState";
+import { quotationTypeSchema } from "../../../validations/quotationTypeSchema";
 import { validateForm, hasErrors } from "../../../utils/validation";
 import { tshirtTypeApi } from "../../../api/tshirtTypeApi";
 import AlertMessage from "../../../components/common/AlertMessage";
@@ -14,7 +14,7 @@ const AddTshirtType = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
-  const [formData, setFormData] = useState(quotationTshirtTypeInitialState);
+  const [formData, setFormData] = useState(quotationTypeInitialState);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [serverError, setServerError] = useState("");
 
@@ -31,7 +31,7 @@ const AddTshirtType = () => {
     setSubmitSuccess(false);
     setServerError("");
 
-    const validationErrors = validateForm(formData, quotationTshirtTypeSchema);
+    const validationErrors = validateForm(formData, quotationTypeSchema);
 
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);
@@ -44,7 +44,7 @@ const AddTshirtType = () => {
       await tshirtTypeApi.create(formData);
       setSubmitSuccess(true);
 
-      setFormData(quotationTshirtTypeInitialState);
+      setFormData(quotationTypeInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
       setTimeout(() => {
@@ -64,7 +64,7 @@ const AddTshirtType = () => {
   };
 
   const handleReset = () => {
-    setFormData(quotationTshirtTypeInitialState);
+    setFormData(quotationTypeInitialState);
     setErrors({});
     setSubmitSuccess(false);
     setServerError("");
