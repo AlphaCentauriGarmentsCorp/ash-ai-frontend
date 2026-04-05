@@ -88,6 +88,10 @@ import PrintPatterns from "./pages/QuotationSettings/PrintPattern/PrintPattern";
 import AddPrintPatterns from "./pages/QuotationSettings/PrintPattern/AddPrintPatterns";
 import EditPrintPatterns from "./pages/QuotationSettings/PrintPattern/EditPrintPatterns";
 
+import TshirtSizesPage from "./pages/QuotationSettings/TshirtSizes/TshirtSizesPage";
+import AddTshirtSizes from "./pages/QuotationSettings/TshirtSizes/AddTshirtSizes";
+import EditTshirtSizes from "./pages/QuotationSettings/TshirtSizes/EditTshirtSizes";
+
 function App() {
   const { loading } = useAuth();
 
@@ -747,6 +751,33 @@ function App() {
           element={
             <ProtectedRoute>
               <EditPrintPatterns />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/tshirt-sizes"
+          element={
+            <ProtectedRoute>
+              <TshirtSizesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/tshirt-sizes/new"
+          element={
+            <ProtectedRoute>
+              <AddTshirtSizes />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/tshirt-sizes/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditTshirtSizes />
             </ProtectedRoute>
           }
         />
