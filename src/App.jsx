@@ -84,6 +84,10 @@ import PrintTypes from "./pages/QuotationSettings/PrintTypes/PrintTypesPage";
 import AddPrintTypes from "./pages/QuotationSettings/PrintTypes/AddPrintTypes";
 import EditPrintTypes from "./pages/QuotationSettings/PrintTypes/EditPrintTypes";
 
+import PrintPatterns from "./pages/QuotationSettings/PrintPattern/PrintPattern";
+import AddPrintPatterns from "./pages/QuotationSettings/PrintPattern/AddPrintPatterns";
+import EditPrintPatterns from "./pages/QuotationSettings/PrintPattern/EditPrintPatterns";
+
 function App() {
   const { loading } = useAuth();
 
@@ -716,6 +720,33 @@ function App() {
           element={
             <ProtectedRoute>
               <EditPrintTypes />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/print-patterns"
+          element={
+            <ProtectedRoute>
+              <PrintPatterns />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/print-patterns/new"
+          element={
+            <ProtectedRoute>
+              <AddPrintPatterns />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/print-patterns/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditPrintPatterns />
             </ProtectedRoute>
           }
         />

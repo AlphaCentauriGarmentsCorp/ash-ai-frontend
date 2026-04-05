@@ -165,6 +165,11 @@ export const getMenuByRole = (userRole) => {
               path: "/quotation/settings/print-types",
               access: ["admin"],
             },
+            {
+              name: "Print Pattern",
+              path: "/quotation/settings/print-patterns",
+              access: ["admin"],
+            },
           ],
         },
         {
