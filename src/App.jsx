@@ -100,6 +100,10 @@ import SizePricesPage from "./pages/QuotationSettings/SizePrices/SizePricesPage"
 import AddSizePrices from "./pages/QuotationSettings/SizePrices/AddSizePrices";
 import EditSizePrices from "./pages/QuotationSettings/SizePrices/EditSizePrices";
 
+import PrintColorsPage from "./pages/QuotationSettings/PrintColors/PrintColorsPage";
+import AddPrintColors from "./pages/QuotationSettings/PrintColors/AddPrintColors";
+import EditPrintColors from "./pages/QuotationSettings/PrintColors/EditPrintColors";
+
 function App() {
   const { loading } = useAuth();
 
@@ -798,7 +802,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/size-prices"
           element={
@@ -807,7 +810,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/size-prices/new"
           element={
@@ -816,12 +818,35 @@ function App() {
             </ProtectedRoute>
           }
         />
-
         <Route
           path="/quotation/settings/size-prices/edit/:id"
           element={
             <ProtectedRoute>
               <EditSizePrices />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotation/settings/print-colors"
+          element={
+            <ProtectedRoute>
+              <PrintColorsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotation/settings/print-colors/new"
+          element={
+            <ProtectedRoute>
+              <AddPrintColors />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotation/settings/print-colors/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditPrintColors />
             </ProtectedRoute>
           }
         />
