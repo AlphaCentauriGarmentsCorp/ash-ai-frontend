@@ -161,6 +161,11 @@ export const getMenuByRole = (userRole) => {
               access: ["admin"],
             },
             {
+              name: "Tshirt Sizes",
+              path: "/quotation/settings/tshirt-sizes",
+              access: ["admin"],
+            },
+            {
               name: "Print Types",
               path: "/quotation/settings/print-types",
               access: ["admin"],
