@@ -104,6 +104,10 @@ import PrintColorsPage from "./pages/QuotationSettings/PrintColors/PrintColorsPa
 import AddPrintColors from "./pages/QuotationSettings/PrintColors/AddPrintColors";
 import EditPrintColors from "./pages/QuotationSettings/PrintColors/EditPrintColors";
 
+import AddonsPage from "./pages/QuotationSettings/Addons/AddonsPage";
+import AddAddons from "./pages/QuotationSettings/Addons/AddAddons";
+import EditAddons from "./pages/QuotationSettings/Addons/EditAddons";
+
 function App() {
   const { loading } = useAuth();
 
@@ -847,6 +851,33 @@ function App() {
           element={
             <ProtectedRoute>
               <EditPrintColors />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/addons"
+          element={
+            <ProtectedRoute>
+              <AddonsPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/addons/new"
+          element={
+            <ProtectedRoute>
+              <AddAddons />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/quotation/settings/addons/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditAddons />
             </ProtectedRoute>
           }
         />
