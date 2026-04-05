@@ -177,6 +177,11 @@ export const getMenuByRole = (userRole) => {
               access: ["admin"],
             },
             {
+              name: "Print Colors",
+              path: "/quotation/settings/print-colors",
+              access: ["admin"],
+            },
+            {
               name: "Print Pattern",
               path: "/quotation/settings/print-patterns",
               access: ["admin"],
