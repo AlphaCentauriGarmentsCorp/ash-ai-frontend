@@ -4,6 +4,7 @@ import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Textarea from "../../../components/form/Textarea";
 import FormActions from "../../../components/form/FormActions";
 import Input from "../../../components/form/Input";
+import FileUpload from "../../../components/form/FileUpload";
 import { typesInitialState } from "../../../constants/formInitialState/typesInitialState";
 import { typesSchema } from "../../../validations/typesSchema";
 import { validateForm, hasErrors } from "../../../utils/validation";
@@ -47,7 +48,15 @@ const AddPatternType = () => {
     }
 
     try {
-      await patternTypeService.create(formData);
+      const formDataToSend = new FormData();
+      formDataToSend.append("name", formData.name);
+      formDataToSend.append("description", formData.description);
+      
+      formData.pattern_images.forEach((file, index) => {
+        formDataToSend.append(`pattern_images[${index}]`, file);
+      });
+
+      await patternTypeService.create(formDataToSend);
       setSubmitSuccess(true);
 
       setFormData(typesInitialState);
@@ -129,6 +138,17 @@ const AddPatternType = () => {
           resizable
           required
           placeholder="Enter pattern description"
+        />
+
+        <FileUpload
+          label="Pattern Images"
+          name="pattern_images"
+          value={formData.pattern_images}
+          onChange={handleChange}
+          acceptedTypes="image/*"
+          multiple={true}
+          error={errors.pattern_images}
+          required
         />
       </div>
 
