@@ -29,7 +29,10 @@ export const patternTypeApi = {
 
   update: async (id, payload) => {
     try {
-      const response = await api.put(`/pattern-type/${id}`, payload);
+      const headers = payload instanceof FormData 
+        ? { "Content-Type": "multipart/form-data" }
+        : {};
+      const response = await api.put(`/pattern-type/${id}`, payload, { headers });
       return response.data;
     } catch (error) {
       throw error;
