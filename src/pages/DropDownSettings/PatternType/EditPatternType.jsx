@@ -4,6 +4,7 @@ import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Textarea from "../../../components/form/Textarea";
 import FormActions from "../../../components/form/FormActions";
 import Input from "../../../components/form/Input";
+import FileUpload from "../../../components/form/FileUpload";
 import { typesInitialState } from "../../../constants/formInitialState/typesInitialState";
 import { typesSchema } from "../../../validations/typesSchema";
 import { validateForm, hasErrors } from "../../../utils/validation";
@@ -20,6 +21,7 @@ const EditPatternType = () => {
   const [formData, setFormData] = useState(typesInitialState);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [serverError, setServerError] = useState("");
+  const [existingImages, setExistingImages] = useState([]);
 
   useEffect(() => {
     fetchPatternType();
@@ -28,7 +30,13 @@ const EditPatternType = () => {
   const fetchPatternType = async () => {
     try {
       const response = await patternTypeApi.show(id);
-      setFormData(response.data);
+      const data = response.data;
+      setFormData({
+        name: data.name || "",
+        description: data.description || "",
+        pattern_images: [],
+      });
+      setExistingImages(data.pattern_images || []);
     } catch (error) {
       setServerError("Failed to load pattern type.");
     } finally {
@@ -55,7 +63,22 @@ const EditPatternType = () => {
     setSubmitSuccess(false);
     setServerError("");
 
-    const validationErrors = validateForm(formData, typesSchema);
+    // Custom validation for edit - pattern_images not required if existing images exist
+    const validationSchema = {
+      ...typesSchema,
+      pattern_images: {
+        ...typesSchema.pattern_images,
+        required: existingImages.length === 0,
+        custom: (value) => {
+          if (existingImages.length === 0 && (!value || value.length === 0)) {
+            return "At least one pattern image is required.";
+          }
+          return null;
+        },
+      },
+    };
+
+    const validationErrors = validateForm(formData, validationSchema);
 
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);
@@ -65,7 +88,17 @@ const EditPatternType = () => {
     }
 
     try {
-      await patternTypeApi.update(id, formData);
+      const formDataToSend = new FormData();
+      formDataToSend.append("name", formData.name);
+      formDataToSend.append("description", formData.description);
+      
+      if (formData.pattern_images.length > 0) {
+        formData.pattern_images.forEach((file, index) => {
+          formDataToSend.append(`pattern_images[${index}]`, file);
+        });
+      }
+
+      await patternTypeApi.update(id, formDataToSend);
       setSubmitSuccess(true);
 
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -159,6 +192,36 @@ const EditPatternType = () => {
           resizable
           required
           placeholder="Enter pattern type description"
+        />
+
+        {existingImages.length > 0 && (
+          <div className="px-6 mb-4">
+            <label className="text-primary text-sm font-semibold flex items-center mb-2">
+              Existing Pattern Images
+            </label>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {existingImages.map((image, index) => (
+                <div key={index} className="relative border border-gray-300 rounded p-2">
+                  <img
+                    src={image.url || image}
+                    alt={`Pattern ${index + 1}`}
+                    className="w-full h-32 object-cover rounded"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <FileUpload
+          label="Add New Pattern Images"
+          name="pattern_images"
+          value={formData.pattern_images}
+          onChange={handleChange}
+          acceptedTypes="image/*"
+          multiple={true}
+          error={errors.pattern_images}
+          required={existingImages.length === 0}
         />
       </div>
 
