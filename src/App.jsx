@@ -108,6 +108,10 @@ import AddonsPage from "./pages/QuotationSettings/Addons/AddonsPage";
 import AddAddons from "./pages/QuotationSettings/Addons/AddAddons";
 import EditAddons from "./pages/QuotationSettings/Addons/EditAddons";
 
+import AllQuotation from "./pages/Quotation/AllQuotation";
+import ViewQuotation from "./pages/Quotation/ViewQuotation";
+import EditQuotation from "./pages/Quotation/EditQuotation";
+
 function App() {
   const { loading } = useAuth();
 
@@ -654,8 +658,32 @@ function App() {
             </ProtectedRoute>
           }
         />
+         <Route
+          path="/quotations"
+          element={
+            <ProtectedRoute>
+              <AllQuotation />
+            </ProtectedRoute>
+          }
+        />
+         <Route
+          path="/quotations/view/:id"
+          element={
+            <ProtectedRoute>
+              <ViewQuotation />
+            </ProtectedRoute>
+          }
+        />
+         <Route
+          path="/quotations/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditQuotation />
+            </ProtectedRoute>
+          }
+        />
         <Route
-          path="/quotation"
+          path="/quotations/new"
           element={
             <ProtectedRoute>
               <Quotation />

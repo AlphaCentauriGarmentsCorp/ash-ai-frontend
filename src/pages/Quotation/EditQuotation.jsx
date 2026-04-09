@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import { quotationService } from "../../services/quotationService";
 import { quotationApi } from "../../api/quotationApi";
 
-const Quotation = () => {
+const EditQuotation = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false); // Add saving state
+  const [saving, setSaving] = useState(false);
   const [items, setItems] = useState([]);
   const [selectedAddons, setSelectedAddons] = useState([]);
   const [isCostBreakdownOpen, setIsCostBreakdownOpen] = useState(false);
@@ -30,52 +31,120 @@ const Quotation = () => {
     notes: "",
   });
 
-  // Fetch all data on mount
+  // Fetch all data and quotation on mount
   useEffect(() => {
     loadData();
-  }, []);
+  }, [id]);
 
   const loadData = async () => {
     setLoading(true);
     try {
-      const quotationData = await quotationService.fetchAll();
-      setData(quotationData);
-      setItems([]);
+      // Fetch both master data and quotation data
+      const [quotationData, masterData] = await Promise.all([
+        quotationApi.show(id),
+        quotationService.fetchAll(),
+      ]);
+      
+      setData(masterData);
+      
+      // Populate form with existing quotation data
+      const quotation = quotationData.data || quotationData;
+      setOrderInfo({
+        client_name: quotation.client_name || "",
+        client_email: quotation.client_email || "",
+        brand: quotation.client_brand || "",
+        shirt_color: quotation.shirt_color || "",
+        free_items: quotation.free_items || "",
+        notes: quotation.notes || "",
+      });
+      
+      // Set discount
+      setDiscount({
+        type: quotation.discount_type || "percentage",
+        value: quotation.discount_price || 0,
+      });
+      
+      // Parse and set items
+      let parsedItems = [];
+      let parsedAddons = [];
+      
+      if (quotation.items_json && typeof quotation.items_json === 'string') {
+        parsedItems = JSON.parse(quotation.items_json);
+      } else if (quotation.items) {
+        parsedItems = quotation.items;
+      }
+      
+      if (quotation.addons_json && typeof quotation.addons_json === 'string') {
+        parsedAddons = JSON.parse(quotation.addons_json);
+      } else if (quotation.addons) {
+        parsedAddons = quotation.addons;
+      }
+      
+      // Convert items to internal format
+      const internalItems = parsedItems.map((item, index) => ({
+        id: index + 1,
+        size_id: item.size_id,
+        quantity: item.quantity,
+        tshirt_type_id: item.tshirt_type_id,
+        print_type_id: item.print_type_id,
+        print_pattern_id: item.print_pattern_id,
+        neckline_id: item.neckline_id,
+      }));
+      
+      setItems(internalItems);
+      
+      // Extract configuration from first item if exists
+      if (internalItems.length > 0) {
+        const firstItem = internalItems[0];
+        setSelectedTshirtType(firstItem.tshirt_type_id);
+        setSelectedPrintType(firstItem.print_type_id);
+        setSelectedPrintPattern(firstItem.print_pattern_id);
+        setSelectedNeckline(firstItem.neckline_id);
+      }
+      
+      // Set selected addons
+      const addonIds = parsedAddons.map(addon => {
+        const found = masterData.addons?.find(a => a.name === addon.name);
+        return found?.id;
+      }).filter(id => id);
+      
+      setSelectedAddons(addonIds);
+      
+      // Try to determine color count from breakdown or first item
+      if (quotation.breakdown_json) {
+        let breakdown = quotation.breakdown_json;
+        if (typeof breakdown === 'string') {
+          breakdown = JSON.parse(breakdown);
+        }
+        if (breakdown.items && breakdown.items.length > 0) {
+          const printColorPrice = breakdown.items[0].print_color_price;
+          // Try to find matching color count
+          if (masterData.printColors && selectedPrintType) {
+            const matchingColor = masterData.printColors.find(
+              pc => pc.print_type_id === selectedPrintType && pc.price === printColorPrice
+            );
+            if (matchingColor) {
+              setColorCount(matchingColor.color_count);
+            }
+          }
+        }
+      }
+      
+      // If color count still not set, set default
+      if (!colorCount && selectedPrintType && masterData.printColors) {
+        const colors = quotationService.getColorOptions(masterData.printColors, selectedPrintType);
+        if (colors.length > 0) {
+          setColorCount(colors[0].color_count);
+        }
+      }
+      
     } catch (error) {
       console.error("Failed to load data:", error);
+      alert("Failed to load quotation data. Please try again.");
     } finally {
       setLoading(false);
     }
   };
-
-  // Initialize items when all required selections are made
-  useEffect(() => {
-    if (
-      data?.sizes &&
-      selectedTshirtType !== null &&
-      selectedPrintType !== null &&
-      selectedPrintPattern !== null &&
-      selectedNeckline !== null &&
-      colorCount !== null
-    ) {
-      if (items.length === 0) {
-        const initialItems = quotationService.initItems(data.sizes, {
-          tshirtTypeId: selectedTshirtType,
-          printTypeId: selectedPrintType,
-          printPatternId: selectedPrintPattern,
-          necklineId: selectedNeckline,
-        });
-        setItems(initialItems);
-      }
-    }
-  }, [
-    data,
-    selectedTshirtType,
-    selectedPrintType,
-    selectedPrintPattern,
-    selectedNeckline,
-    colorCount,
-  ]);
 
   // Calculate all totals when dependencies change
   const { itemDetails, addonDetails, totalAmount, totalAddons, totalQuantity } =
@@ -125,6 +194,7 @@ const Quotation = () => {
     if (items.length > 0) {
       applyToAll("print_type_id", value);
     }
+    // Reset color count to first available
     if (value !== null && data?.printColors) {
       const colors = quotationService.getColorOptions(data.printColors, value);
       if (colors.length > 0) {
@@ -192,28 +262,6 @@ const Quotation = () => {
     );
   };
 
-  // Reset form
-  const handleReset = () => {
-    if (window.confirm("Are you sure you want to reset all data?")) {
-      setItems([]);
-      setSelectedAddons([]);
-      setDiscount({ type: "percentage", value: 0 });
-      setSelectedTshirtType(null);
-      setSelectedPrintType(null);
-      setSelectedPrintPattern(null);
-      setSelectedNeckline(null);
-      setColorCount(null);
-      setOrderInfo({
-        client_name: "",
-        client_email: "",
-        brand: "",
-        shirt_color: "",
-        free_items: "",
-        notes: "",
-      });
-    }
-  };
-
   const formattedItems = items.map((item) => {
     const { pricePerPiece, total } = quotationService.calculateItem(
       data,
@@ -229,11 +277,13 @@ const Quotation = () => {
       print_type_id: item.print_type_id,
       print_pattern_id: item.print_pattern_id,
       neckline_id: item.neckline_id,
+      
       tshirt_type: data.tshirtTypes.find(t => t.id === item.tshirt_type_id)?.name || null,
       neckline: data.necklines.find(n => n.id === item.neckline_id)?.name || null,
       print_type: data.printTypes.find(p => p.id === item.print_type_id)?.name || null,
       print_pattern: data.printPatterns.find(p => p.id === item.print_pattern_id)?.name || null,
       size: data.sizes.find(s => s.id === item.size_id)?.name || null,
+      
       price_per_piece: pricePerPiece,
       total_amount: total,
     };
@@ -265,13 +315,7 @@ const Quotation = () => {
     };
   });
 
-  const handleSave = async () => {
-    // Validation
-    if (!formData.client_name.trim()) {
-      alert("Please enter client name");
-      return;
-    }
-    
+  const handleUpdate = async () => {
     if (
       selectedTshirtType === null ||
       selectedPrintType === null ||
@@ -282,13 +326,8 @@ const Quotation = () => {
       return;
     }
     
-    if (items.length === 0) {
-      alert("Please add at least one item to the quotation");
-      return;
-    }
-
     setSaving(true);
-
+    
     const quotationData = {
       client_name: formData.client_name,
       client_email: formData.client_email,
@@ -306,20 +345,19 @@ const Quotation = () => {
     };
 
     try {
-      const response = await quotationApi.create(quotationData);
-      
-        navigate("/quotations", { replace: true });
+    await quotationApi.update(id, quotationData);
+      navigate("/quotations");
     } catch (error) {
-      console.error("Error saving quotation:", error);
-      alert("An error occurred while saving the quotation. Please try again.");
+        console.error("Error saving quotation:", error);
+        alert("An error occurred while saving the quotation. Please try again.");
     } finally {
-      setSaving(false);
+        setSaving(false);
     }
   };
 
   if (loading) {
     return (
-      <AdminLayout pageTitle="Add Quotation">
+      <AdminLayout pageTitle="Edit Quotation">
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -347,7 +385,7 @@ const Quotation = () => {
 
   return (
     <AdminLayout
-      pageTitle="Add Quotation"
+      pageTitle="Edit Quotation"
       path="/quotations"
       links={[
         { label: "Home", href: "/" },
@@ -356,6 +394,10 @@ const Quotation = () => {
           href: "/quotations",
           icon: "fa-solid fa-file-invoice-dollar",
         },
+        {
+          label: `Edit #${id}`,
+          href: "#",
+        },
       ]}
     >
       <section className="flex flex-col gap-y-3 sm:gap-y-4 font-poppins p-3 sm:p-4 max-w-full mx-auto bg-light rounded-lg border border-gray-300">
@@ -363,11 +405,11 @@ const Quotation = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h1 className="text-lg sm:text-xl font-semibold text-primary flex items-center gap-2">
-              <i className="fas fa-file-invoice-dollar"></i>
-              Quotation
+              <i className="fas fa-edit"></i>
+              Edit Quotation #{id}
             </h1>
             <p className="text-xs text-gray-500 mt-0.5">
-              Create and manage quotations with editable pricing
+              Modify quotation details and pricing
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -586,8 +628,8 @@ const Quotation = () => {
         </div>
 
         {/* Quotation Items Table */}
-        {hasSelections && (
-          <>
+       
+       
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="px-4 py-3 bg-primary/5 flex justify-between items-center">
                 <h3 className="text-sm font-semibold text-primary">
@@ -595,7 +637,6 @@ const Quotation = () => {
                 </h3>
                 <button
                   onClick={addItem}
-                  type="button"
                   className="px-2 py-1 bg-primary text-white text-xs rounded-lg hover:bg-secondary"
                 >
                   <i className="fas fa-plus text-xs mr-1"></i>Add Size
@@ -664,7 +705,6 @@ const Quotation = () => {
                           </td>
                           <td className="px-2 py-1.5 text-center">
                             <button
-                              type="button"
                               onClick={() => removeItem(item.id)}
                               className="text-gray-400 hover:text-red-500"
                             >
@@ -677,10 +717,7 @@ const Quotation = () => {
                   </tbody>
                   <tfoot className="bg-primary/5 border-t border-gray-200">
                     <tr>
-                      <td
-                        colSpan="3"
-                        className="px-2 py-2 text-right font-semibold"
-                      >
+                      <td colSpan="3" className="px-2 py-2 text-right font-semibold">
                         Total:
                       </td>
                       <td className="px-2 py-2 text-right font-bold text-primary">
@@ -713,7 +750,6 @@ const Quotation = () => {
                           .map((addon) => (
                             <button
                               key={addon.id}
-                              type="button"
                               onClick={() => toggleAddon(addon.id)}
                               className={`w-full p-2 rounded-lg border transition-all text-left ${selectedAddons.includes(addon.id) ? "bg-primary text-white border-primary" : "bg-white text-gray-700 border-gray-200"}`}
                             >
@@ -742,7 +778,6 @@ const Quotation = () => {
             {/* Cost Breakdown */}
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <button
-                type="button"
                 onClick={() => setIsCostBreakdownOpen(!isCostBreakdownOpen)}
                 className="w-full px-4 py-3 bg-primary/5 flex justify-between items-center hover:bg-primary/10"
               >
@@ -775,12 +810,8 @@ const Quotation = () => {
                               <th className="px-3 py-2 text-right">Tshirt</th>
                               <th className="px-3 py-2 text-right">Size+</th>
                               <th className="px-3 py-2 text-right">Neckline</th>
-                              <th className="px-3 py-2 text-right">
-                                Print Type
-                              </th>
-                              <th className="px-3 py-2 text-right">
-                                Print Color
-                              </th>
+                              <th className="px-3 py-2 text-right">Print Type</th>
+                              <th className="px-3 py-2 text-right">Print Color</th>
                               <th className="px-3 py-2 text-right">Pattern</th>
                               <th className="px-3 py-2 text-right">Price/Pc</th>
                               <th className="px-3 py-2 text-right">Total</th>
@@ -1017,43 +1048,37 @@ const Quotation = () => {
                 placeholder="Additional notes or special instructions..."
               />
             </div>
-          </>
-        )}
+       
+    
 
-        {!hasSelections && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
             <i className="fas fa-info-circle text-yellow-600 mr-2"></i>
             <span className="text-sm text-yellow-700">
-              Please select all configuration options above to start creating your quotation.
+              Please select all configuration options above to edit the quotation.
             </span>
           </div>
-        )}
+      
 
         {/* Action Buttons */}
         <div className="flex justify-end gap-2 pt-2">
           <button
-            type="button"
-            onClick={handleReset}
-            disabled={saving}
-            className="px-3 py-1.5 rounded-md border border-gray-200 text-xs text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => navigate("/quotations")}
+            className="px-3 py-1.5 rounded-md border border-gray-200 text-xs text-gray-600 hover:bg-gray-50"
           >
-            <i className="fas fa-undo mr-1"></i>Reset
+            <i className="fas fa-times mr-1"></i>Cancel
           </button>
           <button
-            type="button"
-            onClick={handleSave}
-            disabled={saving || !hasSelections || items.length === 0}
-            className="px-3 py-1.5 rounded-md bg-primary text-white hover:bg-secondary text-xs disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+            onClick={handleUpdate}
+            disabled={saving }
+            className="px-3 py-1.5 rounded-md bg-primary text-white hover:bg-secondary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? (
               <>
-                <i className="fas fa-spinner fa-spin"></i>
-                Saving...
+                <i className="fas fa-spinner fa-spin mr-1"></i>Updating...
               </>
             ) : (
               <>
-                <i className="fas fa-save mr-1"></i>
-                Save Quotation
+                <i className="fas fa-save mr-1"></i>Update Quotation
               </>
             )}
           </button>
@@ -1063,4 +1088,4 @@ const Quotation = () => {
   );
 };
 
-export default Quotation;
+export default EditQuotation;
