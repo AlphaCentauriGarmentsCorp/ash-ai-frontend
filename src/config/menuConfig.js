@@ -35,15 +35,15 @@ export const getMenuByRole = (userRole) => {
           icon: "fa-solid fa-file-invoice",
           subItems: [
             {
-              name: "Add Quotation",
-              path: "/quotation",
+              name: "All Quotation",
+              path: "/quotations",
               access: ["admin", "general_manager"],
             },
-            // {
-            //   name: "All Quotation",
-            //   path: "/quotation",
-            //   access: ["admin", "general_manager"],
-            // },
+            {
+              name: "Add Quotation",
+              path: "/quotations/new",
+              access: ["admin", "general_manager"],
+            },
           ],
         },
         {

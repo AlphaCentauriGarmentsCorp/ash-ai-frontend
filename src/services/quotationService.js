@@ -82,8 +82,6 @@ class QuotationService {
         }),
       ]);
 
-      console.log("Print Patterns loaded:", printPatterns); // Debug log
-
       return {
         tshirtTypes,
         necklines,
@@ -121,7 +119,6 @@ class QuotationService {
   getPrintPatternPrice = (patterns, id) => {
     const pattern = patterns.find((p) => p.id === id);
     const price = pattern ? this.toNumber(pattern.base_price) : 0;
-    console.log(`Pattern ${id} price:`, price); // Debug log
     return price;
   };
 
@@ -222,9 +219,6 @@ class QuotationService {
       (sum, a) => sum + (isNaN(a.total) ? 0 : a.total),
       0,
     );
-
-    console.log("Totals:", { totalAmount, totalAddons, totalQuantity }); // Debug log
-
     return {
       itemDetails,
       addonDetails,
