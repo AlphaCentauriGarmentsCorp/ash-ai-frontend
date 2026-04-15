@@ -111,6 +111,7 @@ import EditAddons from "./pages/QuotationSettings/Addons/EditAddons";
 import AllQuotation from "./pages/Quotation/AllQuotation";
 import ViewQuotation from "./pages/Quotation/ViewQuotation";
 import EditQuotation from "./pages/Quotation/EditQuotation";
+import QuotationClient from "./pages/Quotation/QuotationClient";
 
 function App() {
   const { loading } = useAuth();
@@ -137,6 +138,10 @@ function App() {
               <Login />
             </PublicRoute>
           }
+        />
+        <Route
+          path="/quotation-client"
+          element={<QuotationClient />}
         />
         <Route
           path="/"
