@@ -1,32 +1,15 @@
 export const quotationClientInitialState = {
-  // Step 1: Front and Back
-  hasFrontDesign: false,
-  hasBackDesign: false,
-  frontDesignFile: null,
-  backDesignFile: null,
-  frontDesignNotes: "",
-  backDesignNotes: "",
+  // Step 1: Parts Selection
+  hasFrontPart: false,
+  hasBackPart: false,
 
-  // Step 2: Designs
-  designType: "", // "upload" or "template"
-  uploadedDesigns: [],
-  selectedTemplate: null,
-  designNotes: "",
+  // Step 2: Design Upload
+  frontDesignFile: null,
+  frontDesignUrl: "",
+  backDesignFile: null,
+  backDesignUrl: "",
 
   // Step 3: Colors
-  tshirtColor: "",
-  printColors: [],
-  colorCount: 1,
-  colorNotes: "",
-
-  // Client Information
-  clientName: "",
-  clientEmail: "",
-  clientPhone: "",
-  clientCompany: "",
-
-  // Additional Notes
-  additionalNotes: "",
-  urgency: "normal", // "normal", "urgent", "rush"
-  preferredDeliveryDate: "",
+  frontColorCount: 1,
+  backColorCount: 1,
 };
