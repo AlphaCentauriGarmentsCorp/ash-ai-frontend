@@ -11,21 +11,22 @@ const QuotationClient = () => {
   const [formData, setFormData] = useState(quotationClientInitialState);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
   const steps = [
     {
-      title: "Front & Back",
-      description: "Choose design locations",
+      title: "Parts",
+      description: "Select garment parts",
       component: Step1FrontBack,
     },
     {
-      title: "Designs",
-      description: "Upload or select designs",
+      title: "Design Upload",
+      description: "Upload designs",
       component: Step2Designs,
     },
     {
       title: "Colors",
-      description: "Select colors",
+      description: "Specify colors",
       component: Step3Colors,
     },
     {
@@ -55,53 +56,35 @@ const QuotationClient = () => {
 
     switch (step) {
       case 1:
-        if (!formData.hasFrontDesign && !formData.hasBackDesign) {
-          newErrors.general = "Please select at least one design location";
+        if (!formData.hasFrontPart && !formData.hasBackPart) {
+          newErrors.general = "Please select at least one part";
         }
         break;
 
       case 2:
-        if (!formData.designType) {
-          newErrors.designType = "Please select a design method";
+        if (formData.hasFrontPart) {
+          if (!formData.frontDesignFile && !formData.frontDesignUrl) {
+            newErrors.frontDesign = "Please upload a front design file or provide a URL";
+          }
         }
-        if (
-          formData.designType === "upload" &&
-          (!formData.uploadedDesigns || formData.uploadedDesigns.length === 0)
-        ) {
-          newErrors.uploadedDesigns = "Please upload at least one design file";
-        }
-        if (
-          formData.designType === "template" &&
-          !formData.selectedTemplate
-        ) {
-          newErrors.selectedTemplate = "Please select a template";
+        if (formData.hasBackPart) {
+          if (!formData.backDesignFile && !formData.backDesignUrl) {
+            newErrors.backDesign = "Please upload a back design file or provide a URL";
+          }
         }
         break;
 
       case 3:
-        if (!formData.tshirtColor) {
-          newErrors.tshirtColor = "Please select a t-shirt color";
+        if (formData.hasFrontPart && !formData.frontColorCount) {
+          newErrors.frontColorCount = "Please specify the number of colors";
         }
-        if (!formData.colorCount) {
-          newErrors.colorCount = "Please select the number of print colors";
+        if (formData.hasBackPart && !formData.backColorCount) {
+          newErrors.backColorCount = "Please specify the number of colors";
         }
         break;
 
       case 4:
-        if (!formData.clientName || formData.clientName.trim() === "") {
-          newErrors.clientName = "Name is required";
-        }
-        if (!formData.clientEmail || formData.clientEmail.trim() === "") {
-          newErrors.clientEmail = "Email is required";
-        } else if (!/\S+@\S+\.\S+/.test(formData.clientEmail)) {
-          newErrors.clientEmail = "Please enter a valid email";
-        }
-        if (!formData.clientPhone || formData.clientPhone.trim() === "") {
-          newErrors.clientPhone = "Phone number is required";
-        }
-        if (!formData.urgency) {
-          newErrors.urgency = "Please select urgency level";
-        }
+        // No validation needed for Step 4 (summary only)
         break;
 
       default:
@@ -135,23 +118,48 @@ const QuotationClient = () => {
       // Simulate API call
       await new Promise((resolve) => setTimeout(resolve, 2000));
 
-      console.log("Quotation submitted:", formData);
+      console.log("Form submitted:", formData);
 
-      // Show success message
-      alert(
-        "Thank you! Your quotation request has been submitted successfully. We'll contact you within 24 hours."
-      );
-
-      // Reset form
-      setFormData(quotationClientInitialState);
-      setCurrentStep(1);
+      // Show success state
+      setIsSubmitted(true);
     } catch (error) {
-      console.error("Error submitting quotation:", error);
+      console.error("Error submitting form:", error);
       alert("An error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  const handleNewRequest = () => {
+    setFormData(quotationClientInitialState);
+    setCurrentStep(1);
+    setIsSubmitted(false);
+    setErrors({});
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Success Screen
+  if (isSubmitted) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+        <div className="max-w-2xl w-full">
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 md:p-12 text-center">
+            <div className="mb-6">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <i className="fas fa-check text-4xl text-green-600"></i>
+              </div>
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                Thanks for submitting!
+              </h1>
+              <p className="text-gray-600">
+                We've received your request and will get back to you shortly.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const CurrentStepComponent = steps[currentStep - 1].component;
 
@@ -164,20 +172,11 @@ const QuotationClient = () => {
             <div>
               <h1 className="text-3xl font-bold text-primary flex items-center gap-3">
                 <i className="fas fa-file-invoice"></i>
-                Request a Quotation
+                Request a Quote
               </h1>
               <p className="text-gray-600 mt-1">
-                Get a custom quote for your t-shirt printing needs
+                Get a custom quote for your garment printing needs
               </p>
-            </div>
-            <div className="hidden md:block">
-              <div className="bg-primary/10 text-primary px-4 py-2 rounded-lg">
-                <p className="text-xs font-medium">Need Help?</p>
-                <p className="text-sm font-semibold">
-                  <i className="fas fa-phone mr-1"></i>
-                  1-800-TSHIRT
-                </p>
-              </div>
             </div>
           </div>
         </div>
@@ -201,6 +200,24 @@ const QuotationClient = () => {
                 <p className="text-sm font-medium text-red-800">
                   {errors.general}
                 </p>
+              </div>
+            </div>
+          )}
+
+          {(errors.frontDesign || errors.backDesign) && (
+            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+              <i className="fas fa-exclamation-circle text-red-600 mt-1"></i>
+              <div>
+                {errors.frontDesign && (
+                  <p className="text-sm font-medium text-red-800">
+                    {errors.frontDesign}
+                  </p>
+                )}
+                {errors.backDesign && (
+                  <p className="text-sm font-medium text-red-800">
+                    {errors.backDesign}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -261,36 +278,11 @@ const QuotationClient = () => {
                   ) : (
                     <>
                       <i className="fas fa-paper-plane mr-2"></i>
-                      Submit Quotation
+                      Submit
                     </>
                   )}
                 </button>
               )}
-            </div>
-          </div>
-        </div>
-
-        {/* Help Section */}
-        <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <div className="flex items-start gap-3">
-            <i className="fas fa-question-circle text-blue-600 text-xl mt-1"></i>
-            <div>
-              <p className="text-sm font-semibold text-blue-900 mb-1">
-                Questions about the quotation process?
-              </p>
-              <p className="text-xs text-blue-700">
-                Our team is here to help! Contact us at{" "}
-                <a
-                  href="mailto:quotes@example.com"
-                  className="underline font-medium"
-                >
-                  quotes@example.com
-                </a>{" "}
-                or call{" "}
-                <a href="tel:1-800-874478" className="underline font-medium">
-                  1-800-TSHIRT
-                </a>
-              </p>
             </div>
           </div>
         </div>
@@ -300,7 +292,7 @@ const QuotationClient = () => {
       <div className="bg-gray-50 border-t border-gray-200 mt-12">
         <div className="max-w-6xl mx-auto px-4 py-6 text-center">
           <p className="text-sm text-gray-600">
-            © 2024 T-Shirt Printing Co. All rights reserved.
+            Sorbetes
           </p>
         </div>
       </div>
