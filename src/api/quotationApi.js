@@ -2,8 +2,11 @@ import api from "./axios";
 
 export const quotationApi = {
   create: async (payload) => {
-    console.log(payload);
-    const { data } = await api.post("/quotations", payload);
+    const config =
+      payload instanceof FormData
+        ? { headers: { "Content-Type": "multipart/form-data" } }
+        : undefined;
+    const { data } = await api.post("/quotations", payload, config);
     return data;
   },
 
@@ -38,10 +41,18 @@ showPDF: async (id) => {
 
   update: async (id, payload) => {
     try {
-      const response = await api.put(
-        `/quotations/${id}`,
-        payload,
-      );
+      if (payload instanceof FormData) {
+        if (!payload.has("_method")) {
+          payload.append("_method", "PUT");
+        }
+
+        const response = await api.post(`/quotations/${id}`, payload, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        return response.data;
+      }
+
+      const response = await api.put(`/quotations/${id}`, payload);
       return response.data;
     } catch (error) {
       throw error;

@@ -1,10 +1,10 @@
 import { patternTypeApi } from "../api/patternTypeApi";
-import { typesSchema } from "../validations/typesSchema";
+import { patternTypeSchema } from "../validations/patternTypeSchema";
 import { validateForm, hasErrors } from "../utils/validation";
 
 export const patternTypeService = {
   create: async (formData) => {
-    const errors = validateForm(formData, typesSchema);
+    const errors = validateForm(formData, patternTypeSchema);
 
     if (hasErrors(errors)) {
       throw { type: "validation", errors };

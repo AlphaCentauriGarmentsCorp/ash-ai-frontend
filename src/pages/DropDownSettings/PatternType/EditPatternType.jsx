@@ -5,8 +5,8 @@ import Textarea from "../../../components/form/Textarea";
 import FormActions from "../../../components/form/FormActions";
 import Input from "../../../components/form/Input";
 import FileUpload from "../../../components/form/FileUpload";
-import { typesInitialState } from "../../../constants/formInitialState/typesInitialState";
-import { typesSchema } from "../../../validations/typesSchema";
+import { patternTypeInitialState } from "../../../constants/formInitialState/patternTypeInitialState";
+import { patternTypeSchema } from "../../../validations/patternTypeSchema";
 import { validateForm, hasErrors } from "../../../utils/validation";
 import { patternTypeApi } from "../../../api/patternTypeApi";
 import AlertMessage from "../../../components/common/AlertMessage";
@@ -18,7 +18,7 @@ const EditPatternType = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState({});
-  const [formData, setFormData] = useState(typesInitialState);
+  const [formData, setFormData] = useState(patternTypeInitialState);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [serverError, setServerError] = useState("");
   const [existingImages, setExistingImages] = useState([]);
@@ -65,9 +65,9 @@ const EditPatternType = () => {
 
     // Custom validation for edit - pattern_images not required if existing images exist
     const validationSchema = {
-      ...typesSchema,
+      ...patternTypeSchema,
       pattern_images: {
-        ...typesSchema.pattern_images,
+        ...patternTypeSchema.pattern_images,
         required: existingImages.length === 0,
         custom: (value) => {
           if (existingImages.length === 0 && (!value || value.length === 0)) {

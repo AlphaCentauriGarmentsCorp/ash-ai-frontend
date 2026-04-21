@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
-import { printTypesApi } from "../../../api/printTypesApi";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
-import { useNavigate } from "react-router-dom";
+import { apparelPatternPricesApi } from "../../../api/apparelPatternPricesApi";
 
-const PrintTypesPage = () => {
+const ApparelPatternPricesPage = () => {
   const navigate = useNavigate();
+
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
@@ -16,22 +17,34 @@ const PrintTypesPage = () => {
 
   const columns = [
     {
-      key: "name",
-      label: "Name",
-      sortable: true,
-    },
-    {
-      key: "base_price",
-      label: "Base Price",
+      key: "apparel_type_id",
+      label: "Apparel Type",
       sortable: true,
       render: (item) => {
-        return <span>₱{item.base_price}</span>;
+        return (
+          <span>
+            {item.apparelType?.name || item.apparel_type?.name || item.apparel_type_name || item.apparel_type_id}
+          </span>
+        );
       },
     },
     {
-      key: "description",
-      label: "Description",
-      sortable: false,
+      key: "pattern_type_id",
+      label: "Pattern Type",
+      sortable: true,
+      render: (item) => {
+        return (
+          <span>
+            {item.patternType?.name || item.pattern_type?.name || item.pattern_type_name || item.pattern_type_id}
+          </span>
+        );
+      },
+    },
+    {
+      key: "price",
+      label: "Price",
+      sortable: true,
+      render: (item) => <span>₱{item.price}</span>,
     },
   ];
 
@@ -39,9 +52,15 @@ const PrintTypesPage = () => {
     async (perPage = pageSize) => {
       setIsLoading(true);
       try {
-        const response = await printTypesApi.index();
-        const responseData = response.data || response;
+        let response;
 
+        if (perPage === "all") {
+          response = await apparelPatternPricesApi.index();
+        } else {
+          response = await apparelPatternPricesApi.index({ per_page: perPage });
+        }
+
+        const responseData = response.data || response;
         setData(responseData);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -71,11 +90,11 @@ const PrintTypesPage = () => {
 
     setIsDeleting(true);
     try {
-      await printTypesApi.delete(selectedItem.id);
+      await apparelPatternPricesApi.delete(selectedItem.id);
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete print types. Please try again.");
+      alert("Failed to delete apparel pattern price. Please try again.");
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -90,7 +109,7 @@ const PrintTypesPage = () => {
   const handleAction = (action, rowData) => {
     switch (action) {
       case "edit":
-        navigate(`/quotation/settings/print-types/edit/${rowData.id}`);
+        navigate(`/quotation/settings/apparel-pattern-prices/edit/${rowData.id}`);
         break;
       case "delete":
         handleDeleteClick(rowData);
@@ -105,20 +124,34 @@ const PrintTypesPage = () => {
     filters: false,
     actions: ["edit", "delete"],
     pageSize: 10,
-    emptyMessage: "No print types found",
-    searchPlaceholder: "Search print types...",
+    emptyMessage: "No apparel pattern prices found",
+    searchPlaceholder: "Search apparel pattern prices...",
     showIndex: true,
   };
+
+  const selectedItemName = selectedItem
+    ? `${
+        selectedItem.apparelType?.name ||
+        selectedItem.apparel_type?.name ||
+        selectedItem.apparel_type_name ||
+        selectedItem.apparel_type_id
+      } / ${
+        selectedItem.patternType?.name ||
+        selectedItem.pattern_type?.name ||
+        selectedItem.pattern_type_name ||
+        selectedItem.pattern_type_id
+      }`
+    : "";
 
   return (
     <AdminLayout
       icon="fa-cog"
-      pageTitle="Print Types"
-      path="/admin/settings/print-types"
+      pageTitle="Apparel Pattern Prices"
+      path="/quotation/settings/apparel-pattern-prices"
       links={[
         { label: "Home", href: "/" },
-        { label: "Drop Down Settings", href: "#" },
-        { label: "Print Types", href: "#" },
+        { label: "Quotation Settings", href: "#" },
+        { label: "Apparel Pattern Prices", href: "#" },
       ]}
     >
       <Table
@@ -127,20 +160,20 @@ const PrintTypesPage = () => {
         config={tableConfig}
         onAction={handleAction}
         isLoading={isLoading}
-        url="/quotation/settings/print-types/new"
-        button="Add Print Types"
-        PageTitle="Print Types"
+        url="/quotation/settings/apparel-pattern-prices/new"
+        button="Add Apparel Pattern Price"
+        PageTitle="Apparel Pattern Prices"
       />
 
       <DeleteConfirmationDialog
         isOpen={isDeleteDialogOpen}
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
-        itemName={selectedItem?.name}
+        itemName={selectedItemName}
         isLoading={isDeleting}
       />
     </AdminLayout>
   );
 };
 
-export default PrintTypesPage;
+export default ApparelPatternPricesPage;

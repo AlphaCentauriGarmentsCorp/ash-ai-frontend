@@ -1,18 +1,19 @@
 import api from "./axios";
 
-export const tshirtSizesApi = {
+export const apparelPatternPricesApi = {
   create: async (payload) => {
-    console.log(payload);
     const { data } = await api.post(
-      "/quotation/settings/tshirt-sizes",
+      "/quotation/settings/apparel-pattern-prices",
       payload,
     );
     return data;
   },
 
-  index: async () => {
+  index: async (params = {}) => {
     try {
-      const response = await api.get("/quotation/settings/tshirt-sizes");
+      const response = await api.get("/quotation/settings/apparel-pattern-prices", {
+        params,
+      });
       return response.data;
     } catch (error) {
       throw error;
@@ -21,7 +22,7 @@ export const tshirtSizesApi = {
 
   show: async (id) => {
     try {
-      const response = await api.get(`/quotation/settings/tshirt-sizes/${id}`);
+      const response = await api.get(`/quotation/settings/apparel-pattern-prices/${id}`);
       return response.data;
     } catch (error) {
       throw error;
@@ -31,7 +32,7 @@ export const tshirtSizesApi = {
   update: async (id, payload) => {
     try {
       const response = await api.put(
-        `/quotation/settings/tshirt-sizes/${id}`,
+        `/quotation/settings/apparel-pattern-prices/${id}`,
         payload,
       );
       return response.data;
@@ -42,9 +43,7 @@ export const tshirtSizesApi = {
 
   delete: async (id) => {
     try {
-      const response = await api.delete(
-        `/quotation/settings/tshirt-sizes/${id}`,
-      );
+      const response = await api.delete(`/quotation/settings/apparel-pattern-prices/${id}`);
       return response.data;
     } catch (error) {
       throw error;

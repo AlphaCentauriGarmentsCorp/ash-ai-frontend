@@ -1,4 +1,32 @@
-import React, { useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+
+const ImagePreview = ({ file }) => {
+  const [previewUrl, setPreviewUrl] = useState("");
+
+  useEffect(() => {
+    if (!file || !file.type?.startsWith("image/")) {
+      setPreviewUrl("");
+      return undefined;
+    }
+
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  if (!previewUrl) {
+    return <i className="fa-regular fa-image text-gray-400"></i>;
+  }
+
+  return (
+    <img
+      src={previewUrl}
+      alt={file?.name || "Preview"}
+      className="h-full w-full object-cover"
+    />
+  );
+};
 
 const FileUpload = ({
   label = "Additional Files",
@@ -13,6 +41,8 @@ const FileUpload = ({
   required = false,
   className = "",
   onFileRemove,
+  hideUploadWhenHasFiles = false,
+  hidePreviewWhenEmpty = false,
   ...props
 }) => {
   const fileInputRef = useRef(null);
@@ -128,61 +158,71 @@ const FileUpload = ({
       />
 
       {}
-      <div
-        className="mt-3 flex justify-center items-center w-full bg-white border border-gray-300 py-7 text-gray cursor-pointer hover:bg-gray-50 transition-colors"
-        onClick={handleUploadAreaClick}
-      >
-        <div className="text-center gap-y-3">
-          <i className="fa-solid fa-cloud-arrow-up text-3xl text-gray-300 mb-3"></i>
-          <p className="text-gray-400 text-sm">Upload Additional Files</p>
-          <p className="text-gray-300 text-xs mt-1">
-            {acceptedTypes
-              .split(",")
-              .map((t) => t.trim())
-              .join(", ")}{" "}
-          </p>
+      {(!hideUploadWhenHasFiles || value.length === 0) && (
+        <div
+          className="mt-3 flex justify-center items-center w-full bg-white border border-gray-300 py-7 text-gray cursor-pointer hover:bg-gray-50 transition-colors"
+          onClick={handleUploadAreaClick}
+        >
+          <div className="text-center gap-y-3">
+            <i className="fa-solid fa-cloud-arrow-up text-3xl text-gray-300 mb-3"></i>
+            <p className="text-gray-400 text-sm">Upload Additional Files</p>
+            <p className="text-gray-300 text-xs mt-1">
+              {acceptedTypes
+                .split(",")
+                .map((t) => t.trim())
+                .join(", ")} {" "}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {}
-      <div className="mt-3 w-full bg-white border border-gray-300 p-3 text-gray min-h-25">
-        <span className="text-xs">Uploaded files</span>
+      {(!hidePreviewWhenEmpty || value.length > 0) && (
+        <div className="mt-3 w-full bg-white border border-gray-300 p-3 text-gray min-h-25">
+          <span className="text-xs">Uploaded files</span>
 
-        {value.length > 0 ? (
-          <div className="mt-2 space-y-2">
-            {value.map((file, index) => (
-              <div
-                key={`${file.name}-${index}`}
-                className="flex items-center justify-between p-2 border border-gray-200 rounded hover:bg-gray-50"
-              >
-                <div className="flex items-center space-x-3">
-                  <div className="text-gray-400">{getFileIcon(file)}</div>
-                  <div>
-                    <p className="text-sm font-medium text-gray-800 truncate max-w-xs">
-                      {file.name}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {formatFileSize(file.size)}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="text-red-500 hover:text-red-700"
-                  onClick={(e) => handleRemoveFile(index, e)}
-                  title="Remove file"
+          {value.length > 0 ? (
+            <div className="mt-2 space-y-2">
+              {value.map((file, index) => (
+                <div
+                  key={`${file.name}-${index}`}
+                  className="flex items-center justify-between p-2 border border-gray-200 rounded hover:bg-gray-50"
                 >
-                  <i className="fa-solid fa-times"></i>
-                </button>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center gap-y-3 flex justify-center items-center h-20">
-            <p className="font-light text-xs">Preview will show here</p>
-          </div>
-        )}
-      </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="h-12 w-12 flex items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-gray-50 text-gray-400 shrink-0">
+                      {file.type?.startsWith("image/") ? (
+                        <ImagePreview file={file} />
+                      ) : (
+                        getFileIcon(file)
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-800 truncate max-w-xs">
+                        {file.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formatFileSize(file.size)}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-red-500 hover:text-red-700"
+                    onClick={(e) => handleRemoveFile(index, e)}
+                    title="Remove file"
+                  >
+                    <i className="fa-solid fa-times"></i>
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center gap-y-3 flex justify-center items-center h-20">
+              <p className="font-light text-xs">Preview will show here</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {error && (
         <p className="mt-1 text-xs text-red-500 flex items-center">

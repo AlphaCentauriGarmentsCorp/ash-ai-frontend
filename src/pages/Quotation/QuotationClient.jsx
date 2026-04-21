@@ -1,24 +1,98 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { quotationClientInitialState } from "../../constants/formInitialState/quotationClientInitialState";
 import WizardProgress from "../../components/quotationClient/WizardProgress";
-import Step1FrontBack from "../../components/quotationClient/Step1FrontBack";
 import Step2Designs from "../../components/quotationClient/Step2Designs";
 import Step3Colors from "../../components/quotationClient/Step3Colors";
 import Step4Overview from "../../components/quotationClient/Step4Overview";
+import { publicQuotationApi } from "../../api/publicQuotationApi";
+
+const toStorageUrl = (path) => {
+  const rawPath = String(path || "").trim();
+  if (!rawPath) return "";
+
+  if (rawPath.startsWith("http") || rawPath.startsWith("data:")) {
+    return rawPath;
+  }
+
+  const apiUrl = import.meta.env.VITE_API_URL || "";
+  let origin = "";
+  try {
+    origin = new URL(apiUrl).origin;
+  } catch {
+    origin = "";
+  }
+
+  if (rawPath.startsWith("/storage/")) {
+    return origin ? `${origin}${rawPath}` : rawPath;
+  }
+
+  if (rawPath.startsWith("storage/")) {
+    return origin ? `${origin}/${rawPath}` : `/${rawPath}`;
+  }
+
+  const cleanedPath = rawPath.replace(/^\/+/, "");
+  return origin ? `${origin}/storage/${cleanedPath}` : `/storage/${cleanedPath}`;
+};
+
+const parseJsonField = (value, fallback) => {
+  if (value === null || value === undefined || value === "") return fallback;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return value;
+};
+
+const normalizeImageLinkForCompare = (value) => {
+  const rawValue = String(value || "").trim();
+  if (!rawValue) return "";
+
+  let path = rawValue;
+  try {
+    const parsed = new URL(rawValue, window.location.origin);
+    path = `${parsed.pathname}${parsed.search || ""}`;
+  } catch {
+    path = rawValue;
+  }
+
+  const withoutQuery = path.split("?")[0];
+  const cleaned = withoutQuery.replace(/^\/+/, "");
+  return cleaned.startsWith("storage/") ? cleaned.slice("storage/".length) : cleaned;
+};
+
+const normalizeComparableParts = (parts) => {
+  if (!Array.isArray(parts)) return [];
+
+  return parts.map((part) => ({
+    part_id:
+      part?.part_id === null || part?.part_id === undefined || part?.part_id === ""
+        ? null
+        : Number(part.part_id),
+    part: String(part?.part || "").trim(),
+    color_count: Math.max(1, parseInt(part?.color_count, 10) || 1),
+    price_per_color: Number(part?.price_per_color) || 0,
+    image_input_type: String(part?.image_input_type || "").trim().toLowerCase(),
+    image_link: normalizeImageLinkForCompare(part?.image_link),
+    has_new_file: Boolean(part?._has_new_file),
+  }));
+};
 
 const QuotationClient = () => {
+  const { token } = useParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState(quotationClientInitialState);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isLoadingTokenData, setIsLoadingTokenData] = useState(false);
+  const [tokenLoadError, setTokenLoadError] = useState("");
+  const [publicQuotationData, setPublicQuotationData] = useState(null);
 
   const steps = [
-    {
-      title: "Parts",
-      description: "Select garment parts",
-      component: Step1FrontBack,
-    },
     {
       title: "Design Upload",
       description: "Upload designs",
@@ -35,6 +109,61 @@ const QuotationClient = () => {
       component: Step4Overview,
     },
   ];
+
+  useEffect(() => {
+    const loadPublicQuotation = async () => {
+      if (!token) return;
+
+      setIsLoadingTokenData(true);
+      setTokenLoadError("");
+
+      try {
+        const response = await publicQuotationApi.show(token);
+        const quotationData = response?.data || response || {};
+        setPublicQuotationData(quotationData);
+
+        const parts = Array.isArray(quotationData.print_parts)
+          ? quotationData.print_parts
+          : parseJsonField(quotationData.print_parts_json, []);
+
+        const normalizedParts = (Array.isArray(parts) ? parts : []).map((part, index) => {
+          const rawImagePath = String(
+            part.image_link || part.image_url || part.image_path || part.image || "",
+          ).trim();
+          const imageInputType = String(
+            part.image_input_type || (part.image_link ? "link" : "file"),
+          ).toLowerCase() === "link"
+            ? "link"
+            : "file";
+
+          return {
+            key: String(part.part_id ?? part.id ?? index),
+            part_id: part.part_id ?? part.id ?? null,
+            part: String(part.part || part.name || `Part ${index + 1}`).trim(),
+            color_count: Math.max(1, parseInt(part.color_count, 10) || 1),
+            price_per_color: Number(part.price_per_color) || 0,
+            image_input_type: imageInputType,
+            image_link: imageInputType === "link" ? toStorageUrl(rawImagePath) : "",
+            image_file: null,
+            existing_image_url: toStorageUrl(rawImagePath),
+            existing_image_raw_path: rawImagePath,
+          };
+        });
+
+        setFormData({ parts: normalizedParts });
+      } catch (error) {
+        console.error("Failed to load public quotation:", error);
+        setTokenLoadError(
+          error?.response?.data?.message ||
+          "Unable to load shared quotation link. Please check if your token is valid.",
+        );
+      } finally {
+        setIsLoadingTokenData(false);
+      }
+    };
+
+    loadPublicQuotation();
+  }, [token]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -53,37 +182,36 @@ const QuotationClient = () => {
 
   const validateStep = (step) => {
     const newErrors = {};
+    const parts = Array.isArray(formData.parts) ? formData.parts : [];
 
     switch (step) {
       case 1:
-        if (!formData.hasFrontPart && !formData.hasBackPart) {
-          newErrors.general = "Please select at least one part";
+        if (parts.length === 0) {
+          newErrors.general = "No parts available in this shared quotation.";
+          break;
         }
+
+        parts.forEach((part) => {
+          const hasDesign =
+            !!part.image_file
+            || !!String(part.image_link || "").trim()
+            || !!String(part.existing_image_url || "").trim();
+
+          if (!hasDesign) {
+            newErrors[`design_${part.key}`] = `Please upload a design file or provide a URL for ${part.part}.`;
+          }
+        });
         break;
 
       case 2:
-        if (formData.hasFrontPart) {
-          if (!formData.frontDesignFile && !formData.frontDesignUrl) {
-            newErrors.frontDesign = "Please upload a front design file or provide a URL";
+        parts.forEach((part) => {
+          if (!(Number(part.color_count) > 0)) {
+            newErrors[`color_${part.key}`] = `Please specify color count for ${part.part}.`;
           }
-        }
-        if (formData.hasBackPart) {
-          if (!formData.backDesignFile && !formData.backDesignUrl) {
-            newErrors.backDesign = "Please upload a back design file or provide a URL";
-          }
-        }
+        });
         break;
 
       case 3:
-        if (formData.hasFrontPart && !formData.frontColorCount) {
-          newErrors.frontColorCount = "Please specify the number of colors";
-        }
-        if (formData.hasBackPart && !formData.backColorCount) {
-          newErrors.backColorCount = "Please specify the number of colors";
-        }
-        break;
-
-      case 4:
         // No validation needed for Step 4 (summary only)
         break;
 
@@ -112,30 +240,138 @@ const QuotationClient = () => {
       return;
     }
 
+    if (!token) {
+      alert("Invalid shared link. Please open the quotation using the tokenized share URL.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const parts = Array.isArray(formData.parts) ? formData.parts : [];
 
-      console.log("Form submitted:", formData);
+      const printPartsPayload = parts.map((part) => {
+        const hasNewFile = part.image_file instanceof File;
+        const imageInputType = hasNewFile
+          ? "file"
+          : (part.image_input_type === "file" && !String(part.image_link || "").trim())
+            ? "file"
+            : "link";
+
+        const imageLink = hasNewFile
+          ? ""
+          : String(
+            part.image_link
+            || (imageInputType === "file" ? part.existing_image_raw_path : "")
+            || "",
+          ).trim();
+
+        return {
+          part_id: part.part_id,
+          part: part.part,
+          color_count: Math.max(1, parseInt(part.color_count, 10) || 1),
+          price_per_color: Number(part.price_per_color) || 0,
+          image_input_type: imageInputType,
+          image_link: imageLink,
+        };
+      });
+
+      const expectedPartsForCompare = printPartsPayload.map((part, index) => ({
+        ...part,
+        _has_new_file: parts[index]?.image_file instanceof File,
+      }));
+
+      const payload = new FormData();
+      payload.append("print_parts_json", JSON.stringify(printPartsPayload));
+
+      parts.forEach((part, index) => {
+        if (part.image_file instanceof File) {
+          payload.append(`print_parts_files[${index}]`, part.image_file);
+        }
+      });
+
+      await publicQuotationApi.update(token, payload);
+
+      const verifyResponse = await publicQuotationApi.show(token);
+      const verifyQuotation = verifyResponse?.data || verifyResponse || {};
+      const latestParts = Array.isArray(verifyQuotation.print_parts)
+        ? verifyQuotation.print_parts
+        : parseJsonField(verifyQuotation.print_parts_json, []);
+
+      const expected = normalizeComparableParts(expectedPartsForCompare)
+        .sort((a, b) => `${a.part_id}-${a.part}`.localeCompare(`${b.part_id}-${b.part}`));
+      const actual = normalizeComparableParts(latestParts)
+        .sort((a, b) => `${a.part_id}-${a.part}`.localeCompare(`${b.part_id}-${b.part}`));
+
+      const mismatchDetails = [];
+      const persisted =
+        expected.length === actual.length
+        && expected.every((expectedPart, index) => {
+          const actualPart = actual[index];
+          if (!actualPart) {
+            mismatchDetails.push({ index, reason: "missing_actual_part", expectedPart });
+            return false;
+          }
+
+          const baseMatches =
+            expectedPart.part_id === actualPart.part_id
+            && expectedPart.part === actualPart.part
+            && expectedPart.color_count === actualPart.color_count
+            && expectedPart.price_per_color === actualPart.price_per_color
+            && expectedPart.image_input_type === actualPart.image_input_type;
+
+          let imageMatches = false;
+          if (expectedPart.image_input_type === "file") {
+            // If user uploaded a new file, backend may keep existing path or process asynchronously.
+            // Do not fail persistence verification on image_link shape for this case.
+            imageMatches = expectedPart.has_new_file
+              ? true
+              : expectedPart.image_link === actualPart.image_link;
+          } else {
+            imageMatches = expectedPart.image_link === actualPart.image_link;
+          }
+
+          if (!baseMatches || !imageMatches) {
+            mismatchDetails.push({
+              index,
+              expectedPart,
+              actualPart,
+              baseMatches,
+              imageMatches,
+            });
+            return false;
+          }
+
+          return true;
+        });
+
+      if (!persisted) {
+        console.warn("[QuotationClient] update did not persist as expected", {
+          expected,
+          actual,
+          mismatchDetails,
+        });
+      }
 
       // Show success state
       setIsSubmitted(true);
     } catch (error) {
       console.error("Error submitting form:", error);
-      alert("An error occurred. Please try again.");
+      const responseData = error?.response?.data || {};
+      const fieldErrors = responseData?.errors || {};
+      const flattenedErrors = Object.values(fieldErrors)
+        .flat()
+        .filter(Boolean);
+
+      const message =
+        flattenedErrors[0]
+        || responseData?.message
+        || "An error occurred. Please try again.";
+
+      alert(message);
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleNewRequest = () => {
-    setFormData(quotationClientInitialState);
-    setCurrentStep(1);
-    setIsSubmitted(false);
-    setErrors({});
-    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Success Screen
@@ -156,6 +392,29 @@ const QuotationClient = () => {
               </p>
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoadingTokenData) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+        <div className="max-w-xl w-full bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
+          <i className="fas fa-spinner fa-spin text-3xl text-primary"></i>
+          <p className="text-gray-600 mt-4">Loading shared quotation...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (tokenLoadError) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+        <div className="max-w-xl w-full bg-white rounded-xl shadow-lg border border-red-200 p-8 text-center">
+          <i className="fas fa-exclamation-triangle text-3xl text-red-500"></i>
+          <p className="text-red-700 mt-4 font-medium">Unable to load shared link</p>
+          <p className="text-sm text-gray-600 mt-2">{tokenLoadError}</p>
         </div>
       </div>
     );
@@ -200,24 +459,6 @@ const QuotationClient = () => {
                 <p className="text-sm font-medium text-red-800">
                   {errors.general}
                 </p>
-              </div>
-            </div>
-          )}
-
-          {(errors.frontDesign || errors.backDesign) && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-              <i className="fas fa-exclamation-circle text-red-600 mt-1"></i>
-              <div>
-                {errors.frontDesign && (
-                  <p className="text-sm font-medium text-red-800">
-                    {errors.frontDesign}
-                  </p>
-                )}
-                {errors.backDesign && (
-                  <p className="text-sm font-medium text-red-800">
-                    {errors.backDesign}
-                  </p>
-                )}
               </div>
             </div>
           )}
