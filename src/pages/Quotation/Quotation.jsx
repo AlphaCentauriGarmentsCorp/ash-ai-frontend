@@ -6,6 +6,7 @@ import { quotationApi } from "../../api/quotationApi";
 import { clientApi } from "../../api/clientApi";
 import { apparelPartsApi } from "../../api/apparelPartsApi";
 import { apparelNecklineApi } from "../../api/apparelNecklineApi";
+import { printMethodApi } from "../../api/printMethodApi";
 import FileUpload from "../../components/form/FileUpload";
 
 const DEFAULT_SIZE_OPTIONS = [
@@ -77,6 +78,7 @@ const Quotation = () => {
   const [apparelParts, setApparelParts] = useState([]);
   const [necklines, setNecklines] = useState([]);
   const [clients, setClients] = useState([]);
+  const [printMethods, setPrintMethods] = useState([]);
   const [selectedClientId, setSelectedClientId] = useState(null);
   const [clientSearchTerm, setClientSearchTerm] = useState("");
   const [discount, setDiscount] = useState({ type: "percentage", value: 0 });
@@ -91,6 +93,12 @@ const Quotation = () => {
   const [activeApparelFilter, setActiveApparelFilter] = useState("all");
   const [activePatternFilter, setActivePatternFilter] = useState("all");
   const [selectedApparelPatternId, setSelectedApparelPatternId] = useState(null);
+
+  // Print Information State
+  const [selectedPrintMethodId, setSelectedPrintMethodId] = useState(null);
+  const [selectedSpecialPrint, setSelectedSpecialPrint] = useState("");
+  const [selectedPrintArea, setSelectedPrintArea] = useState("Regular");
+  const [silkscreenMethodId, setSilkscreenMethodId] = useState(null);
 
   const [formData, setOrderInfo] = useState({
     client_name: "",
@@ -110,16 +118,27 @@ const Quotation = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [quotationData, clientsRes, apparelPartsRes, necklinesRes] = await Promise.all([
+      const [quotationData, clientsRes, apparelPartsRes, necklinesRes, printMethodsRes] = await Promise.all([
         quotationService.fetchAll(),
         clientApi.index(),
         apparelPartsApi.index(),
         apparelNecklineApi.index(),
+        printMethodApi.index(),
       ]);
 
       const clientsData = clientsRes.data || clientsRes || [];
       const apparelPartsData = apparelPartsRes.data || apparelPartsRes || [];
       const necklinesData = necklinesRes.data || necklinesRes || [];
+      const printMethodsData = printMethodsRes.data || printMethodsRes || [];
+
+      // Find Silkscreen method and set as default
+      const silkscreenMethod = printMethodsData.find(
+        (method) => method.name?.toLowerCase().includes("silkscreen")
+      );
+      if (silkscreenMethod) {
+        setSilkscreenMethodId(silkscreenMethod.id);
+        setSelectedPrintMethodId(silkscreenMethod.id);
+      }
 
       setData({
         ...quotationData,
@@ -128,6 +147,7 @@ const Quotation = () => {
       setApparelParts(apparelPartsData);
       setNecklines(necklinesData);
       setClients(clientsData);
+      setPrintMethods(printMethodsData);
       setItems([]);
     } catch (error) {
       console.error("Failed to load data:", error);
@@ -197,6 +217,45 @@ const Quotation = () => {
       ) || null
     );
   }, [apparelPatternOptions, selectedApparelPatternId]);
+
+  const selectedPrintMethod = useMemo(() => {
+    return printMethods.find(
+      (method) => Number(method.id) === Number(selectedPrintMethodId),
+    ) || null;
+  }, [printMethods, selectedPrintMethodId]);
+
+  const filteredPrintMethods = useMemo(() => {
+    return printMethods.filter((method) => {
+      const name = method.name?.toLowerCase() || "";
+      // Exclude Silkscreen, Sublimation, and High Density from the dropdown
+      return !name.includes("silkscreen") && 
+             !name.includes("sublimation") && 
+             !name.includes("high density");
+    });
+  }, [printMethods]);
+
+  const printMethodLabels = useMemo(() => {
+    const methodName = selectedPrintMethod?.name?.toLowerCase() || "";
+    
+    if (methodName.includes("dtf")) {
+      return {
+        colorLabel: "Meters",
+        priceLabel: "Price/m",
+      };
+    }
+    
+    if (methodName.includes("embroidery")) {
+      return {
+        colorLabel: "Size",
+        priceLabel: "Price/size",
+      };
+    }
+    
+    return {
+      colorLabel: "Number of Colors",
+      priceLabel: "Price/Color",
+    };
+  }, [selectedPrintMethod]);
 
   const uniqueApparelNames = useMemo(() => {
     return Array.from(
@@ -344,6 +403,8 @@ const Quotation = () => {
           imageLink: "",
           colorCount: 1,
           pricePerColor: 0,
+          fullColorCount: 1,
+          pricePerFullColor: 0,
         },
       ];
     });
@@ -398,6 +459,26 @@ const Quotation = () => {
       prev.map((c) =>
         Number(c.colorId) === Number(colorId)
           ? { ...c, pricePerColor: Math.max(0, parseFloat(price) || 0) }
+          : c,
+      ),
+    );
+  };
+
+  const updateFullColorCount = (colorId, count) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, fullColorCount: Math.max(1, parseInt(count, 10) || 1) }
+          : c,
+      ),
+    );
+  };
+
+  const updateFullColorPrice = (colorId, price) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, pricePerFullColor: Math.max(0, parseFloat(price) || 0) }
           : c,
       ),
     );
@@ -480,6 +561,9 @@ const Quotation = () => {
     setSelectedColors([]);
     setApparelParts(apparelParts);
     setSelectedApparelPatternId(null);
+    setSelectedPrintMethodId(silkscreenMethodId);
+    setSelectedSpecialPrint("");
+    setSelectedPrintArea("Regular");
     setSelectedClientId(null);
     setClientSearchTerm("");
     setSearchTerm("");
@@ -587,6 +671,8 @@ const Quotation = () => {
           part: partOption?.name || part.part || `Part ${part.colorId}`,
           color_count: part.colorCount,
           price_per_color: quotationService.toNumber(part.pricePerColor),
+          full_color_count: part.fullColorCount || 0,
+          price_per_full_color: quotationService.toNumber(part.pricePerFullColor || 0),
           image_input_type: imageInputType,
           image_link: imageLink,
           image,
@@ -605,6 +691,9 @@ const Quotation = () => {
       formDataToSend.append("apparel_neckline_id", formData.apparel_neckline_id || "");
       formDataToSend.append("free_items", formData.free_items);
       formDataToSend.append("notes", formData.notes);
+      formDataToSend.append("print_method_id", selectedPrintMethodId || "");
+      formDataToSend.append("special_print", selectedSpecialPrint || "");
+      formDataToSend.append("print_area", selectedPrintArea || "");
       formDataToSend.append("item_config_json", JSON.stringify(itemConfigPayload));
       formDataToSend.append("items_json", JSON.stringify(compactItemsPayload));
       formDataToSend.append("addons_json", JSON.stringify(formattedAddons));
@@ -621,6 +710,8 @@ const Quotation = () => {
             part: part.part,
             color_count: part.color_count,
             price_per_color: part.price_per_color,
+            full_color_count: part.full_color_count,
+            price_per_full_color: part.price_per_full_color,
             image_input_type: part.image_input_type,
             image_link: part.image_link,
           })),
@@ -908,6 +999,67 @@ const Quotation = () => {
               </div>
 
               <div className="pt-8 border-t border-gray-100">
+                <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">
+                  Print Information
+                </h3>
+                
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Print Method</label>
+                    <select
+                      value={selectedPrintMethodId || ""}
+                      onChange={(e) => {
+                        const newMethodId = e.target.value ? Number(e.target.value) : silkscreenMethodId;
+                        setSelectedPrintMethodId(newMethodId);
+                        // Reset special print and print area when changing method
+                        if (newMethodId !== silkscreenMethodId) {
+                          setSelectedSpecialPrint("");
+                          setSelectedPrintArea("Regular");
+                        }
+                      }}
+                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                    >
+                      <option value={silkscreenMethodId || ""}>Silkscreen</option>
+                      {filteredPrintMethods.map((method) => (
+                        <option key={method.id} value={method.id}>
+                          {method.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {selectedPrintMethodId === silkscreenMethodId && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Special Print (optional)</label>
+                        <select
+                          value={selectedSpecialPrint}
+                          onChange={(e) => setSelectedSpecialPrint(e.target.value)}
+                          className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                        >
+                          <option value="">Select special print</option>
+                          <option value="Sublimation">Sublimation</option>
+                          <option value="High Density">High Density</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Print Area</label>
+                        <select
+                          value={selectedPrintArea}
+                          onChange={(e) => setSelectedPrintArea(e.target.value)}
+                          className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                        >
+                          <option value="Regular">Regular</option>
+                          <option value="Full">Full</option>
+                        </select>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="pt-8 border-t border-gray-100">
                 <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">
                   Miscellaneous
                 </h3>
@@ -1042,7 +1194,7 @@ const Quotation = () => {
                           </div>
 
                           <div className="lg:pt-9 space-y-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Number of Colors</label>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.colorLabel}</label>
                             <input
                               type="number"
                               min="1"
@@ -1053,7 +1205,7 @@ const Quotation = () => {
                             />
 
                             <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">Price/Color</label>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.priceLabel}</label>
                               <input
                                 type="number"
                                 min="0"
@@ -1063,6 +1215,34 @@ const Quotation = () => {
                                 className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                               />
                             </div>
+
+                            {selectedPrintMethodId === silkscreenMethodId && selectedPrintArea === "Full" && (
+                              <>
+                                <div className="pt-2">
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">Number of Full Colors</label>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max="10"
+                                    value={part.fullColorCount || 1}
+                                    onChange={(e) => updateFullColorCount(part.colorId, e.target.value)}
+                                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                  />
+                                </div>
+
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">Price/Full Color</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={part.pricePerFullColor ?? 0}
+                                    onChange={(e) => updateFullColorPrice(part.colorId, e.target.value)}
+                                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                  />
+                                </div>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
