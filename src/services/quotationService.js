@@ -1,12 +1,6 @@
-import { tshirtTypeApi } from "../api/tshirtTypeApi";
-import { tshirtNecklineApi } from "../api/tshirtNecklineApi";
-import { tshirtSizesApi } from "../api/tshirtSizesApi";
-import { sizePricesApi } from "../api/sizePricesApi";
-import { printTypesApi } from "../api/printTypesApi";
-import { printColorsApi } from "../api/printColorsApi";
-import { printPatternsApi } from "../api/printPatternsApi";
 import { addonCategoriesApi } from "../api/addonCategoriesApi";
 import { addonsApi } from "../api/addonsApi";
+import { apparelPatternPricesApi } from "../api/apparelPatternPricesApi";
 
 class QuotationService {
   // Helper to ensure number values
@@ -18,60 +12,7 @@ class QuotationService {
   // Fetch all data
   async fetchAll() {
     try {
-      const [
-        tshirtTypes,
-        necklines,
-        sizes,
-        sizePrices,
-        printTypes,
-        printColors,
-        printPatterns,
-        addonCategories,
-        addons,
-      ] = await Promise.all([
-        tshirtTypeApi.index().then((res) => {
-          const data = res.data || res;
-          return data.map((item) => ({
-            ...item,
-            base_price: this.toNumber(item.base_price),
-          }));
-        }),
-        tshirtNecklineApi.index().then((res) => {
-          const data = res.data || res;
-          return data.map((item) => ({
-            ...item,
-            base_price: this.toNumber(item.base_price),
-          }));
-        }),
-        tshirtSizesApi.index().then((res) => res.data || res),
-        sizePricesApi.index().then((res) => {
-          const data = res.data || res;
-          return data.map((item) => ({
-            ...item,
-            price: this.toNumber(item.price),
-          }));
-        }),
-        printTypesApi.index().then((res) => {
-          const data = res.data || res;
-          return data.map((item) => ({
-            ...item,
-            base_price: this.toNumber(item.base_price),
-          }));
-        }),
-        printColorsApi.index().then((res) => {
-          const data = res.data || res;
-          return data.map((item) => ({
-            ...item,
-            price: this.toNumber(item.price),
-          }));
-        }),
-        printPatternsApi.index().then((res) => {
-          const data = res.data || res;
-          return data.map((item) => ({
-            ...item,
-            base_price: this.toNumber(item.base_price), // Use base_price as additional price
-          }));
-        }),
+      const [addonCategories, addons, apparelPatternPrices] = await Promise.all([
         addonCategoriesApi.index().then((res) => res.data || res),
         addonsApi.index().then((res) => {
           const data = res.data || res;
@@ -80,16 +21,19 @@ class QuotationService {
             price: this.toNumber(item.price),
           }));
         }),
+        apparelPatternPricesApi.index().then((res) => res.data || res),
       ]);
 
       return {
-        tshirtTypes,
-        necklines,
-        sizes,
-        sizePrices,
-        printTypes,
-        printColors,
-        printPatterns,
+        apparelPatternPrices,
+        apparelParts: [],
+        tshirtTypes: [],
+        necklines: [],
+        sizes: [],
+        sizePrices: [],
+        printTypes: [],
+        printColors: [],
+        printPatterns: [],
         addonCategories,
         addons,
       };
@@ -100,105 +44,114 @@ class QuotationService {
   }
 
   // Get price helpers with number conversion
-  getTshirtPrice = (types, id) => {
+  getTshirtPrice = (types = [], id) => {
     const type = types.find((t) => t.id === id);
     return type ? this.toNumber(type.base_price) : 0;
   };
 
-  getNecklinePrice = (necklines, id) => {
-    const neckline = necklines.find((n) => n.id === id);
-    return neckline ? this.toNumber(neckline.base_price) : 0;
+  getNecklinePrice = (necklines = [], id) => {
+    const neckline = necklines.find((n) => Number(n.id) === Number(id));
+    return neckline ? this.toNumber(neckline.price ?? neckline.base_price) : 0;
   };
 
-  getPrintTypePrice = (types, id) => {
-    const type = types.find((t) => t.id === id);
-    return type ? this.toNumber(type.base_price) : 0;
+  // Kept for compatibility with pages that still call this method.
+  getPrintTypePrice = () => 0;
+
+  // Kept for compatibility with pages that still call this method.
+  getPrintPatternPrice = () => 0;
+
+  getApparelPatternPrice = (rows = [], id) => {
+    const row = rows.find((item) => Number(item.id) === Number(id));
+    return row ? this.toNumber(row.price) : 0;
   };
 
-  // For print patterns - using base_price as additional price
-  getPrintPatternPrice = (patterns, id) => {
-    const pattern = patterns.find((p) => p.id === id);
-    const price = pattern ? this.toNumber(pattern.base_price) : 0;
-    return price;
-  };
-
-  getSizePrice = (prices, shirtId, sizeId) => {
+  getSizePrice = (prices = [], shirtId, sizeId) => {
     const priceRecord = prices.find(
       (sp) => sp.shirt_id === shirtId && sp.size_id === sizeId,
     );
     return priceRecord ? this.toNumber(priceRecord.price) : 0;
   };
 
-  getPrintColorPrice = (colors, typeId, count) => {
-    const colorRecord = colors.find(
-      (c) => c.type_id === typeId && c.color_count === count,
-    );
-    return colorRecord ? this.toNumber(colorRecord.price) : 0;
+  getPrintColorPrice = (colors = [], selectedColors = []) => {
+    if (!Array.isArray(selectedColors) || selectedColors.length === 0) {
+      return 0;
+    }
+
+    return selectedColors.reduce((sum, selection) => {
+      const selectionId = Number(
+        selection.partId ?? selection.colorId ?? selection.id,
+      );
+      const color = colors.find((c) => Number(c.id) === selectionId);
+      const basePrice =
+        this.toNumber(selection.pricePerColor) ||
+        this.toNumber(selection.price_per_color) ||
+        this.toNumber(selection.price) ||
+        this.toNumber(color?.price);
+      const colorCount = this.toNumber(selection.colorCount) || 1;
+      return sum + basePrice * colorCount;
+    }, 0);
   };
 
-  getAddonPrice = (addons, id) => {
+  getAddonPrice = (addons = [], id) => {
     const addon = addons.find((a) => a.id === id);
     if (!addon) return 0;
     return addon.price_type === "Free" ? 0 : this.toNumber(addon.price);
   };
 
   // Calculate item total
-  calculateItem(data, item, colorCount) {
-    const tshirtPrice = this.getTshirtPrice(
-      data.tshirtTypes,
-      item.tshirt_type_id,
-    );
-    const sizePrice = this.getSizePrice(
-      data.sizePrices,
-      item.tshirt_type_id,
-      item.size_id,
+  calculateItem(data, item, selectedColors, selectedNecklineId) {
+    const apparelPatternPrice = this.getApparelPatternPrice(
+      data.apparelPatternPrices,
+      item.apparel_pattern_price_id,
     );
     const necklinePrice = this.getNecklinePrice(
       data.necklines,
-      item.neckline_id,
+      selectedNecklineId,
     );
-    const printTypePrice = this.getPrintTypePrice(
-      data.printTypes,
-      item.print_type_id,
-    );
-    const printColorPrice = this.getPrintColorPrice(
+    const colorPrice = this.getPrintColorPrice(
       data.printColors,
-      item.print_type_id,
-      colorCount,
+      selectedColors,
     );
-    const printPatternPrice = this.getPrintPatternPrice(
-      data.printPatterns,
-      item.print_pattern_id,
-    );
+    const unitPrice = this.toNumber(item.unit_price);
 
-    const sizeTotal = tshirtPrice + sizePrice;
-    const extras =
-      necklinePrice + printTypePrice + printColorPrice + printPatternPrice;
-    const pricePerPiece = sizeTotal + extras;
+    const pricePerPiece = apparelPatternPrice + necklinePrice + unitPrice + colorPrice;
     const quantity = this.toNumber(item.quantity);
     const total = pricePerPiece * quantity;
 
     return {
+      apparelPatternPrice: isNaN(apparelPatternPrice) ? 0 : apparelPatternPrice,
+      necklinePrice: isNaN(necklinePrice) ? 0 : necklinePrice,
+      colorPrice: isNaN(colorPrice) ? 0 : colorPrice,
+      unitPrice: isNaN(unitPrice) ? 0 : unitPrice,
       pricePerPiece: isNaN(pricePerPiece) ? 0 : pricePerPiece,
       total: isNaN(total) ? 0 : total,
     };
   }
 
   // Calculate all totals
-  calculateTotals(data, items, colorCount, selectedAddons) {
+  calculateTotals(data, items, selectedColors, selectedAddons, selectedNecklineId) {
     // Items total
     let totalAmount = 0;
     let totalQuantity = 0;
 
     const itemDetails = items.map((item) => {
-      const { pricePerPiece, total } = this.calculateItem(
+      const { apparelPatternPrice, necklinePrice, colorPrice, unitPrice, pricePerPiece, total } = this.calculateItem(
         data,
         item,
-        colorCount,
+        selectedColors,
+        selectedNecklineId,
       );
       totalAmount += total;
       totalQuantity += this.toNumber(item.quantity);
-      return { ...item, pricePerPiece, total };
+      return {
+        ...item,
+        apparelPatternPrice,
+        necklinePrice,
+        colorPrice,
+        unitPrice,
+        pricePerPiece,
+        total,
+      };
     });
 
     // Addons total
@@ -245,22 +198,21 @@ class QuotationService {
       id: idx + 1,
       size_id: size.id,
       quantity: 1,
-      tshirt_type_id: defaults.tshirtTypeId || 1,
-      print_type_id: defaults.printTypeId || 1,
-      print_pattern_id: defaults.printPatternId || 1,
-      neckline_id: defaults.necklineId || 1,
+      apparel_pattern_price_id: defaults.apparelPatternPriceId || null,
+      apparel_type_id: defaults.apparelTypeId || null,
+      pattern_type_id: defaults.patternTypeId || null,
     }));
   }
 
   // Get color options
-  getColorOptions(colors, typeId) {
-    return colors
-      .filter((c) => c.type_id === typeId)
+  getColorOptions(colors) {
+    return (colors || [])
       .map((c) => ({
-        color_count: c.color_count,
+        id: c.id,
+        name: c.name,
         price: this.toNumber(c.price),
       }))
-      .sort((a, b) => a.color_count - b.color_count);
+      .sort((a, b) => a.name.localeCompare(b.name));
   }
 }
 

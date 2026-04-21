@@ -1,6 +1,8 @@
 import React from "react";
 
-const Step4Overview = ({ formData, onChange, errors }) => {
+const Step4Overview = ({ formData }) => {
+  const parts = Array.isArray(formData.parts) ? formData.parts : [];
+
   const renderFilePreview = (file, url, part) => {
     if (!file && !url) return null;
 
@@ -47,55 +49,51 @@ const Step4Overview = ({ formData, onChange, errors }) => {
             <div className="flex-1">
               <p className="text-sm font-medium text-gray-700">Selected Parts</p>
               <p className="text-sm text-gray-600 mt-1">
-                {formData.hasFrontPart && formData.hasBackPart
-                  ? "Front & Back"
-                  : formData.hasFrontPart
-                    ? "Front Only"
-                    : formData.hasBackPart
-                      ? "Back Only"
-                      : "None Selected"}
+                {parts.length > 0 ? parts.map((part) => part.part).join(", ") : "None"}
               </p>
             </div>
           </div>
 
           {/* Design Files */}
-          {(formData.hasFrontPart || formData.hasBackPart) && (
+          {parts.length > 0 && (
             <div className="flex items-start gap-3 pb-3 border-b border-gray-100">
               <i className="fas fa-images text-primary mt-1"></i>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-700 mb-3">Design Files</p>
                 <div className="space-y-2">
-                  {formData.hasFrontPart && renderFilePreview(
-                    formData.frontDesignFile,
-                    formData.frontDesignUrl,
-                    "Front Design"
-                  )}
-                  {formData.hasBackPart && renderFilePreview(
-                    formData.backDesignFile,
-                    formData.backDesignUrl,
-                    "Back Design"
-                  )}
+                  {parts.map((part) => (
+                    <React.Fragment key={part.key}>
+                      {renderFilePreview(
+                        part.image_file,
+                        part.image_link || part.existing_image_url,
+                        `${part.part} Design`,
+                      ) || (
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <i className="fas fa-file-circle-xmark text-gray-400 text-xl"></i>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-gray-700">{part.part} Design</p>
+                            <p className="text-xs text-gray-500">No file or URL provided</p>
+                          </div>
+                        </div>
+                      )}
+                    </React.Fragment>
+                  ))}
                 </div>
               </div>
             </div>
           )}
 
           {/* Colors */}
-          {(formData.hasFrontPart || formData.hasBackPart) && (
+          {parts.length > 0 && (
             <div className="flex items-start gap-3">
               <i className="fas fa-palette text-primary mt-1"></i>
               <div className="flex-1">
                 <p className="text-sm font-medium text-gray-700">Print Colors</p>
-                {formData.hasFrontPart && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Front: {formData.frontColorCount} color{formData.frontColorCount > 1 ? "s" : ""}
+                {parts.map((part) => (
+                  <p key={part.key} className="text-sm text-gray-600 mt-1">
+                    {part.part}: {part.color_count || 1} color{Number(part.color_count || 1) > 1 ? "s" : ""}
                   </p>
-                )}
-                {formData.hasBackPart && (
-                  <p className="text-sm text-gray-600 mt-1">
-                    Back: {formData.backColorCount} color{formData.backColorCount > 1 ? "s" : ""}
-                  </p>
-                )}
+                ))}
               </div>
             </div>
           )}

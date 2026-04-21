@@ -1,143 +1,541 @@
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import { quotationService } from "../../services/quotationService";
 import { quotationApi } from "../../api/quotationApi";
+import { quotationShareApi } from "../../api/quotationShareApi";
+import { clientApi } from "../../api/clientApi";
+import { apparelPartsApi } from "../../api/apparelPartsApi";
+import { apparelNecklineApi } from "../../api/apparelNecklineApi";
+import FileUpload from "../../components/form/FileUpload";
+
+const DEFAULT_SIZE_OPTIONS = [
+  { id: 1, name: "XS" },
+  { id: 2, name: "S" },
+  { id: 3, name: "M" },
+  { id: 4, name: "L" },
+  { id: 5, name: "XL" },
+  { id: 6, name: "2XL" },
+  { id: 7, name: "3XL" },
+];
+
+const normalizeSizeName = (value) => String(value || "").trim().toLowerCase();
+const toNullableId = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
+const buildDefaultSizeRows = ({
+  sizeOptions,
+  selectedApparelPattern,
+  existingItems = [],
+}) => {
+  return sizeOptions.map((option, index) => {
+    const sizeName = option.name;
+    const matchedExisting = existingItems.find(
+      (item) =>
+        Number(item.size_id) === Number(option.id) ||
+        normalizeSizeName(item.size_label || item.size) === normalizeSizeName(sizeName),
+    );
+
+    return {
+      id: index + 1,
+      size_id: matchedExisting?.size_id || option.id,
+      size_label: matchedExisting?.size_label || matchedExisting?.size || option.name,
+      quantity: matchedExisting?.quantity ?? 0,
+      unit_price: matchedExisting?.unit_price ?? 0,
+      price_per_piece: matchedExisting?.price_per_piece ?? 0,
+      apparel_pattern_price_id:
+        matchedExisting?.apparel_pattern_price_id || selectedApparelPattern?.id || null,
+      apparel_type_id:
+        matchedExisting?.apparel_type_id || selectedApparelPattern?.apparelTypeId || null,
+      pattern_type_id:
+        matchedExisting?.pattern_type_id || selectedApparelPattern?.patternTypeId || null,
+    };
+  });
+};
+
+const normalizeText = (value) => String(value || "").trim().toLowerCase();
+
+const parseJsonField = (value, fallback) => {
+  if (value === null || value === undefined || value === "") return fallback;
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
+  }
+  return value;
+};
+
+const toStorageUrl = (path) => {
+  const rawPath = String(path || "").trim();
+  if (!rawPath) return "";
+
+  if (rawPath.startsWith("http") || rawPath.startsWith("data:")) {
+    return rawPath;
+  }
+
+  const apiUrl = import.meta.env.VITE_API_URL || "";
+  let origin = "";
+  try {
+    origin = new URL(apiUrl).origin;
+  } catch {
+    origin = "";
+  }
+
+  if (rawPath.startsWith("/storage/")) {
+    return origin ? `${origin}${rawPath}` : rawPath;
+  }
+
+  if (rawPath.startsWith("storage/")) {
+    return origin ? `${origin}/${rawPath}` : `/${rawPath}`;
+  }
+
+  const cleanedPath = rawPath.replace(/^\/+/, "");
+  return origin ? `${origin}/storage/${cleanedPath}` : `/storage/${cleanedPath}`;
+};
+
+const normalizeClientBrands = (client) => {
+  if (!Array.isArray(client?.brands)) return [];
+
+  return client.brands
+    .map((brand) => {
+      if (typeof brand === "string") return brand.trim();
+      return String(brand?.name || "").trim();
+    })
+    .filter(Boolean);
+};
 
 const EditQuotation = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isGeneratingShareLink, setIsGeneratingShareLink] = useState(false);
+
   const [items, setItems] = useState([]);
   const [selectedAddons, setSelectedAddons] = useState([]);
-  const [isCostBreakdownOpen, setIsCostBreakdownOpen] = useState(false);
-  const [colorCount, setColorCount] = useState(null);
+  const [selectedColors, setSelectedColors] = useState([]);
+  const [apparelParts, setApparelParts] = useState([]);
+  const [necklines, setNecklines] = useState([]);
+  const [clients, setClients] = useState([]);
+  const [selectedClientId, setSelectedClientId] = useState(null);
+  const [clientSearchTerm, setClientSearchTerm] = useState("");
   const [discount, setDiscount] = useState({ type: "percentage", value: 0 });
+  const [isCostBreakdownOpen, setIsCostBreakdownOpen] = useState(false);
+  const [sampleBreakdown, setSampleBreakdown] = useState({
+    unit_price: 0,
+    quantity: 1,
+  });
 
-  // Selected IDs for global config
-  const [selectedTshirtType, setSelectedTshirtType] = useState(null);
-  const [selectedPrintType, setSelectedPrintType] = useState(null);
-  const [selectedPrintPattern, setSelectedPrintPattern] = useState(null);
-  const [selectedNeckline, setSelectedNeckline] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [partSearchTerm, setPartSearchTerm] = useState("");
+  const [activeApparelFilter, setActiveApparelFilter] = useState("all");
+  const [activePatternFilter, setActivePatternFilter] = useState("all");
+  const [selectedApparelPatternId, setSelectedApparelPatternId] = useState(null);
 
   const [formData, setOrderInfo] = useState({
     client_name: "",
     client_email: "",
+    client_facebook: "",
     brand: "",
     shirt_color: "",
+    apparel_neckline_id: "",
     free_items: "",
     notes: "",
   });
 
-  // Fetch all data and quotation on mount
+  const sizeOptions = useMemo(() => DEFAULT_SIZE_OPTIONS, []);
+
+  const partOptions = useMemo(() => {
+    return (apparelParts || [])
+      .map((part) => ({
+        id: Number(part.id),
+        name: String(part.name || "").trim(),
+        description: String(part.description || "").trim(),
+      }))
+      .filter((part) => part.name);
+  }, [apparelParts]);
+
+  const necklineOptions = useMemo(() => {
+    return (necklines || [])
+      .map((neckline) => ({
+        id: Number(neckline.id),
+        name: String(neckline.name || "").trim(),
+        price: quotationService.toNumber(neckline.price),
+      }))
+      .filter((neckline) => neckline.id && neckline.name);
+  }, [necklines]);
+
+  const apparelPatternOptions = useMemo(() => {
+    const rows = data?.apparelPatternPrices || [];
+
+    return rows.map((row) => {
+      const apparelName =
+        row.apparelType?.name ||
+        row.apparel_type?.name ||
+        row.apparel_type_name ||
+        "Unknown Apparel";
+
+      const patternName =
+        row.patternType?.name ||
+        row.pattern_type?.name ||
+        row.pattern_type_name ||
+        "Unknown Pattern";
+
+      return {
+        id: Number(row.id),
+        apparelTypeId: Number(
+          row.apparel_type_id ?? row.apparelType?.id ?? row.apparel_type?.id,
+        ),
+        patternTypeId: Number(
+          row.pattern_type_id ?? row.patternType?.id ?? row.pattern_type?.id,
+        ),
+        apparelName: String(apparelName).trim(),
+        patternName: String(patternName).trim(),
+        label: `${String(apparelName).trim()} / ${String(patternName).trim()}`,
+        price: quotationService.toNumber(row.price),
+      };
+    });
+  }, [data]);
+
+  const selectedApparelPattern = useMemo(() => {
+    return (
+      apparelPatternOptions.find(
+        (row) => Number(row.id) === Number(selectedApparelPatternId),
+      ) || null
+    );
+  }, [apparelPatternOptions, selectedApparelPatternId]);
+
+  const uniqueApparelNames = useMemo(() => {
+    return Array.from(
+      new Set(apparelPatternOptions.map((row) => row.apparelName)),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [apparelPatternOptions]);
+
+  const uniquePatternNames = useMemo(() => {
+    return Array.from(
+      new Set(apparelPatternOptions.map((row) => row.patternName)),
+    ).sort((a, b) => a.localeCompare(b));
+  }, [apparelPatternOptions]);
+
+  const filteredApparelPatternOptions = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase();
+
+    return apparelPatternOptions.filter((row) => {
+      const matchesSearch = !search || row.label.toLowerCase().includes(search);
+      const matchesApparel =
+        activeApparelFilter === "all" || row.apparelName === activeApparelFilter;
+      const matchesPattern =
+        activePatternFilter === "all" || row.patternName === activePatternFilter;
+
+      return matchesSearch && matchesApparel && matchesPattern;
+    });
+  }, [
+    apparelPatternOptions,
+    searchTerm,
+    activeApparelFilter,
+    activePatternFilter,
+  ]);
+
+  const filteredApparelParts = useMemo(() => {
+    const query = partSearchTerm.trim().toLowerCase();
+
+    return partOptions.filter((part) => {
+      const alreadySelected = selectedColors.some(
+        (selectedPart) => Number(selectedPart.colorId) === Number(part.id),
+      );
+      const matchesSearch =
+        !query ||
+        `${part.name} ${part.description}`.toLowerCase().includes(query);
+
+      return matchesSearch && !alreadySelected;
+    });
+  }, [partOptions, partSearchTerm, selectedColors]);
+
+  const filteredClients = useMemo(() => {
+    const query = clientSearchTerm.trim().toLowerCase();
+
+    if (!query) {
+      return clients.slice(0, 8);
+    }
+
+    return clients
+      .filter((client) => {
+        const brands = normalizeClientBrands(client).join(" ").toLowerCase();
+        const name = String(client?.name || "").toLowerCase();
+        const email = String(client?.email || "").toLowerCase();
+
+        return (
+          name.includes(query) || email.includes(query) || brands.includes(query)
+        );
+      })
+      .slice(0, 8);
+  }, [clients, clientSearchTerm]);
+
+  const selectedClient = useMemo(() => {
+    return clients.find((client) => Number(client.id) === Number(selectedClientId)) || null;
+  }, [clients, selectedClientId]);
+
+  const selectedClientBrands = useMemo(() => {
+    return normalizeClientBrands(selectedClient);
+  }, [selectedClient]);
+
   useEffect(() => {
     loadData();
   }, [id]);
 
+  useEffect(() => {
+    if (!selectedApparelPattern || items.length === 0) return;
+
+    setItems((prev) =>
+      prev.map((item) => ({
+        ...item,
+        apparel_pattern_price_id: selectedApparelPattern.id,
+        apparel_type_id: selectedApparelPattern.apparelTypeId,
+        pattern_type_id: selectedApparelPattern.patternTypeId,
+      })),
+    );
+  }, [selectedApparelPatternId]);
+
   const loadData = async () => {
     setLoading(true);
     try {
-      // Fetch both master data and quotation data
-      const [quotationData, masterData] = await Promise.all([
+      const [quotationRes, masterData, clientsRes, apparelPartsRes, necklinesRes] = await Promise.all([
         quotationApi.show(id),
         quotationService.fetchAll(),
+        clientApi.index(),
+        apparelPartsApi.index(),
+        apparelNecklineApi.index(),
       ]);
-      
-      setData(masterData);
-      
-      // Populate form with existing quotation data
-      const quotation = quotationData.data || quotationData;
+
+      const clientsData = clientsRes.data || clientsRes || [];
+      const apparelPartsData = apparelPartsRes.data || apparelPartsRes || [];
+      const necklinesData = necklinesRes.data || necklinesRes || [];
+
+      setData({
+        ...masterData,
+        apparelParts: apparelPartsData,
+      });
+      setApparelParts(apparelPartsData);
+      setNecklines(necklinesData);
+      setClients(clientsData);
+
+      const quotation = quotationRes.data || quotationRes;
+
       setOrderInfo({
         client_name: quotation.client_name || "",
         client_email: quotation.client_email || "",
+        client_facebook: quotation.client_facebook || quotation.facebook || "",
         brand: quotation.client_brand || "",
         shirt_color: quotation.shirt_color || "",
+        apparel_neckline_id:
+          quotation.apparel_neckline_id ||
+          quotation.neckline_id ||
+          quotation.neckline?.id ||
+          "",
         free_items: quotation.free_items || "",
         notes: quotation.notes || "",
       });
-      
-      // Set discount
+
+      const matchedClient = clientsData.find((client) => {
+        const byId =
+          quotation.client_id && Number(client.id) === Number(quotation.client_id);
+        const byName =
+          normalizeText(client.name) === normalizeText(quotation.client_name);
+        const byEmail =
+          quotation.client_email &&
+          normalizeText(client.email) === normalizeText(quotation.client_email);
+        return byId || byName || byEmail;
+      });
+
+      if (matchedClient) {
+        const brands = normalizeClientBrands(matchedClient);
+        setSelectedClientId(matchedClient.id);
+        setClientSearchTerm(matchedClient.name || "");
+        setOrderInfo((prev) => ({
+          ...prev,
+          client_name: matchedClient.name || prev.client_name,
+          client_email: matchedClient.email || prev.client_email,
+          client_facebook: matchedClient.facebook || prev.client_facebook,
+          brand: prev.brand || brands[0] || "",
+        }));
+      }
+
       setDiscount({
         type: quotation.discount_type || "percentage",
         value: quotation.discount_price || 0,
       });
-      
-      // Parse and set items
-      let parsedItems = [];
-      let parsedAddons = [];
-      
-      if (quotation.items_json && typeof quotation.items_json === 'string') {
-        parsedItems = JSON.parse(quotation.items_json);
-      } else if (quotation.items) {
-        parsedItems = quotation.items;
-      }
-      
-      if (quotation.addons_json && typeof quotation.addons_json === 'string') {
-        parsedAddons = JSON.parse(quotation.addons_json);
-      } else if (quotation.addons) {
-        parsedAddons = quotation.addons;
-      }
-      
-      // Convert items to internal format
-      const internalItems = parsedItems.map((item, index) => ({
-        id: index + 1,
-        size_id: item.size_id,
-        quantity: item.quantity,
-        tshirt_type_id: item.tshirt_type_id,
-        print_type_id: item.print_type_id,
-        print_pattern_id: item.print_pattern_id,
-        neckline_id: item.neckline_id,
-      }));
-      
-      setItems(internalItems);
-      
-      // Extract configuration from first item if exists
-      if (internalItems.length > 0) {
-        const firstItem = internalItems[0];
-        setSelectedTshirtType(firstItem.tshirt_type_id);
-        setSelectedPrintType(firstItem.print_type_id);
-        setSelectedPrintPattern(firstItem.print_pattern_id);
-        setSelectedNeckline(firstItem.neckline_id);
-      }
-      
-      // Set selected addons
-      const addonIds = parsedAddons.map(addon => {
-        const found = masterData.addons?.find(a => a.name === addon.name);
-        return found?.id;
-      }).filter(id => id);
-      
-      setSelectedAddons(addonIds);
-      
-      // Try to determine color count from breakdown or first item
-      if (quotation.breakdown_json) {
-        let breakdown = quotation.breakdown_json;
-        if (typeof breakdown === 'string') {
-          breakdown = JSON.parse(breakdown);
-        }
-        if (breakdown.items && breakdown.items.length > 0) {
-          const printColorPrice = breakdown.items[0].print_color_price;
-          // Try to find matching color count
-          if (masterData.printColors && selectedPrintType) {
-            const matchingColor = masterData.printColors.find(
-              pc => pc.print_type_id === selectedPrintType && pc.price === printColorPrice
+
+      const parsedItems =
+        typeof quotation.items_json === "string"
+          ? JSON.parse(quotation.items_json || "[]")
+          : quotation.items_json || quotation.items || [];
+
+      const parsedItemConfig =
+        typeof quotation.item_config_json === "string"
+          ? JSON.parse(quotation.item_config_json || "{}")
+          : quotation.item_config_json || quotation.item_config || {};
+
+      const parsedAddons =
+        typeof quotation.addons_json === "string"
+          ? JSON.parse(quotation.addons_json || "[]")
+          : quotation.addons_json || quotation.addons || [];
+
+      const parsedParts =
+        Array.isArray(quotation.print_parts) && quotation.print_parts.length > 0
+          ? quotation.print_parts
+          : typeof quotation.print_parts_json === "string"
+            ? JSON.parse(quotation.print_parts_json || "[]")
+            : quotation.print_parts_json || [];
+
+      const parsedBreakdown = parseJsonField(
+        quotation.breakdown_json,
+        quotation.breakdown || {},
+      );
+      const parsedSampleBreakdown =
+        quotation.sample_breakdown || parsedBreakdown?.sample_breakdown || {};
+
+      setSampleBreakdown({
+        unit_price: quotationService.toNumber(parsedSampleBreakdown.unit_price),
+        quantity: Math.max(
+          0,
+          parseInt(parsedSampleBreakdown.quantity, 10) || 0,
+        ),
+      });
+
+      const mappedItems = parsedItems.map((item, index) => {
+        const apparelPatternPriceId =
+          parsedItemConfig.apparel_pattern_price_id ||
+          item.apparel_pattern_price_id ||
+          item.apparelPatternPriceId ||
+          null;
+
+        const apparelTypeId =
+          parsedItemConfig.apparel_type_id || item.apparel_type_id || null;
+
+        const patternTypeId =
+          parsedItemConfig.pattern_type_id || item.pattern_type_id || null;
+
+        return {
+          id: index + 1,
+          size_id: item.size_id || sizeOptions[0]?.id || 1,
+          size_label: item.size || "",
+          quantity: item.quantity || 1,
+          unit_price: item.unit_price || 0,
+          price_per_piece: item.price_per_piece || 0,
+          apparel_pattern_price_id: apparelPatternPriceId,
+          apparel_type_id: apparelTypeId,
+          pattern_type_id: patternTypeId,
+        };
+      });
+
+      if (parsedItemConfig.apparel_pattern_price_id) {
+        setSelectedApparelPatternId(parsedItemConfig.apparel_pattern_price_id);
+      } else if (mappedItems.length > 0) {
+        const first = mappedItems[0];
+
+        if (first.apparel_pattern_price_id) {
+          setSelectedApparelPatternId(first.apparel_pattern_price_id);
+        } else {
+          const fallbackMatch = (masterData.apparelPatternPrices || []).find((row) => {
+            const rowApparelId = Number(
+              row.apparel_type_id ?? row.apparelType?.id ?? row.apparel_type?.id,
             );
-            if (matchingColor) {
-              setColorCount(matchingColor.color_count);
-            }
+            const rowPatternId = Number(
+              row.pattern_type_id ?? row.patternType?.id ?? row.pattern_type?.id,
+            );
+
+            return (
+              rowApparelId === Number(first.apparel_type_id) &&
+              rowPatternId === Number(first.pattern_type_id)
+            );
+          });
+
+          if (fallbackMatch) {
+            setSelectedApparelPatternId(fallbackMatch.id);
           }
         }
       }
-      
-      // If color count still not set, set default
-      if (!colorCount && selectedPrintType && masterData.printColors) {
-        const colors = quotationService.getColorOptions(masterData.printColors, selectedPrintType);
-        if (colors.length > 0) {
-          setColorCount(colors[0].color_count);
-        }
+
+      const addonIds = parsedAddons
+        .map((addon) => {
+          const found = masterData.addons?.find((a) => a.name === addon.name);
+          return found?.id;
+        })
+        .filter(Boolean);
+
+      setSelectedAddons(addonIds);
+
+      const mappedParts = parsedParts
+        .map((part, index) => {
+          const partId = Number(part.part_id || part.partId || part.id);
+          const partName = normalizeText(part.part);
+          const matchedPart = apparelPartsData.find(
+            (option) => Number(option.id) === partId,
+          ) || apparelPartsData.find(
+            (option) => normalizeText(option.name) === partName,
+          );
+
+          const fallbackId = matchedPart?.id || partId || part.part || index + 1;
+          const partLabel = matchedPart?.name || part.part || "Unknown Part";
+          const imagePath =
+            part.image_link || part.image_url || part.image_path || part.image || "";
+          const resolvedImageLink = toStorageUrl(imagePath);
+          const normalizedInputType = String(
+            part.image_input_type || (part.image_link ? "link" : "file"),
+          ).toLowerCase();
+
+          return {
+            colorId: fallbackId,
+            partId: fallbackId,
+            part: partLabel,
+            part_description: matchedPart?.description || "",
+            file: null,
+            imageInputType: normalizedInputType === "link" ? "link" : "file",
+            imageLink: resolvedImageLink,
+            existingImageUrl: resolvedImageLink,
+            existingImageRawPath: String(imagePath || "").trim(),
+            colorCount: Math.max(1, parseInt(part.color_count, 10) || 1),
+            pricePerColor: quotationService.toNumber(part.price_per_color),
+          };
+        })
+        .filter(Boolean);
+
+
+      const selectedPatternCandidate =
+        mappedItems.length > 0
+          ? apparelPatternOptions.find(
+              (row) => Number(row.id) === Number(mappedItems[0].apparel_pattern_price_id),
+            ) || null
+          : null;
+
+      const resolvedPattern = selectedPatternCandidate || {
+        id:
+          parsedItemConfig.apparel_pattern_price_id ||
+          mappedItems[0]?.apparel_pattern_price_id ||
+          null,
+        apparelTypeId:
+          parsedItemConfig.apparel_type_id || mappedItems[0]?.apparel_type_id || null,
+        patternTypeId:
+          parsedItemConfig.pattern_type_id || mappedItems[0]?.pattern_type_id || null,
+      };
+
+      const normalizedItems = buildDefaultSizeRows({
+        sizeOptions,
+        selectedApparelPattern: resolvedPattern,
+        existingItems: mappedItems,
+      });
+
+      setItems(normalizedItems);
+
+      if (mappedParts.length > 0) {
+        setSelectedColors(mappedParts);
       }
-      
     } catch (error) {
       console.error("Failed to load data:", error);
       alert("Failed to load quotation data. Please try again.");
@@ -146,14 +544,14 @@ const EditQuotation = () => {
     }
   };
 
-  // Calculate all totals when dependencies change
   const { itemDetails, addonDetails, totalAmount, totalAddons, totalQuantity } =
     data && items.length > 0
       ? quotationService.calculateTotals(
-          data,
+          { ...data, printColors: data?.apparelParts || [], necklines },
           items,
-          colorCount || 1,
+          selectedColors,
           selectedAddons,
+          formData.apparel_neckline_id,
         )
       : {
           itemDetails: [],
@@ -163,195 +561,399 @@ const EditQuotation = () => {
           totalQuantity: 0,
         };
 
-  const subtotal = totalAmount + totalAddons;
+  const sampleBreakdownTotal =
+    quotationService.toNumber(sampleBreakdown.unit_price) *
+    quotationService.toNumber(sampleBreakdown.quantity);
+  const subtotal = totalAmount + totalAddons + sampleBreakdownTotal;
   const discountAmount = quotationService.applyDiscount(subtotal, discount);
   const grandTotal = subtotal - discountAmount;
   const downPayment = grandTotal * 0.6;
   const balance = grandTotal * 0.4;
 
-  // Apply global configurations to all items
-  const applyToAll = (field, value) => {
-    if (value === null) return;
-    setItems(items.map((item) => ({ ...item, [field]: value })));
-  };
-
-  const handleTshirtTypeChange = (value) => {
-    setSelectedTshirtType(value);
-    if (items.length > 0) {
-      applyToAll("tshirt_type_id", value);
-    }
-  };
-
-  const handleNecklineChange = (value) => {
-    setSelectedNeckline(value);
-    if (items.length > 0) {
-      applyToAll("neckline_id", value);
-    }
-  };
-
-  const handlePrintTypeChange = (value) => {
-    setSelectedPrintType(value);
-    if (items.length > 0) {
-      applyToAll("print_type_id", value);
-    }
-    // Reset color count to first available
-    if (value !== null && data?.printColors) {
-      const colors = quotationService.getColorOptions(data.printColors, value);
-      if (colors.length > 0) {
-        setColorCount(colors[0].color_count);
+  const toggleColor = (part) => {
+    const partId = Number(part.id ?? part.colorId ?? part.partId);
+    const partName = part.name || part.part || "";
+    const partDescription = part.description || part.part_description || "";
+    setSelectedColors((prev) => {
+      const exists = prev.find((c) => Number(c.colorId) === partId);
+      if (exists) {
+        return prev.filter((c) => Number(c.colorId) !== partId);
       }
-    }
+      return [
+        ...prev,
+        {
+          colorId: partId,
+          partId,
+          part: partName,
+          part_description: partDescription,
+          file: null,
+          imageInputType: "file",
+          imageLink: "",
+          existingImageUrl: "",
+          existingImageRawPath: "",
+          colorCount: 1,
+          pricePerColor: 0,
+        },
+      ];
+    });
   };
 
-  const handlePrintPatternChange = (value) => {
-    setSelectedPrintPattern(value);
-    if (items.length > 0) {
-      applyToAll("print_pattern_id", value);
-    }
-  };
-
-  const handleColorCountChange = (value) => {
-    setColorCount(value);
-  };
-
-  // Item management
-  const addItem = () => {
-    if (
-      selectedTshirtType === null ||
-      selectedPrintType === null ||
-      selectedPrintPattern === null ||
-      selectedNeckline === null ||
-      colorCount === null
-    ) {
-      alert("Please select all configuration options first");
-      return;
-    }
-    const newId = Math.max(...items.map((i) => i.id), 0) + 1;
-    setItems([
-      ...items,
-      {
-        id: newId,
-        size_id: data.sizes[0]?.id || 1,
-        quantity: 1,
-        tshirt_type_id: selectedTshirtType,
-        print_type_id: selectedPrintType,
-        print_pattern_id: selectedPrintPattern,
-        neckline_id: selectedNeckline,
-      },
-    ]);
-  };
-
-  const removeItem = (id) => {
-    setItems(items.filter((item) => item.id !== id));
-  };
-
-  const updateItem = (id, field, value) => {
-    setItems(
-      items.map((item) =>
-        item.id === id ? { ...item, [field]: value } : item,
+  const updateColorFile = (colorId, file) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, file, imageInputType: "file", imageLink: file ? "" : c.imageLink }
+          : c,
       ),
     );
   };
 
-  // Addon management
+  const updateColorInputType = (colorId, inputType) => {
+    setSelectedColors((prev) =>
+      prev.map((c) => {
+        if (Number(c.colorId) !== Number(colorId)) return c;
+
+        if (inputType === "link") {
+          return { ...c, imageInputType: "link", file: null };
+        }
+
+        return { ...c, imageInputType: "file" };
+      }),
+    );
+  };
+
+  const updateColorLink = (colorId, imageLink) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, imageInputType: "link", imageLink }
+          : c,
+      ),
+    );
+  };
+
+  const updateColorCount = (colorId, count) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, colorCount: Math.max(1, parseInt(count, 10) || 1) }
+          : c,
+      ),
+    );
+  };
+
+  const updateColorPrice = (colorId, price) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, pricePerColor: Math.max(0, parseFloat(price) || 0) }
+          : c,
+      ),
+    );
+  };
+
+  const handlePartSearchChange = (value) => {
+    setPartSearchTerm(value);
+  };
+
+  const handleAddPart = (part) => {
+    toggleColor(part);
+    setPartSearchTerm("");
+  };
+
+  const updateItem = (itemId, field, value) => {
+    setItems(
+      items.map((item) => (item.id === itemId ? { ...item, [field]: value } : item)),
+    );
+  };
+
   const toggleAddon = (addonId) => {
     setSelectedAddons((prev) =>
       prev.includes(addonId)
-        ? prev.filter((id) => id !== addonId)
+        ? prev.filter((idToRemove) => idToRemove !== addonId)
         : [...prev, addonId],
     );
   };
 
-  const formattedItems = items.map((item) => {
-    const { pricePerPiece, total } = quotationService.calculateItem(
-      data,
-      item,
-      colorCount || 1,
-    );
+  const handleClientSearchChange = (value) => {
+    setClientSearchTerm(value);
 
-    return {
-      id: item.id,
-      size_id: item.size_id,
-      quantity: item.quantity,
-      tshirt_type_id: item.tshirt_type_id,
-      print_type_id: item.print_type_id,
-      print_pattern_id: item.print_pattern_id,
-      neckline_id: item.neckline_id,
-      
-      tshirt_type: data.tshirtTypes.find(t => t.id === item.tshirt_type_id)?.name || null,
-      neckline: data.necklines.find(n => n.id === item.neckline_id)?.name || null,
-      print_type: data.printTypes.find(p => p.id === item.print_type_id)?.name || null,
-      print_pattern: data.printPatterns.find(p => p.id === item.print_pattern_id)?.name || null,
-      size: data.sizes.find(s => s.id === item.size_id)?.name || null,
-      
-      price_per_piece: pricePerPiece,
-      total_amount: total,
-    };
-  });
+    if (!value.trim()) {
+      setSelectedClientId(null);
+      setOrderInfo((prev) => ({
+        ...prev,
+        client_name: "",
+        client_email: "",
+        client_facebook: "",
+        brand: "",
+        shirt_color: "",
+        apparel_neckline_id: "",
+        free_items: "",
+      }));
+      return;
+    }
 
-  const breakdown = {
-    items: itemDetails.map((item) => {
-      const sizeName = data.sizes.find((s) => s.id === item.size_id)?.name || "Unknown";
-      return {
-        size: sizeName,
-        quantity: item.quantity,
-        price_per_piece: item.pricePerPiece,
-        total: item.total,
-        tshirt_price: quotationService.getTshirtPrice(data.tshirtTypes, item.tshirt_type_id),
-        size_price: quotationService.getSizePrice(data.sizePrices, item.tshirt_type_id, item.size_id),
-        neckline_price: quotationService.getNecklinePrice(data.necklines, item.neckline_id),
-        print_type_price: quotationService.getPrintTypePrice(data.printTypes, item.print_type_id),
-        print_color_price: quotationService.getPrintColorPrice(data.printColors, item.print_type_id, colorCount || 1),
-        print_pattern_price: quotationService.getPrintPatternPrice(data.printPatterns, item.print_pattern_id),
-      };
-    }),
+    if (value !== formData.client_name) {
+      setSelectedClientId(null);
+      setOrderInfo((prev) => ({
+        ...prev,
+        client_name: "",
+        client_email: "",
+        client_facebook: "",
+        brand: "",
+        shirt_color: "",
+        apparel_neckline_id: "",
+        free_items: "",
+      }));
+    }
   };
 
-  const formattedAddons = selectedAddons.map((id) => {
-    const addon = data.addons.find((a) => a.id === id);
+  const handleSelectClient = (client) => {
+    const brands = normalizeClientBrands(client);
+    setSelectedClientId(client.id);
+    setClientSearchTerm(client.name || "");
+    setOrderInfo((prev) => ({
+      ...prev,
+      client_name: client.name || "",
+      client_email: client.email || "",
+      client_facebook: client.facebook || "",
+      brand: brands[0] || "",
+    }));
+  };
+
+  const extractShareLink = (payload) => {
+    const data = payload?.data || payload || {};
+
+    const buildFrontendShareUrl = (tokenValue) => {
+      const tokenText = String(tokenValue || "").trim();
+      return tokenText ? `${window.location.origin}/share/quotations/${tokenText}` : "";
+    };
+
+    const extractTokenFromUrl = (rawUrl) => {
+      const urlText = String(rawUrl || "").trim();
+      if (!urlText) return "";
+
+      const fromPath = urlText.match(/\/(?:share\/quotations|quotations\/share)\/([^/?#]+)/i);
+      if (fromPath?.[1]) return fromPath[1];
+
+      try {
+        const parsed = new URL(urlText, window.location.origin);
+        return (
+          parsed.searchParams.get("token")
+          || parsed.searchParams.get("share_token")
+          || ""
+        );
+      } catch {
+        return "";
+      }
+    };
+
+    const directUrl =
+      data.share_url ||
+      data.public_url ||
+      data.upload_url ||
+      data.url ||
+      data.link ||
+      "";
+
+    if (directUrl) {
+      const tokenFromUrl = extractTokenFromUrl(directUrl);
+      if (tokenFromUrl) {
+        return buildFrontendShareUrl(tokenFromUrl);
+      }
+
+      const normalizedDirect = String(directUrl).trim();
+      if (normalizedDirect.startsWith("/")) {
+        return `${window.location.origin}${normalizedDirect}`;
+      }
+
+      return normalizedDirect;
+    }
+
+    const token =
+      data.token ||
+      data.share_token ||
+      data.access_token ||
+      data?.share?.token ||
+      data?.shareToken?.token ||
+      "";
+
+    return buildFrontendShareUrl(token);
+  };
+
+  const handleGenerateShareUploadLink = async () => {
+    setIsGeneratingShareLink(true);
+    try {
+      const response = await quotationShareApi.generate(id, {
+        permission: "edit",
+        allow_download: false,
+      });
+
+      const shareLink = extractShareLink(response);
+      if (!shareLink) {
+        alert("Share token was generated, but no public link was returned by the API.");
+        return;
+      }
+
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(shareLink);
+        alert(`Share upload link copied to clipboard:\n${shareLink}`);
+      } else {
+        alert(`Share upload link:\n${shareLink}`);
+      }
+    } catch (error) {
+      console.error("Failed to generate share upload link:", error);
+      const message =
+        error?.response?.data?.message ||
+        "Failed to generate share upload link. Please try again.";
+      alert(message);
+    } finally {
+      setIsGeneratingShareLink(false);
+    }
+  };
+
+  const itemConfigPayload = {
+    apparel_pattern_price_id: toNullableId(selectedApparelPattern?.id),
+    apparel_type_id: toNullableId(selectedApparelPattern?.apparelTypeId),
+    pattern_type_id: toNullableId(selectedApparelPattern?.patternTypeId),
+  };
+
+  const compactItemsPayload = items.map((item) => ({
+    id: item.id,
+    size_id: item.size_id,
+    size:
+      item.size_label ||
+      sizeOptions.find((s) => Number(s.id) === Number(item.size_id))?.name ||
+      null,
+    quantity: item.quantity,
+    unit_price: item.unit_price,
+  }));
+
+  const breakdown = {
+    items: itemDetails.map((item) => ({
+      size:
+        item.size_label ||
+        sizeOptions.find((s) => Number(s.id) === Number(item.size_id))?.name ||
+        "Unknown",
+      quantity: item.quantity,
+      price_per_piece: item.pricePerPiece,
+      total: item.total,
+      apparel_pattern_price: item.apparelPatternPrice,
+      neckline_price: item.necklinePrice,
+      color_price: item.colorPrice,
+      unit_price: item.unitPrice,
+    })),
+    sample_breakdown: {
+      sample_apparel: selectedApparelPattern?.label || null,
+      unit_price: quotationService.toNumber(sampleBreakdown.unit_price),
+      quantity: quotationService.toNumber(sampleBreakdown.quantity),
+      price_per_piece: sampleBreakdownTotal,
+    },
+  };
+
+  const formattedAddons = selectedAddons.map((addonId) => {
+    const addon = data?.addons?.find((a) => a.id === addonId);
     return {
+      id: toNullableId(addon?.id || addonId),
       name: addon?.name || "Unknown",
       price: addon?.price_type === "Free" ? 0 : quotationService.toNumber(addon?.price),
     };
   });
 
   const handleUpdate = async () => {
-    if (
-      selectedTshirtType === null ||
-      selectedPrintType === null ||
-      selectedPrintPattern === null ||
-      selectedNeckline === null
-    ) {
-      alert("Please select all configuration options");
+    if (!selectedClientId) {
+      alert("Please search and select a client first.");
       return;
     }
-    
+
+    if (!selectedApparelPattern) {
+      alert("Please select an Apparel/Pattern option.");
+      return;
+    }
+
+    if (items.length === 0) {
+      alert("Please add at least one item to the quotation.");
+      return;
+    }
+
+    if (selectedColors.length === 0) {
+      alert("Please select at least one apparel part.");
+      return;
+    }
+
     setSaving(true);
-    
-    const quotationData = {
-      client_name: formData.client_name,
-      client_email: formData.client_email,
-      client_brand: formData.brand,
-      shirt_color: formData.shirt_color,
-      free_items: formData.free_items,
-      notes: formData.notes,
-      items_json: formattedItems,
-      addons_json: formattedAddons,
-      discount_type: discount.type,
-      discount_price: discount.value,
-      subtotal,
-      breakdown_json: breakdown,
-      grand_total: grandTotal,
-    };
 
     try {
-    await quotationApi.update(id, quotationData);
+      const printParts = selectedColors.map((part) => {
+        const partOption = partOptions.find(
+          (option) => Number(option.id) === Number(part.colorId),
+        );
+
+        const imageInputType = part.imageInputType === "link" ? "link" : "file";
+        const imageLink = imageInputType === "link"
+          ? String(part.imageLink || "").trim()
+          : String(part.existingImageRawPath || "").trim();
+        const image = imageInputType === "file" ? part.file : null;
+
+        return {
+          part_id: toNullableId(partOption?.id ?? part.colorId),
+          part: partOption?.name || part.part || `Part ${part.colorId}`,
+          color_count: part.colorCount,
+          price_per_color: quotationService.toNumber(part.pricePerColor),
+          image_input_type: imageInputType,
+          image_link: imageLink,
+          image,
+        };
+      });
+
+      const formDataToSend = new FormData();
+      formDataToSend.append("client_id", selectedClientId);
+      formDataToSend.append("client_name", formData.client_name);
+      formDataToSend.append("client_email", formData.client_email);
+      formDataToSend.append("client_facebook", formData.client_facebook);
+      formDataToSend.append("client_brand", formData.brand);
+      formDataToSend.append("apparel_type_id", itemConfigPayload.apparel_type_id ?? "");
+      formDataToSend.append("pattern_type_id", itemConfigPayload.pattern_type_id ?? "");
+      formDataToSend.append("shirt_color", formData.shirt_color);
+      formDataToSend.append("apparel_neckline_id", formData.apparel_neckline_id || "");
+      formDataToSend.append("free_items", formData.free_items);
+      formDataToSend.append("notes", formData.notes);
+      formDataToSend.append("item_config_json", JSON.stringify(itemConfigPayload));
+      formDataToSend.append("items_json", JSON.stringify(compactItemsPayload));
+      formDataToSend.append("addons_json", JSON.stringify(formattedAddons));
+      formDataToSend.append("discount_type", discount.type);
+      formDataToSend.append("discount_price", discount.value);
+      formDataToSend.append("subtotal", subtotal);
+      formDataToSend.append("breakdown_json", JSON.stringify(breakdown));
+      formDataToSend.append("grand_total", grandTotal);
+      formDataToSend.append(
+        "print_parts_json",
+        JSON.stringify(
+          printParts.map((part) => ({
+            part_id: part.part_id,
+            part: part.part,
+            color_count: part.color_count,
+            price_per_color: part.price_per_color,
+            image_input_type: part.image_input_type,
+            image_link: part.image_link,
+          })),
+        ),
+      );
+
+      printParts.forEach((part, index) => {
+        if (part.image) {
+          formDataToSend.append(`print_parts_files[${index}]`, part.image);
+        }
+      });
+
+      await quotationApi.update(id, formDataToSend);
+
       navigate("/quotations");
     } catch (error) {
-        console.error("Error saving quotation:", error);
-        alert("An error occurred while saving the quotation. Please try again.");
+      console.error("Error saving quotation:", error);
+      alert("An error occurred while updating the quotation. Please try again.");
     } finally {
-        setSaving(false);
+      setSaving(false);
     }
   };
 
@@ -361,9 +963,7 @@ const EditQuotation = () => {
         <div className="flex items-center justify-center min-h-[60vh]">
           <div className="flex flex-col items-center gap-3">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p className="text-gray-600 text-sm font-medium">
-              Loading quotation data...
-            </p>
+            <p className="text-gray-600 text-sm font-medium">Loading quotation data...</p>
           </div>
         </div>
       </AdminLayout>
@@ -372,16 +972,7 @@ const EditQuotation = () => {
 
   if (!data) return null;
 
-  const colorOptions = selectedPrintType
-    ? quotationService.getColorOptions(data.printColors, selectedPrintType)
-    : [];
-
-  const hasSelections =
-    selectedTshirtType !== null &&
-    selectedPrintType !== null &&
-    selectedPrintPattern !== null &&
-    selectedNeckline !== null &&
-    colorCount !== null;
+  const hasSelections = !!selectedApparelPattern && selectedColors.length > 0;
 
   return (
     <AdminLayout
@@ -401,16 +992,13 @@ const EditQuotation = () => {
       ]}
     >
       <section className="flex flex-col gap-y-3 sm:gap-y-4 font-poppins p-3 sm:p-4 max-w-full mx-auto bg-light rounded-lg border border-gray-300">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <h1 className="text-lg sm:text-xl font-semibold text-primary flex items-center gap-2">
               <i className="fas fa-edit"></i>
               Edit Quotation #{id}
             </h1>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Modify quotation details and pricing
-            </p>
+            <p className="text-xs text-gray-500 mt-0.5">Modify quotation details and pricing</p>
           </div>
           <div className="flex items-center gap-2">
             <span className="text-xs bg-light text-primary px-3 py-1.5 rounded-full">
@@ -421,226 +1009,413 @@ const EditQuotation = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {/* Order Information */}
           <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
             <h2 className="text-sm font-medium text-primary mb-3 flex items-center gap-2">
               <i className="fas fa-info-circle"></i>
               Order Information
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-1 gap-3.75">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Client Name *
-                </label>
+              <div className="relative">
+                <label className="block text-xs font-medium text-gray-600 mb-1">Search Client *</label>
                 <input
                   type="text"
-                  value={formData.client_name}
-                  onChange={(e) =>
-                    setOrderInfo({ ...formData, client_name: e.target.value })
-                  }
+                  value={clientSearchTerm}
+                  onChange={(e) => handleClientSearchChange(e.target.value)}
                   className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                  placeholder="Enter client name"
-                  required
+                  placeholder="Search by name, email, or brand"
                 />
+                {clientSearchTerm.trim() && clientSearchTerm !== formData.client_name && (
+                  <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow">
+                    {filteredClients.length > 0 ? (
+                      filteredClients.map((client) => {
+                        const brands = normalizeClientBrands(client);
+                        return (
+                          <button
+                            type="button"
+                            key={client.id}
+                            onClick={() => handleSelectClient(client)}
+                            className="w-full text-left px-2 py-2 hover:bg-primary/5 border-b border-gray-100 last:border-b-0"
+                          >
+                            <p className="text-xs font-medium text-gray-800">{client.name}</p>
+                            <p className="text-[11px] text-gray-500">{client.email || "No email"}</p>
+                            <p className="text-[11px] text-gray-400">
+                              {brands.length > 0 ? brands.join(", ") : "No brands"}
+                            </p>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <p className="px-2 py-2 text-xs text-gray-500">No matching clients found.</p>
+                    )}
+                  </div>
+                )}
               </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Client Email
-                </label>
-                <input
-                  type="email"
-                  value={formData.client_email}
-                  onChange={(e) =>
-                    setOrderInfo({ ...formData, client_email: e.target.value })
-                  }
-                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                  placeholder="Enter client email"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Brand
-                </label>
-                <input
-                  type="text"
-                  value={formData.brand}
-                  onChange={(e) =>
-                    setOrderInfo({ ...formData, brand: e.target.value })
-                  }
-                  placeholder="Enter brand name"
-                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Shirt Color
-                </label>
-                <input
-                  type="text"
-                  placeholder="Enter shirt color"
-                  value={formData.shirt_color}
-                  onChange={(e) =>
-                    setOrderInfo({ ...formData, shirt_color: e.target.value })
-                  }
-                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Free Items
-                </label>
-                <input
-                  type="text"
-                  value={formData.free_items}
-                  placeholder="Enter free items"
-                  onChange={(e) =>
-                    setOrderInfo({ ...formData, free_items: e.target.value })
-                  }
-                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                />
-              </div>
+
+              {selectedClientId && (
+                <>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Selected Client</label>
+                    <p className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
+                      {formData.client_name}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Client Email</label>
+                    <input
+                      type="email"
+                      value={formData.client_email}
+                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-700"
+                      placeholder="Auto-filled from selected client"
+                      readOnly
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Client Facebook</label>
+                    <input
+                      type="text"
+                      value={formData.client_facebook}
+                      onChange={(e) =>
+                        setOrderInfo((prev) => ({ ...prev, client_facebook: e.target.value }))
+                      }
+                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                      placeholder="Enter Facebook profile or page"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Brand</label>
+                    <select
+                      value={formData.brand}
+                      onChange={(e) =>
+                        setOrderInfo((prev) => ({ ...prev, brand: e.target.value }))
+                      }
+                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                    >
+                      {selectedClientBrands.length > 0 ? (
+                        selectedClientBrands.map((brandName) => (
+                          <option key={brandName} value={brandName}>
+                            {brandName}
+                          </option>
+                        ))
+                      ) : (
+                        <option value="">No brands available</option>
+                      )}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Shirt Color</label>
+                    <input
+                      type="text"
+                      value={formData.shirt_color}
+                      onChange={(e) =>
+                        setOrderInfo((prev) => ({ ...prev, shirt_color: e.target.value }))
+                      }
+                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                      placeholder="Enter shirt color"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium text-gray-600 mb-1">Free Items</label>
+                    <input
+                      type="text"
+                      value={formData.free_items}
+                      onChange={(e) =>
+                        setOrderInfo((prev) => ({ ...prev, free_items: e.target.value }))
+                      }
+                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                      placeholder="Enter free items"
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
-          {/* Global Configuration */}
           <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
             <h2 className="text-sm font-medium text-primary mb-3 flex items-center gap-2">
               <i className="fas fa-sliders-h"></i>
-              Global Configuration
+              Apparel Information
             </h2>
+
             <div className="grid grid-cols-1 gap-3">
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Tshirt Type *
-                </label>
-                <select
-                  value={selectedTshirtType === null ? "" : selectedTshirtType}
-                  onChange={(e) =>
-                    handleTshirtTypeChange(parseInt(e.target.value))
-                  }
-                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg"
-                >
-                  <option value="" disabled>
-                    Select Tshirt Type
-                  </option>
-                  {data.tshirtTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name} (₱{type.base_price})
-                    </option>
-                  ))}
-                </select>
+                <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">
+                  Apparel / Pattern Type
+                </h3>
               </div>
+
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Neckline *
-                </label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Search Apparel / Pattern</label>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                  placeholder="Search apparel or pattern"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-2">Apparel Tags</label>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setActiveApparelFilter("all")}
+                    className={`px-2 py-1 text-[11px] rounded-full border ${activeApparelFilter === "all" ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"}`}
+                  >
+                    All Apparel
+                  </button>
+                  {uniqueApparelNames.map((name) => (
+                    <button
+                      type="button"
+                      key={name}
+                      onClick={() => setActiveApparelFilter(name)}
+                      className={`px-2 py-1 text-[11px] rounded-full border ${activeApparelFilter === name ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"}`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-2">Pattern Tags</label>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setActivePatternFilter("all")}
+                    className={`px-2 py-1 text-[11px] rounded-full border ${activePatternFilter === "all" ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"}`}
+                  >
+                    All Pattern
+                  </button>
+                  {uniquePatternNames.map((name) => (
+                    <button
+                      type="button"
+                      key={name}
+                      onClick={() => setActivePatternFilter(name)}
+                      className={`px-2 py-1 text-[11px] rounded-full border ${activePatternFilter === name ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"}`}
+                    >
+                      {name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-2">Apparel / Pattern *</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                  {filteredApparelPatternOptions.map((option) => {
+                    const isSelected = Number(selectedApparelPatternId) === Number(option.id);
+
+                    return (
+                      <button
+                        type="button"
+                        key={option.id}
+                        onClick={() => setSelectedApparelPatternId(option.id)}
+                        className={`p-2.5 rounded-lg border text-left transition-all ${isSelected ? "border-primary bg-primary/10" : "border-gray-200 bg-white hover:border-primary/40"}`}
+                      >
+                        <p className="text-xs font-semibold text-primary">{option.label}</p>
+                        <p className="text-[11px] text-gray-500 mt-0.5">Base: ₱{option.price.toLocaleString()}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+                {filteredApparelPatternOptions.length === 0 && (
+                  <p className="text-xs text-gray-500 mt-2">No Apparel/Pattern combinations found.</p>
+                )}
+              </div>
+
+              <div className="pt-4 border-t border-gray-100">
+                <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">
+                  Miscellaneous
+                </h3>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Necklines</label>
                 <select
-                  value={selectedNeckline === null ? "" : selectedNeckline}
+                  value={formData.apparel_neckline_id}
                   onChange={(e) =>
-                    handleNecklineChange(parseInt(e.target.value))
+                    setOrderInfo((prev) => ({ ...prev, apparel_neckline_id: e.target.value }))
                   }
-                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg"
+                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                 >
-                  <option value="" disabled>
-                    Select Neckline
-                  </option>
-                  {data.necklines.map((neckline) => (
+                  <option value="">Select neckline</option>
+                  {necklineOptions.map((neckline) => (
                     <option key={neckline.id} value={neckline.id}>
-                      {neckline.name} (₱{neckline.base_price})
+                      {neckline.name} - PHP {neckline.price.toLocaleString()}
                     </option>
                   ))}
                 </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Print Type *
-                </label>
-                <select
-                  value={selectedPrintType === null ? "" : selectedPrintType}
-                  onChange={(e) =>
-                    handlePrintTypeChange(parseInt(e.target.value))
-                  }
-                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg"
-                >
-                  <option value="" disabled>
-                    Select Print Type
-                  </option>
-                  {data.printTypes.map((type) => (
-                    <option key={type.id} value={type.id}>
-                      {type.name} (₱{type.base_price})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Print Colors *
-                </label>
-                <select
-                  value={colorCount === null ? "" : colorCount}
-                  onChange={(e) =>
-                    handleColorCountChange(parseInt(e.target.value))
-                  }
-                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg"
-                  disabled={!selectedPrintType}
-                >
-                  <option value="" disabled>
-                    Select Color Count
-                  </option>
-                  {colorOptions.map((opt) => (
-                    <option key={opt.color_count} value={opt.color_count}>
-                      {opt.color_count} color{opt.color_count > 1 ? "s" : ""} (₱
-                      {opt.price})
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">
-                  Print Pattern *
-                </label>
-                <select
-                  value={
-                    selectedPrintPattern === null ? "" : selectedPrintPattern
-                  }
-                  onChange={(e) =>
-                    handlePrintPatternChange(parseInt(e.target.value))
-                  }
-                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg"
-                >
-                  <option value="" disabled>
-                    Select Print Pattern
-                  </option>
-                  {data.printPatterns.map((pattern) => (
-                    <option key={pattern.id} value={pattern.id}>
-                      {pattern.name} (+₱
-                      {quotationService
-                        .toNumber(pattern.base_price)
-                        .toLocaleString()}
-                      )
-                    </option>
-                  ))}
-                </select>
+              <div className="pt-4 border-t border-gray-100">
+                <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">
+                  Upload
+                </h3>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Parts *</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={partSearchTerm}
+                    onChange={(e) => handlePartSearchChange(e.target.value)}
+                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                    placeholder="Search apparel parts"
+                  />
+
+                  {partSearchTerm.trim() && (
+                    <div className="absolute z-20 mt-1 w-full max-h-56 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+                      {filteredApparelParts.length > 0 ? (
+                        filteredApparelParts.map((part) => (
+                          <button
+                            key={part.id}
+                            type="button"
+                            onClick={() => handleAddPart(part)}
+                            className="w-full text-left px-3 py-2 hover:bg-primary/5 border-b border-gray-100 last:border-b-0"
+                          >
+                            <p className="text-xs font-medium text-gray-800">{part.name}</p>
+                            <p className="text-[11px] text-gray-500 line-clamp-2">
+                              {part.description || "No description available"}
+                            </p>
+                          </button>
+                        ))
+                      ) : (
+                        <p className="px-3 py-2 text-xs text-gray-500">No apparel parts found.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-3 space-y-3">
+                  {selectedColors.length > 0 ? (
+                    selectedColors.map((part) => (
+                      <div key={part.colorId} className="rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold text-primary">{part.part}</p>
+                            <p className="text-[11px] text-gray-500">
+                              {part.part_description || "Selected apparel part"}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => toggleColor(part)}
+                            className="text-gray-400 hover:text-red-500"
+                            title="Remove part"
+                          >
+                            <i className="fas fa-times"></i>
+                          </button>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_150px] gap-3 items-start">
+                          <div className="space-y-2">
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => updateColorInputType(part.colorId, "file")}
+                                className={`px-2 py-1 text-[11px] rounded border ${
+                                  (part.imageInputType || "file") === "file"
+                                    ? "bg-primary text-white border-primary"
+                                    : "bg-white text-gray-600 border-gray-200"
+                                }`}
+                              >
+                                File Upload
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => updateColorInputType(part.colorId, "link")}
+                                className={`px-2 py-1 text-[11px] rounded border ${
+                                  part.imageInputType === "link"
+                                    ? "bg-primary text-white border-primary"
+                                    : "bg-white text-gray-600 border-gray-200"
+                                }`}
+                              >
+                                Link
+                              </button>
+                            </div>
+
+                            {part.imageInputType === "link" ? (
+                              <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                  Image Link
+                                </label>
+                                <input
+                                  type="url"
+                                  value={part.imageLink || ""}
+                                  onChange={(e) => updateColorLink(part.colorId, e.target.value)}
+                                  placeholder="https://example.com/image.png"
+                                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                />
+                              </div>
+                            ) : (
+                              <FileUpload
+                                label="Upload Image"
+                                name={`apparel-part-${part.colorId}`}
+                                value={part.file ? [part.file] : []}
+                                onChange={(e) => updateColorFile(part.colorId, e.target.value?.[0] || null)}
+                                acceptedTypes="image/*"
+                                multiple={false}
+                                hideUploadWhenHasFiles
+                                hidePreviewWhenEmpty
+                                className="px-0"
+                              />
+                            )}
+
+                            {!part.file && part.existingImageUrl && (
+                              <div className="rounded-lg border border-gray-200 p-2 bg-gray-50">
+                                <p className="text-[11px] text-gray-500 mb-2">Existing image</p>
+                                <a href={part.existingImageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2">
+                                  <img
+                                    src={part.existingImageUrl}
+                                    alt={part.part || "Part image"}
+                                    className="h-14 w-14 rounded border border-gray-200 object-cover bg-white"
+                                  />
+                                  <span className="text-xs text-primary hover:underline">View image</span>
+                                </a>
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="lg:pt-9 space-y-2">
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Number of Colors</label>
+                            <input
+                              type="number"
+                              min="1"
+                              max="10"
+                              value={part.colorCount || 1}
+                              onChange={(e) => updateColorCount(part.colorId, e.target.value)}
+                              className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                            />
+
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Price/Color</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={part.pricePerColor ?? 0}
+                                onChange={(e) => updateColorPrice(part.colorId, e.target.value)}
+                                className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-3 py-4 text-xs text-gray-500">
+                      Search and select apparel parts to add them here.
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Quotation Items Table */}
-       
-       
+        {hasSelections && (
+          <>
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="px-4 py-3 bg-primary/5 flex justify-between items-center">
+              <div className="px-4 py-3 bg-primary/5">
                 <h3 className="text-sm font-semibold text-primary">
                   <i className="fas fa-tshirt mr-2"></i>Quotation Items
                 </h3>
-                <button
-                  onClick={addItem}
-                  className="px-2 py-1 bg-primary text-white text-xs rounded-lg hover:bg-secondary"
-                >
-                  <i className="fas fa-plus text-xs mr-1"></i>Add Size
-                </button>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
@@ -648,89 +1423,73 @@ const EditQuotation = () => {
                     <tr>
                       <th className="px-2 py-2 text-left">Size</th>
                       <th className="px-2 py-2 text-right w-20">Qty</th>
-                      <th className="px-2 py-2 text-right w-20">Price/Pc</th>
-                      <th className="px-2 py-2 text-right w-20">Amount</th>
-                      <th className="px-2 py-2 text-center w-8"></th>
+                      <th className="px-2 py-2 text-right w-28">Unit Price</th>
+                      <th className="px-2 py-2 text-right w-28">Price/Pc</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {items.map((item) => {
-                      const { pricePerPiece, total } =
-                        quotationService.calculateItem(
-                          data,
-                          item,
-                          colorCount || 1,
-                        );
                       return (
                         <tr key={item.id} className="hover:bg-light/30">
                           <td className="px-2 py-1.5">
-                            <select
-                              value={item.size_id}
+                            <input
+                              type="text"
+                              value={item.size_label || ""}
                               onChange={(e) =>
-                                updateItem(
-                                  item.id,
-                                  "size_id",
-                                  parseInt(e.target.value),
-                                )
+                                updateItem(item.id, "size_label", e.target.value)
                               }
                               className="w-full px-1 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
-                            >
-                              {data.sizes.map((size) => (
-                                <option key={size.id} value={size.id}>
-                                  {size.name}
-                                </option>
-                              ))}
-                            </select>
+                            />
                           </td>
                           <td className="px-2 py-1.5">
                             <input
                               type="number"
                               min="0"
-                              value={item.quantity}
+                              value={item.quantity ?? 0}
                               onChange={(e) =>
                                 updateItem(
                                   item.id,
                                   "quantity",
-                                  parseInt(e.target.value) || 0,
+                                  Math.max(0, parseInt(e.target.value, 10) || 0),
                                 )
                               }
                               className="w-full px-1 py-1 text-xs text-right border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
                             />
                           </td>
-                          <td className="px-2 py-1.5 text-right font-mono">
-                            ₱{(pricePerPiece || 0).toLocaleString()}
+                          <td className="px-2 py-1.5">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={item.unit_price ?? 0}
+                              onChange={(e) =>
+                                updateItem(
+                                  item.id,
+                                  "unit_price",
+                                  Math.max(0, parseFloat(e.target.value) || 0),
+                                )
+                              }
+                              className="w-full px-1 py-1 text-xs text-right border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
+                            />
                           </td>
-                          <td className="px-2 py-1.5 text-right font-semibold text-primary">
-                            ₱{(total || 0).toLocaleString()}
-                          </td>
-                          <td className="px-2 py-1.5 text-center">
-                            <button
-                              onClick={() => removeItem(item.id)}
-                              className="text-gray-400 hover:text-red-500"
-                            >
-                              <i className="fas fa-trash-alt text-xs"></i>
-                            </button>
+                          <td className="px-2 py-1.5">
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={itemDetails.find((detail) => detail.id === item.id)?.pricePerPiece ?? 0}
+                              className="w-full px-1 py-1 text-xs text-right border border-gray-200 rounded bg-gray-50 text-gray-600"
+                              readOnly
+                            />
                           </td>
                         </tr>
                       );
                     })}
                   </tbody>
-                  <tfoot className="bg-primary/5 border-t border-gray-200">
-                    <tr>
-                      <td colSpan="3" className="px-2 py-2 text-right font-semibold">
-                        Total:
-                      </td>
-                      <td className="px-2 py-2 text-right font-bold text-primary">
-                        ₱{totalAmount.toLocaleString()}
-                      </td>
-                      <td></td>
-                    </tr>
-                  </tfoot>
                 </table>
               </div>
             </div>
 
-            {/* Addons Section */}
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <div className="px-4 py-3 bg-primary/5">
                 <h3 className="text-sm font-semibold text-primary">
@@ -741,22 +1500,19 @@ const EditQuotation = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {data.addonCategories.map((category) => (
                     <div key={category.id}>
-                      <h4 className="text-xs font-medium text-gray-700 mb-2">
-                        {category.name}
-                      </h4>
+                      <h4 className="text-xs font-medium text-gray-700 mb-2">{category.name}</h4>
                       <div className="space-y-2">
                         {data.addons
                           .filter((a) => a.category_id === category.id)
                           .map((addon) => (
                             <button
+                              type="button"
                               key={addon.id}
                               onClick={() => toggleAddon(addon.id)}
                               className={`w-full p-2 rounded-lg border transition-all text-left ${selectedAddons.includes(addon.id) ? "bg-primary text-white border-primary" : "bg-white text-gray-700 border-gray-200"}`}
                             >
                               <div className="flex justify-between items-center">
-                                <span className="text-xs font-medium">
-                                  {addon.name}
-                                </span>
+                                <span className="text-xs font-medium">{addon.name}</span>
                                 {selectedAddons.includes(addon.id) && (
                                   <i className="fas fa-check-circle text-xs"></i>
                                 )}
@@ -775,9 +1531,9 @@ const EditQuotation = () => {
               </div>
             </div>
 
-            {/* Cost Breakdown */}
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
               <button
+                type="button"
                 onClick={() => setIsCostBreakdownOpen(!isCostBreakdownOpen)}
                 className="w-full px-4 py-3 bg-primary/5 flex justify-between items-center hover:bg-primary/10"
               >
@@ -789,17 +1545,13 @@ const EditQuotation = () => {
                     <i className="fas fa-receipt mr-2"></i>Cost Breakdown
                   </h3>
                 </div>
-                <span className="text-sm font-bold text-primary">
-                  ₱{totalAmount.toLocaleString()}
-                </span>
+                <span className="text-sm font-bold text-primary">₱{subtotal.toLocaleString()}</span>
               </button>
 
               {isCostBreakdownOpen && (
                 <div className="p-4">
                   <div className="mb-6">
-                    <h4 className="text-xs font-semibold text-gray-700 mb-3">
-                      Items Breakdown
-                    </h4>
+                    <h4 className="text-xs font-semibold text-gray-700 mb-3">Items Breakdown</h4>
                     <div className="bg-light/30 rounded-lg overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
@@ -807,12 +1559,10 @@ const EditQuotation = () => {
                             <tr className="text-left">
                               <th className="px-3 py-2">Size</th>
                               <th className="px-3 py-2 text-center">Qty</th>
-                              <th className="px-3 py-2 text-right">Tshirt</th>
-                              <th className="px-3 py-2 text-right">Size+</th>
+                              <th className="px-3 py-2 text-right">Apparel/Pattern</th>
                               <th className="px-3 py-2 text-right">Neckline</th>
-                              <th className="px-3 py-2 text-right">Print Type</th>
-                              <th className="px-3 py-2 text-right">Print Color</th>
-                              <th className="px-3 py-2 text-right">Pattern</th>
+                              <th className="px-3 py-2 text-right">Color Prices</th>
+                              <th className="px-3 py-2 text-right">Unit Price</th>
                               <th className="px-3 py-2 text-right">Price/Pc</th>
                               <th className="px-3 py-2 text-right">Total</th>
                             </tr>
@@ -820,40 +1570,27 @@ const EditQuotation = () => {
                           <tbody className="divide-y divide-gray-100">
                             {itemDetails.map((item) => {
                               const sizeName =
-                                data.sizes.find((s) => s.id === item.size_id)
+                                sizeOptions.find((s) => Number(s.id) === Number(item.size_id))
                                   ?.name || "Unknown";
+
                               return (
                                 <tr key={item.id} className="hover:bg-white/50">
-                                  <td className="px-3 py-2 font-medium text-primary">
-                                    {sizeName}
-                                  </td>
-                                  <td className="px-3 py-2 text-center">
-                                    {item.quantity}
-                                  </td>
+                                  <td className="px-3 py-2 font-medium text-primary">{sizeName}</td>
+                                  <td className="px-3 py-2 text-center">{item.quantity}</td>
                                   <td className="px-3 py-2 text-right">
-                                    ₱{quotationService.getTshirtPrice(data.tshirtTypes, item.tshirt_type_id).toLocaleString()}
+                                    ₱
+                                    {quotationService
+                                      .getApparelPatternPrice(
+                                        data.apparelPatternPrices,
+                                        item.apparel_pattern_price_id,
+                                      )
+                                      .toLocaleString()}
                                   </td>
-                                  <td className="px-3 py-2 text-right">
-                                    ₱{quotationService.getSizePrice(data.sizePrices, item.tshirt_type_id, item.size_id).toLocaleString()}
-                                  </td>
-                                  <td className="px-3 py-2 text-right">
-                                    ₱{quotationService.getNecklinePrice(data.necklines, item.neckline_id).toLocaleString()}
-                                  </td>
-                                  <td className="px-3 py-2 text-right">
-                                    ₱{quotationService.getPrintTypePrice(data.printTypes, item.print_type_id).toLocaleString()}
-                                  </td>
-                                  <td className="px-3 py-2 text-right">
-                                    ₱{quotationService.getPrintColorPrice(data.printColors, item.print_type_id, colorCount || 1).toLocaleString()}
-                                  </td>
-                                  <td className="px-3 py-2 text-right">
-                                    ₱{quotationService.getPrintPatternPrice(data.printPatterns, item.print_pattern_id).toLocaleString()}
-                                  </td>
-                                  <td className="px-3 py-2 text-right font-semibold">
-                                    ₱{item.pricePerPiece.toLocaleString()}
-                                  </td>
-                                  <td className="px-3 py-2 text-right font-bold text-primary">
-                                    ₱{item.total.toLocaleString()}
-                                  </td>
+                                  <td className="px-3 py-2 text-right">₱{item.necklinePrice.toLocaleString()}</td>
+                                  <td className="px-3 py-2 text-right">₱{item.colorPrice.toLocaleString()}</td>
+                                  <td className="px-3 py-2 text-right">₱{item.unitPrice.toLocaleString()}</td>
+                                  <td className="px-3 py-2 text-right font-semibold">₱{item.pricePerPiece.toLocaleString()}</td>
+                                  <td className="px-3 py-2 text-right font-bold text-primary">₱{item.total.toLocaleString()}</td>
                                 </tr>
                               );
                             })}
@@ -863,11 +1600,66 @@ const EditQuotation = () => {
                     </div>
                   </div>
 
+                  <div className="mt-8 mb-6">
+                    <h4 className="text-xs font-semibold text-gray-700 mb-3">Sample Breakdown</h4>
+                    <div className="bg-light/30 rounded-lg overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead className="bg-light/50 border-b border-gray-200">
+                            <tr className="text-left">
+                              <th className="px-3 py-2">Sample Apparel</th>
+                              <th className="px-3 py-2 text-right">Unit Price</th>
+                              <th className="px-3 py-2 text-right">Quantity</th>
+                              <th className="px-3 py-2 text-right">Price/Pc</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            <tr className="hover:bg-white/50">
+                              <td className="px-3 py-2 font-medium text-primary">
+                                {selectedApparelPattern?.label || "No apparel/pattern selected"}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={sampleBreakdown.unit_price}
+                                  onChange={(e) =>
+                                    setSampleBreakdown((prev) => ({
+                                      ...prev,
+                                      unit_price: Math.max(0, parseFloat(e.target.value) || 0),
+                                    }))
+                                  }
+                                  className="w-24 ml-auto px-2 py-1 text-xs text-right border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
+                                />
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <input
+                                  type="number"
+                                  min="0"
+                                  value={sampleBreakdown.quantity}
+                                  onChange={(e) =>
+                                    setSampleBreakdown((prev) => ({
+                                      ...prev,
+                                      quantity: Math.max(0, parseInt(e.target.value, 10) || 0),
+                                    }))
+                                  }
+                                  className="w-20 ml-auto px-2 py-1 text-xs text-right border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
+                                />
+                              </td>
+                              <td className="px-3 py-2 text-right font-semibold text-primary">
+                                ₱{sampleBreakdownTotal.toLocaleString()}
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+
                   {addonDetails.length > 0 && (
                     <div className="mb-6">
-                      <h4 className="text-xs font-semibold text-gray-700 mb-3">
-                        Addons Breakdown
-                      </h4>
+                      <h4 className="text-xs font-semibold text-gray-700 mb-3">Addons Breakdown</h4>
                       <div className="bg-light/30 rounded-lg overflow-hidden">
                         <div className="overflow-x-auto">
                           <table className="w-full text-xs">
@@ -886,15 +1678,9 @@ const EditQuotation = () => {
                                     <i className="fas fa-tag text-primary/60 mr-2"></i>
                                     {addon.name}
                                   </td>
-                                  <td className="px-3 py-2 text-right">
-                                    ₱{addon.price_per_piece.toLocaleString()}
-                                  </td>
-                                  <td className="px-3 py-2 text-right">
-                                    {addon.quantity}
-                                  </td>
-                                  <td className="px-3 py-2 text-right font-semibold text-primary">
-                                    ₱{addon.total.toLocaleString()}
-                                  </td>
+                                  <td className="px-3 py-2 text-right">₱{addon.price_per_piece.toLocaleString()}</td>
+                                  <td className="px-3 py-2 text-right">{addon.quantity}</td>
+                                  <td className="px-3 py-2 text-right font-semibold text-primary">₱{addon.total.toLocaleString()}</td>
                                 </tr>
                               ))}
                             </tbody>
@@ -907,21 +1693,16 @@ const EditQuotation = () => {
               )}
             </div>
 
-            {/* Discount Section */}
             <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
               <h2 className="text-sm font-medium text-primary mb-3">
                 <i className="fas fa-tag mr-2"></i>Discount
               </h2>
               <div className="flex flex-col sm:flex-row gap-3">
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Discount Type
-                  </label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Discount Type</label>
                   <select
                     value={discount.type}
-                    onChange={(e) =>
-                      setDiscount({ ...discount, type: e.target.value })
-                    }
+                    onChange={(e) => setDiscount({ ...discount, type: e.target.value })}
                     className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                   >
                     <option value="percentage">Percentage (%)</option>
@@ -929,9 +1710,7 @@ const EditQuotation = () => {
                   </select>
                 </div>
                 <div className="flex-1">
-                  <label className="block text-xs font-medium text-gray-600 mb-1">
-                    Discount Value
-                  </label>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Discount Value</label>
                   <input
                     type="number"
                     min="0"
@@ -944,18 +1723,14 @@ const EditQuotation = () => {
                       })
                     }
                     className="w-full px-3 py-2 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                    placeholder={
-                      discount.type === "percentage" ? "e.g., 10" : "e.g., 500"
-                    }
+                    placeholder={discount.type === "percentage" ? "e.g., 10" : "e.g., 500"}
                   />
                 </div>
                 {discount.value > 0 && (
                   <div className="flex-1 flex items-end">
                     <div className="w-full bg-green-50 rounded-lg p-2 border border-green-200">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs text-green-700">
-                          Discount Applied:
-                        </span>
+                        <span className="text-xs text-green-700">Discount Applied:</span>
                         <span className="text-sm font-semibold text-green-700">
                           - ₱{discountAmount.toLocaleString()}
                         </span>
@@ -966,9 +1741,8 @@ const EditQuotation = () => {
               </div>
             </div>
 
-            {/* Payment Summary */}
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="px-4 py-3 bg-gradient-to-r from-primary/5 to-primary/10">
+              <div className="px-4 py-3 bg-linear-to-r from-primary/5 to-primary/10">
                 <h3 className="text-sm font-semibold text-primary">
                   <i className="fas fa-receipt mr-2"></i>Payment Summary
                 </h3>
@@ -991,9 +1765,7 @@ const EditQuotation = () => {
                         <span className="text-xs text-gray-500">
                           Discount ({discount.type === "percentage" ? `${discount.value}%` : "Fixed"})
                         </span>
-                        <span className="text-sm font-medium text-red-600">
-                          - ₱{discountAmount.toLocaleString()}
-                        </span>
+                        <span className="text-sm font-medium text-red-600">- ₱{discountAmount.toLocaleString()}</span>
                       </div>
                     )}
                   </div>
@@ -1032,7 +1804,6 @@ const EditQuotation = () => {
               </div>
             </div>
 
-            {/* Notes */}
             <div className="bg-white rounded-lg border border-gray-200 p-3">
               <h2 className="text-sm font-medium text-primary mb-2 flex items-center gap-2">
                 <i className="fas fa-pencil-alt"></i>
@@ -1040,36 +1811,52 @@ const EditQuotation = () => {
               </h2>
               <textarea
                 value={formData.notes}
-                onChange={(e) =>
-                  setOrderInfo({ ...formData, notes: e.target.value })
-                }
+                onChange={(e) => setOrderInfo({ ...formData, notes: e.target.value })}
                 rows={3}
                 className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary resize-y"
                 placeholder="Additional notes or special instructions..."
               />
             </div>
-       
-    
+          </>
+        )}
 
+        {!hasSelections && (
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
             <i className="fas fa-info-circle text-yellow-600 mr-2"></i>
             <span className="text-sm text-yellow-700">
-              Please select all configuration options above to edit the quotation.
+              Select an Apparel/Pattern and at least one part to edit this quotation.
             </span>
           </div>
-      
+        )}
 
-        {/* Action Buttons */}
         <div className="flex justify-end gap-2 pt-2">
           <button
+            type="button"
             onClick={() => navigate("/quotations")}
             className="px-3 py-1.5 rounded-md border border-gray-200 text-xs text-gray-600 hover:bg-gray-50"
           >
             <i className="fas fa-times mr-1"></i>Cancel
           </button>
           <button
+            type="button"
+            onClick={handleGenerateShareUploadLink}
+            disabled={isGeneratingShareLink || saving}
+            className="px-3 py-1.5 rounded-md border border-primary/40 bg-primary/5 text-primary hover:bg-primary/10 text-xs disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isGeneratingShareLink ? (
+              <>
+                <i className="fas fa-spinner fa-spin mr-1"></i>Generating Link...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-link mr-1"></i>Share Upload Link
+              </>
+            )}
+          </button>
+          <button
+            type="button"
             onClick={handleUpdate}
-            disabled={saving }
+            disabled={saving || !hasSelections || items.length === 0}
             className="px-3 py-1.5 rounded-md bg-primary text-white hover:bg-secondary text-xs disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {saving ? (

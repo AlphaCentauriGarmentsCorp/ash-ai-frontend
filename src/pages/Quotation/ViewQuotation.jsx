@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from "react";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import { quotationApi } from "../../api/quotationApi";
+import { apparelTypeApi } from "../../api/apparelTypeApi";
+import { patternTypeApi } from "../../api/patternTypeApi";
+import { apparelNecklineApi } from "../../api/apparelNecklineApi";
 import { useParams, useNavigate } from "react-router-dom";
 
 const ViewQuotation = () => {
@@ -11,6 +14,54 @@ const ViewQuotation = () => {
   const [error, setError] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  const parseJsonField = (value, fallback) => {
+    if (value === null || value === undefined || value === "") return fallback;
+    if (typeof value === "string") {
+      try {
+        return JSON.parse(value);
+      } catch {
+        return fallback;
+      }
+    }
+    return value;
+  };
+
+  const normalizeApiRecord = (response) => response?.data || response || null;
+
+  const toId = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    const numeric = Number(value);
+    return Number.isNaN(numeric) ? null : numeric;
+  };
+
+  const resolveImageUrl = (part) => {
+    const rawPath = String(
+      part?.image_link || part?.image_url || part?.image_path || part?.image || "",
+    ).trim();
+
+    if (!rawPath) return "";
+    if (rawPath.startsWith("http") || rawPath.startsWith("data:")) return rawPath;
+
+    const apiUrl = import.meta.env.VITE_API_URL || "";
+    let origin = "";
+    try {
+      origin = new URL(apiUrl).origin;
+    } catch {
+      origin = "";
+    }
+
+    if (rawPath.startsWith("/storage/")) {
+      return origin ? `${origin}${rawPath}` : rawPath;
+    }
+
+    if (rawPath.startsWith("storage/")) {
+      return origin ? `${origin}/${rawPath}` : `/${rawPath}`;
+    }
+
+    const cleanedPath = rawPath.replace(/^\/+/, "");
+    return origin ? `${origin}/storage/${cleanedPath}` : `/storage/${cleanedPath}`;
+  };
+
   useEffect(() => {
     fetchQuotation();
   }, [id]);
@@ -20,7 +71,37 @@ const ViewQuotation = () => {
     setError(null);
     try {
       const response = await quotationApi.show(id);
-      setQuotation(response.data);
+      const quotationData = response.data || {};
+
+      const parsedItemConfig = parseJsonField(
+        quotationData.item_config_json,
+        quotationData.item_config || {},
+      );
+
+      const apparelTypeId = toId(
+        parsedItemConfig.apparel_type_id || quotationData.apparel_type_id,
+      );
+      const patternTypeId = toId(
+        parsedItemConfig.pattern_type_id || quotationData.pattern_type_id,
+      );
+      const necklineId = toId(
+        quotationData.apparel_neckline_id || quotationData.neckline_id,
+      );
+
+      const [apparelTypeRecord, patternTypeRecord, necklineRecord] = await Promise.all([
+        apparelTypeId ? apparelTypeApi.show(apparelTypeId).then(normalizeApiRecord).catch(() => null) : null,
+        patternTypeId ? patternTypeApi.show(patternTypeId).then(normalizeApiRecord).catch(() => null) : null,
+        necklineId ? apparelNecklineApi.show(necklineId).then(normalizeApiRecord).catch(() => null) : null,
+      ]);
+
+      setQuotation({
+        ...quotationData,
+        _resolvedMeta: {
+          apparel_type_name: apparelTypeRecord?.name || null,
+          pattern_type_name: patternTypeRecord?.name || null,
+          apparel_neckline_name: necklineRecord?.name || null,
+        },
+      });
     } catch (err) {
       console.error("Failed to fetch quotation:", err);
       setError("Failed to load quotation. Please try again.");
@@ -69,7 +150,8 @@ const handleDownloadPDF = async () => {
   };
 
   const formatCurrency = (amount) => {
-    return `₱${(amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const value = Number(amount) || 0;
+    return `₱${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const formatDate = (dateString) => {
@@ -113,12 +195,59 @@ const handleDownloadPDF = async () => {
     );
   }
 
-  const items = quotation.items || [];
-  const addons = quotation.addons || [];
-  const breakdown = quotation.breakdown || { items: [] };
-  const subtotal = quotation.subtotal || 0;
-  const discountAmount = quotation.discount_price || 0;
-  const grandTotal = quotation.grand_total || 0;
+  const items = Array.isArray(quotation.items) && quotation.items.length > 0
+    ? quotation.items
+    : parseJsonField(quotation.items_json, []);
+  const itemConfig = parseJsonField(quotation.item_config_json, {}) || quotation.item_config || {};
+  const addons = Array.isArray(quotation.addons) && quotation.addons.length > 0
+    ? quotation.addons
+    : parseJsonField(quotation.addons_json, []);
+  const printParts = Array.isArray(quotation.print_parts) && quotation.print_parts.length > 0
+    ? quotation.print_parts
+    : parseJsonField(quotation.print_parts_json, []);
+  const breakdown = parseJsonField(quotation.breakdown, null)
+    || parseJsonField(quotation.breakdown_json, { items: [], sample_breakdown: {} });
+  const breakdownItems = Array.isArray(breakdown?.items) ? breakdown.items : [];
+  const sampleBreakdown = breakdown?.sample_breakdown || {};
+
+  const resolveNameOrId = (name, id) => {
+    if (name) return name;
+    if (id !== null && id !== undefined && id !== "") return `#${id}`;
+    return "N/A";
+  };
+
+  const apparelName = resolveNameOrId(
+    quotation._resolvedMeta?.apparel_type_name || quotation.apparel_type_name || quotation.apparel_type?.name,
+    itemConfig.apparel_type_id || quotation.apparel_type_id,
+  );
+  const patternTypeName = resolveNameOrId(
+    quotation._resolvedMeta?.pattern_type_name || quotation.pattern_type_name || quotation.pattern_type?.name,
+    itemConfig.pattern_type_id || quotation.pattern_type_id,
+  );
+  const necklineName = resolveNameOrId(
+    quotation._resolvedMeta?.apparel_neckline_name || quotation.apparel_neckline_name || quotation.neckline_name || quotation.apparel_neckline?.name,
+    quotation.apparel_neckline_id || quotation.neckline_id,
+  );
+
+  const itemsSubtotal = items.length > 0
+    ? items.reduce(
+      (sum, item) =>
+        sum +
+        (Number(item.total_amount)
+          || Number(item.total)
+          || ((Number(item.price_per_piece) || 0) * (Number(item.quantity) || 0))),
+      0,
+    )
+    : breakdownItems.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+
+  const addonsTotal = addons.reduce((sum, addon) => sum + (Number(addon.total) || 0), 0);
+  const sampleTotal =
+    Number(sampleBreakdown.price_per_piece)
+    || ((Number(sampleBreakdown.unit_price) || 0) * (Number(sampleBreakdown.quantity) || 0));
+
+  const subtotal = Number(quotation.subtotal) || (itemsSubtotal + addonsTotal + sampleTotal);
+  const discountAmount = Number(quotation.discount_price) || 0;
+  const grandTotal = Number(quotation.grand_total) || Math.max(subtotal - discountAmount, 0);
   const downPayment = grandTotal * 0.6;
   const balance = grandTotal * 0.4;
 
@@ -195,72 +324,78 @@ const handleDownloadPDF = async () => {
             </div>
           </div>
 
-          {/* Items Table */}
+          {/* Apparel Information */}
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
               <i className="fas fa-tshirt"></i>
-              Order Items
+              Apparel Information
             </h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+              <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
+                <p className="text-[11px] text-gray-500 uppercase tracking-wide">Apparel</p>
+                <p className="text-sm font-semibold text-gray-800 mt-1">{apparelName}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
+                <p className="text-[11px] text-gray-500 uppercase tracking-wide">Pattern Type</p>
+                <p className="text-sm font-semibold text-gray-800 mt-1">{patternTypeName}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
+                <p className="text-[11px] text-gray-500 uppercase tracking-wide">Neckline</p>
+                <p className="text-sm font-semibold text-gray-800 mt-1">{necklineName}</p>
+              </div>
+            </div>
+
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-light/50 border-b border-gray-200">
                   <tr>
-                    <th className="px-3 py-2 text-left">Size</th>
-                    <th className="px-3 py-2 text-left">Tshirt Type</th>
-                    <th className="px-3 py-2 text-left">Neckline</th>
-                    <th className="px-3 py-2 text-left">Print Type</th>
-                    <th className="px-3 py-2 text-left">Pattern</th>
-                    <th className="px-3 py-2 text-right">Qty</th>
-                    <th className="px-3 py-2 text-right">Price/Pc</th>
-                    <th className="px-3 py-2 text-right">Amount</th>
+                    <th className="px-3 py-2 text-left">Part</th>
+                    <th className="px-3 py-2 text-left">Uploaded Image</th>
+                    <th className="px-3 py-2 text-right"># of Colors</th>
+                    <th className="px-3 py-2 text-right">Price/Color</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
-                  {items.length > 0 ? (
-                    items.map((item, idx) => (
+                  {Array.isArray(printParts) && printParts.length > 0 ? (
+                    printParts.map((part, idx) => {
+                      const imageUrl = resolveImageUrl(part);
+                      const partName = part.part || part.name || (part.part_id ? `Part #${part.part_id}` : "Unknown Part");
+
+                      return (
                       <tr key={idx} className="hover:bg-light/30">
-                        <td className="px-3 py-2">{item.size || item.size_id}</td>
-                        <td className="px-3 py-2">{item.tshirt_type || item.tshirt_type_id}</td>
-                        <td className="px-3 py-2">{item.neckline || item.neckline_id}</td>
-                        <td className="px-3 py-2">{item.print_type || item.print_type_id}</td>
-                        <td className="px-3 py-2">{item.print_pattern || item.print_pattern_id}</td>
-                        <td className="px-3 py-2 text-right">{item.quantity}</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(item.price_per_piece)}</td>
-                        <td className="px-3 py-2 text-right font-semibold text-primary">
-                          {formatCurrency(item.total_amount || item.total)}
+                        <td className="px-3 py-2 font-medium text-gray-800">{partName}</td>
+                        <td className="px-3 py-2">
+                          {imageUrl ? (
+                            <a
+                              href={imageUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex items-center gap-2"
+                            >
+                              <img
+                                src={imageUrl}
+                                alt={partName}
+                                className="h-10 w-10 rounded border border-gray-200 object-cover bg-white"
+                              />
+                              <span className="text-xs text-primary hover:underline">View image</span>
+                            </a>
+                          ) : (
+                            <span className="text-xs text-gray-400">No uploaded image</span>
+                          )}
                         </td>
+                        <td className="px-3 py-2 text-right">{Number(part.color_count ?? part.colorCount) || 0}</td>
+                        <td className="px-3 py-2 text-right font-semibold text-primary">{formatCurrency(part.price_per_color ?? part.pricePerColor)}</td>
                       </tr>
-                    ))
-                  ) : breakdown.items?.length > 0 ? (
-                    breakdown.items.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-light/30">
-                        <td className="px-3 py-2">{item.size || "N/A"}</td>
-                        <td className="px-3 py-2" colSpan="4">-</td>
-                        <td className="px-3 py-2 text-right">{item.quantity}</td>
-                        <td className="px-3 py-2 text-right">{formatCurrency(item.price_per_piece)}</td>
-                        <td className="px-3 py-2 text-right font-semibold text-primary">
-                          {formatCurrency(item.total)}
-                        </td>
-                      </tr>
-                    ))
+                      );
+                    })
                   ) : (
                     <tr>
-                      <td colSpan="8" className="px-3 py-8 text-center text-gray-400">
-                        No items found
+                      <td colSpan="4" className="px-3 py-8 text-center text-gray-400">
+                        No parts found
                       </td>
                     </tr>
                   )}
                 </tbody>
-                <tfoot className="bg-primary/5 border-t border-gray-200">
-                  <tr>
-                    <td colSpan="7" className="px-3 py-2 text-right font-semibold">
-                      Subtotal (Items):
-                    </td>
-                    <td className="px-3 py-2 text-right font-bold text-primary">
-                      {formatCurrency(subtotal)}
-                    </td>
-                  </tr>
-                </tfoot>
               </table>
             </div>
           </div>
@@ -300,7 +435,7 @@ const handleDownloadPDF = async () => {
           )}
 
           {/* Cost Breakdown (Detailed) */}
-          {breakdown.items && breakdown.items.length > 0 && (
+          {breakdownItems.length > 0 && (
             <div className="p-6 border-b border-gray-200 bg-light/10">
               <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
                 <i className="fas fa-receipt"></i>
@@ -312,31 +447,58 @@ const handleDownloadPDF = async () => {
                     <tr>
                       <th className="px-2 py-1.5 text-left">Size</th>
                       <th className="px-2 py-1.5 text-center">Qty</th>
-                      <th className="px-2 py-1.5 text-right">Tshirt</th>
-                      <th className="px-2 py-1.5 text-right">Size+</th>
+                      <th className="px-2 py-1.5 text-right">Apparel/Pattern</th>
                       <th className="px-2 py-1.5 text-right">Neckline</th>
-                      <th className="px-2 py-1.5 text-right">Print Type</th>
-                      <th className="px-2 py-1.5 text-right">Print Color</th>
-                      <th className="px-2 py-1.5 text-right">Pattern</th>
+                      <th className="px-2 py-1.5 text-right">Color Prices</th>
+                      <th className="px-2 py-1.5 text-right">Unit Price</th>
                       <th className="px-2 py-1.5 text-right">Price/Pc</th>
                       <th className="px-2 py-1.5 text-right">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {breakdown.items.map((item, idx) => (
+                    {breakdownItems.map((item, idx) => (
                       <tr key={idx} className="hover:bg-white/50">
                         <td className="px-2 py-1.5 font-medium text-primary">{item.size}</td>
                         <td className="px-2 py-1.5 text-center">{item.quantity}</td>
-                        <td className="px-2 py-1.5 text-right">{formatCurrency(item.tshirt_price)}</td>
-                        <td className="px-2 py-1.5 text-right">{formatCurrency(item.size_price)}</td>
+                        <td className="px-2 py-1.5 text-right">{formatCurrency(item.apparel_pattern_price)}</td>
                         <td className="px-2 py-1.5 text-right">{formatCurrency(item.neckline_price)}</td>
-                        <td className="px-2 py-1.5 text-right">{formatCurrency(item.print_type_price)}</td>
-                        <td className="px-2 py-1.5 text-right">{formatCurrency(item.print_color_price)}</td>
-                        <td className="px-2 py-1.5 text-right">{formatCurrency(item.print_pattern_price)}</td>
+                        <td className="px-2 py-1.5 text-right">{formatCurrency(item.color_price)}</td>
+                        <td className="px-2 py-1.5 text-right">{formatCurrency(item.unit_price)}</td>
                         <td className="px-2 py-1.5 text-right font-semibold">{formatCurrency(item.price_per_piece)}</td>
                         <td className="px-2 py-1.5 text-right font-bold text-primary">{formatCurrency(item.total)}</td>
                       </tr>
                     ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {(sampleBreakdown.sample_apparel || sampleTotal > 0) && (
+            <div className="p-6 border-b border-gray-200 bg-light/10">
+              <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                <i className="fas fa-vial"></i>
+                Sample Breakdown
+              </h2>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="bg-light/50 border-b border-gray-200">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Sample Apparel</th>
+                      <th className="px-3 py-2 text-right">Unit Price</th>
+                      <th className="px-3 py-2 text-right">Quantity</th>
+                      <th className="px-3 py-2 text-right">Price/Pc</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    <tr className="hover:bg-white/50">
+                      <td className="px-3 py-2 font-medium text-primary">
+                        {sampleBreakdown.sample_apparel || "No sample apparel provided"}
+                      </td>
+                      <td className="px-3 py-2 text-right">{formatCurrency(sampleBreakdown.unit_price)}</td>
+                      <td className="px-3 py-2 text-right">{Number(sampleBreakdown.quantity) || 0}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-primary">{formatCurrency(sampleTotal)}</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -349,15 +511,25 @@ const handleDownloadPDF = async () => {
               <div className="w-full md:w-96">
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal (Items):</span>
-                    <span>{formatCurrency(subtotal)}</span>
+                    <span className="text-gray-600">Items Total:</span>
+                    <span>{formatCurrency(itemsSubtotal)}</span>
                   </div>
                   {addons.length > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">Addons Total:</span>
-                      <span>{formatCurrency(addons.reduce((sum, a) => sum + (a.total || 0), 0))}</span>
+                      <span>{formatCurrency(addonsTotal)}</span>
                     </div>
                   )}
+                  {sampleTotal > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600">Sample Total:</span>
+                      <span>{formatCurrency(sampleTotal)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Subtotal:</span>
+                    <span>{formatCurrency(subtotal)}</span>
+                  </div>
                   {discountAmount > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-600">

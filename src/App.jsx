@@ -18,6 +18,9 @@ import EditPatternType from "./pages/DropDownSettings/PatternType/EditPatternTyp
 import ApparelType from "./pages/DropDownSettings/ApparelType/ApparelType";
 import AddApparelType from "./pages/DropDownSettings/ApparelType/AddApparelType";
 import EditApparelType from "./pages/DropDownSettings/ApparelType/EditApparelType";
+import ApparelParts from "./pages/DropDownSettings/ApparelParts/ApparelParts";
+import AddApparelParts from "./pages/DropDownSettings/ApparelParts/AddApparelParts";
+import EditApparelParts from "./pages/DropDownSettings/ApparelParts/EditApparelParts";
 import ServiceTypeList from "./pages/DropDownSettings/ServiceType/ServiceType";
 import AddServiceType from "./pages/DropDownSettings/ServiceType/AddServiceType";
 import EditServiceType from "./pages/DropDownSettings/ServiceType/EditServiceType";
@@ -72,41 +75,21 @@ import AllScreen from "./pages/ScreenInventory/AllScreen";
 import EditScreen from "./pages/ScreenInventory/EditScreen";
 import Quotation from "./pages/Quotation/Quotation";
 
-import TshirtType from "./pages/QuotationSettings/TshirtTypes/TshirtType";
-import AddTshirtType from "./pages/QuotationSettings/TshirtTypes/AddTshirtType";
-import EditTshirtType from "./pages/QuotationSettings/TshirtTypes/EditTshirtType";
-
-import TshirtNecklines from "./pages/QuotationSettings/TshirtNecklines/TshirtNecklines";
-import AddTshirtNecklines from "./pages/QuotationSettings/TshirtNecklines/AddTshirtNecklines";
-import EditTshirtNecklines from "./pages/QuotationSettings/TshirtNecklines/EditTshirtNecklines";
-
-import PrintTypes from "./pages/QuotationSettings/PrintTypes/PrintTypesPage";
-import AddPrintTypes from "./pages/QuotationSettings/PrintTypes/AddPrintTypes";
-import EditPrintTypes from "./pages/QuotationSettings/PrintTypes/EditPrintTypes";
-
-import PrintPatterns from "./pages/QuotationSettings/PrintPattern/PrintPattern";
-import AddPrintPatterns from "./pages/QuotationSettings/PrintPattern/AddPrintPatterns";
-import EditPrintPatterns from "./pages/QuotationSettings/PrintPattern/EditPrintPatterns";
-
-import TshirtSizesPage from "./pages/QuotationSettings/TshirtSizes/TshirtSizesPage";
-import AddTshirtSizes from "./pages/QuotationSettings/TshirtSizes/AddTshirtSizes";
-import EditTshirtSizes from "./pages/QuotationSettings/TshirtSizes/EditTshirtSizes";
 
 import AddonCategoriesPage from "./pages/QuotationSettings/AddonCategories/AddonCategoriesPage";
 import AddAddonCategories from "./pages/QuotationSettings/AddonCategories/AddAddonCategories";
 import EditAddonCategories from "./pages/QuotationSettings/AddonCategories/EditAddonCategories";
 
-import SizePricesPage from "./pages/QuotationSettings/SizePrices/SizePricesPage";
-import AddSizePrices from "./pages/QuotationSettings/SizePrices/AddSizePrices";
-import EditSizePrices from "./pages/QuotationSettings/SizePrices/EditSizePrices";
-
-import PrintColorsPage from "./pages/QuotationSettings/PrintColors/PrintColorsPage";
-import AddPrintColors from "./pages/QuotationSettings/PrintColors/AddPrintColors";
-import EditPrintColors from "./pages/QuotationSettings/PrintColors/EditPrintColors";
 
 import AddonsPage from "./pages/QuotationSettings/Addons/AddonsPage";
 import AddAddons from "./pages/QuotationSettings/Addons/AddAddons";
 import EditAddons from "./pages/QuotationSettings/Addons/EditAddons";
+import ApparelNecklinePage from "./pages/QuotationSettings/ApparelNeckline/ApparelNecklinePage";
+import AddApparelNeckline from "./pages/QuotationSettings/ApparelNeckline/AddApparelNeckline";
+import EditApparelNeckline from "./pages/QuotationSettings/ApparelNeckline/EditApparelNeckline";
+import ApparelPatternPricesPage from "./pages/QuotationSettings/ApparelPatternPrices/ApparelPatternPricesPage";
+import AddApparelPatternPrices from "./pages/QuotationSettings/ApparelPatternPrices/AddApparelPatternPrices";
+import EditApparelPatternPrices from "./pages/QuotationSettings/ApparelPatternPrices/EditApparelPatternPrices";
 
 import AllQuotation from "./pages/Quotation/AllQuotation";
 import ViewQuotation from "./pages/Quotation/ViewQuotation";
@@ -141,6 +124,10 @@ function App() {
         />
         <Route
           path="/quotation-client"
+          element={<QuotationClient />}
+        />
+        <Route
+          path="/share/quotations/:token"
           element={<QuotationClient />}
         />
         <Route
@@ -324,6 +311,30 @@ function App() {
           element={
             <ProtectedRoute>
               <EditApparelType />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/apparel-parts"
+          element={
+            <ProtectedRoute>
+              <ApparelParts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/apparel-parts/new"
+          element={
+            <ProtectedRoute>
+              <AddApparelParts />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/apparel-parts/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditApparelParts />
             </ProtectedRoute>
           }
         />
@@ -696,126 +707,6 @@ function App() {
           }
         />
         <Route
-          path="/quotation/settings/tshirt-type"
-          element={
-            <ProtectedRoute>
-              <TshirtType />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/tshirt-type/new"
-          element={
-            <ProtectedRoute>
-              <AddTshirtType />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/tshirt-type/edit/:id"
-          element={
-            <ProtectedRoute>
-              <EditTshirtType />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/tshirt-neckline"
-          element={
-            <ProtectedRoute>
-              <TshirtNecklines />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/tshirt-neckline/new"
-          element={
-            <ProtectedRoute>
-              <AddTshirtNecklines />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/tshirt-neckline/edit/:id"
-          element={
-            <ProtectedRoute>
-              <EditTshirtNecklines />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/print-types"
-          element={
-            <ProtectedRoute>
-              <PrintTypes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/print-types/new"
-          element={
-            <ProtectedRoute>
-              <AddPrintTypes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/print-types/edit/:id"
-          element={
-            <ProtectedRoute>
-              <EditPrintTypes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/print-patterns"
-          element={
-            <ProtectedRoute>
-              <PrintPatterns />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/print-patterns/new"
-          element={
-            <ProtectedRoute>
-              <AddPrintPatterns />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/print-patterns/edit/:id"
-          element={
-            <ProtectedRoute>
-              <EditPrintPatterns />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/tshirt-sizes"
-          element={
-            <ProtectedRoute>
-              <TshirtSizesPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/tshirt-sizes/new"
-          element={
-            <ProtectedRoute>
-              <AddTshirtSizes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/tshirt-sizes/edit/:id"
-          element={
-            <ProtectedRoute>
-              <EditTshirtSizes />
-            </ProtectedRoute>
-          }
-        />
-        <Route
           path="/quotation/settings/addon-categories"
           element={
             <ProtectedRoute>
@@ -840,55 +731,6 @@ function App() {
           }
         />
         <Route
-          path="/quotation/settings/size-prices"
-          element={
-            <ProtectedRoute>
-              <SizePricesPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/size-prices/new"
-          element={
-            <ProtectedRoute>
-              <AddSizePrices />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/size-prices/edit/:id"
-          element={
-            <ProtectedRoute>
-              <EditSizePrices />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/print-colors"
-          element={
-            <ProtectedRoute>
-              <PrintColorsPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/print-colors/new"
-          element={
-            <ProtectedRoute>
-              <AddPrintColors />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/quotation/settings/print-colors/edit/:id"
-          element={
-            <ProtectedRoute>
-              <EditPrintColors />
-            </ProtectedRoute>
-          }
-        />
-
-        <Route
           path="/quotation/settings/addons"
           element={
             <ProtectedRoute>
@@ -911,6 +753,54 @@ function App() {
           element={
             <ProtectedRoute>
               <EditAddons />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotation/settings/apparel-neckline"
+          element={
+            <ProtectedRoute>
+              <ApparelNecklinePage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotation/settings/apparel-neckline/new"
+          element={
+            <ProtectedRoute>
+              <AddApparelNeckline />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotation/settings/apparel-neckline/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditApparelNeckline />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotation/settings/apparel-pattern-prices"
+          element={
+            <ProtectedRoute>
+              <ApparelPatternPricesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotation/settings/apparel-pattern-prices/new"
+          element={
+            <ProtectedRoute>
+              <AddApparelPatternPrices />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotation/settings/apparel-pattern-prices/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditApparelPatternPrices />
             </ProtectedRoute>
           }
         />

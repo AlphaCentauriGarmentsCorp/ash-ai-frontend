@@ -93,6 +93,11 @@ export const getMenuByRole = (userRole) => {
               access: ["admin"],
             },
             {
+              name: "Apparel Parts",
+              path: "/admin/settings/apparel-parts",
+              access: ["admin"],
+            },
+            {
               name: "Service Type",
               path: "/admin/settings/service-type",
               access: ["admin"],
@@ -151,42 +156,6 @@ export const getMenuByRole = (userRole) => {
           icon: "fa-solid fa-cog",
           subItems: [
             {
-              name: "Tshirt Types",
-              path: "/quotation/settings/tshirt-type",
-              access: ["admin"],
-            },
-            {
-              name: "Tshirt Sizes",
-              path: "/quotation/settings/tshirt-sizes",
-              access: ["admin"],
-            },
-            {
-              name: "Size Prices",
-              path: "/quotation/settings/size-prices",
-              access: ["admin"],
-            },
-            {
-              name: "Tshirt Necklines",
-              path: "/quotation/settings/tshirt-neckline",
-              access: ["admin"],
-            },
-
-            {
-              name: "Print Types",
-              path: "/quotation/settings/print-types",
-              access: ["admin"],
-            },
-            {
-              name: "Print Colors",
-              path: "/quotation/settings/print-colors",
-              access: ["admin"],
-            },
-            {
-              name: "Print Pattern",
-              path: "/quotation/settings/print-patterns",
-              access: ["admin"],
-            },
-            {
               name: "Addons Categories",
               path: "/quotation/settings/addon-categories",
               access: ["admin"],
@@ -194,6 +163,16 @@ export const getMenuByRole = (userRole) => {
             {
               name: "Addons",
               path: "/quotation/settings/addons",
+              access: ["admin"],
+            },
+            {
+              name: "Apparel Neckline",
+              path: "/quotation/settings/apparel-neckline",
+              access: ["admin"],
+            },
+            {
+              name: "Apparel Pattern Prices",
+              path: "/quotation/settings/apparel-pattern-prices",
               access: ["admin"],
             },
           ],

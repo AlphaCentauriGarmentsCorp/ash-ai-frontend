@@ -4,17 +4,17 @@ import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Textarea from "../../../components/form/Textarea";
 import FormActions from "../../../components/form/FormActions";
 import Input from "../../../components/form/Input";
-import { quotationTypeInitialState } from "../../../constants/formInitialState/quotationTypeInitialState";
-import { quotationTypeSchema } from "../../../validations/quotationTypeSchema";
-import { validateForm, hasErrors } from "../../../utils/validation";
-import { tshirtNecklineApi } from "../../../api/tshirtNecklineApi";
 import AlertMessage from "../../../components/common/AlertMessage";
+import { apparelPartsInitialState } from "../../../constants/formInitialState/apparelPartsInitialState";
+import { typesSchema } from "../../../validations/typesSchema";
+import { validateForm, hasErrors } from "../../../utils/validation";
+import { apparelPartsApi } from "../../../api/apparelPartsApi";
 
-const AddTshirtNeckline = () => {
+const AddApparelParts = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
-  const [formData, setFormData] = useState(quotationTypeInitialState);
+  const [formData, setFormData] = useState(apparelPartsInitialState);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [serverError, setServerError] = useState("");
 
@@ -24,6 +24,12 @@ const AddTshirtNeckline = () => {
       ...prev,
       [name]: value,
     }));
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -31,7 +37,7 @@ const AddTshirtNeckline = () => {
     setSubmitSuccess(false);
     setServerError("");
 
-    const validationErrors = validateForm(formData, quotationTypeSchema);
+    const validationErrors = validateForm(formData, typesSchema);
 
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);
@@ -41,21 +47,26 @@ const AddTshirtNeckline = () => {
     }
 
     try {
-      await tshirtNecklineApi.create(formData);
+      const payload = new FormData();
+      payload.append("name", formData.name);
+      payload.append("description", formData.description);
+
+      await apparelPartsApi.create(payload);
       setSubmitSuccess(true);
 
-      setFormData(quotationTypeInitialState);
+      setFormData(apparelPartsInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
+
       setTimeout(() => {
-        navigate(`/quotation/settings/tshirt-neckline`);
+        navigate("/admin/settings/apparel-parts");
       }, 1500);
     } catch (err) {
       if (err.response?.data?.errors) {
         setErrors(err.response.data.errors);
       } else {
         setServerError(
-          err.response?.data?.message || "Failed to create tshirt neckline.",
+          err.response?.data?.message || "Failed to create apparel parts.",
         );
       }
     } finally {
@@ -64,7 +75,7 @@ const AddTshirtNeckline = () => {
   };
 
   const handleReset = () => {
-    setFormData(quotationTypeInitialState);
+    setFormData(apparelPartsInitialState);
     setErrors({});
     setSubmitSuccess(false);
     setServerError("");
@@ -72,23 +83,21 @@ const AddTshirtNeckline = () => {
 
   return (
     <AdminLayout
-      pageTitle="Add Tshirt Neckline"
-      path="/quotation/settings/tshirt-neckline/new"
+      icon="fa-cog"
+      pageTitle="Add Apparel Parts"
+      path="/admin/settings/apparel-parts/new"
       links={[
         { label: "Home", href: "/" },
-        { label: "Quotation Settings", href: "#" },
-        {
-          label: "Tshirt Neckline",
-          href: "/quotation/settings/tshirt-neckline",
-        },
+        { label: "Drop Down Settings", href: "#" },
+        { label: "Apparel Parts", href: "/admin/settings/apparel-parts" },
       ]}
     >
       <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
         {submitSuccess && (
           <AlertMessage
             type="success"
-            title="Tshirt Neckline created successfully!"
-            message="The new tshirt neckline has been added to the system."
+            title="Apparel Parts created successfully!"
+            message="The new apparel parts record has been added to the system."
           />
         )}
 
@@ -99,29 +108,19 @@ const AddTshirtNeckline = () => {
             message="Please check the form and try again."
           />
         )}
+
         <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4">
-          Tshirt Neckline Details
+          Apparel Parts Details
         </h1>
 
         <Input
-          label="Tshirt Neckline Title"
+          label="Apparel Parts Title"
           name="name"
           value={formData.name}
           onChange={handleChange}
           error={errors.name}
           type="text"
-          placeholder="Enter tshirt neckline name"
-          required
-        />
-
-        <Input
-          label="Base Price"
-          name="base_price"
-          value={formData.base_price}
-          onChange={handleChange}
-          error={errors.base_price}
-          type="text"
-          placeholder="Enter base price"
+          placeholder="Enter apparel parts name"
           required
         />
 
@@ -134,7 +133,7 @@ const AddTshirtNeckline = () => {
           rows={15}
           resizable
           required
-          placeholder="Enter tshirt neckline description"
+          placeholder="Enter apparel parts description"
         />
       </div>
 
@@ -150,4 +149,4 @@ const AddTshirtNeckline = () => {
   );
 };
 
-export default AddTshirtNeckline;
+export default AddApparelParts;

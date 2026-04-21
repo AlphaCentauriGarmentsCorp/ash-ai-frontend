@@ -1,42 +1,40 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Textarea from "../../../components/form/Textarea";
 import FormActions from "../../../components/form/FormActions";
 import Input from "../../../components/form/Input";
-import { quotationTypeInitialState } from "../../../constants/formInitialState/quotationTypeInitialState";
-import { quotationTypeSchema } from "../../../validations/quotationTypeSchema";
-import { validateForm, hasErrors } from "../../../utils/validation";
-import { tshirtTypeApi } from "../../../api/tshirtTypeApi";
 import AlertMessage from "../../../components/common/AlertMessage";
+import { apparelPartsInitialState } from "../../../constants/formInitialState/apparelPartsInitialState";
+import { typesSchema } from "../../../validations/typesSchema";
+import { validateForm, hasErrors } from "../../../utils/validation";
+import { apparelPartsApi } from "../../../api/apparelPartsApi";
 
-const EditTshirtType = () => {
-  const navigate = useNavigate();
+const EditApparelParts = () => {
   const { id } = useParams();
+  const navigate = useNavigate();
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errors, setErrors] = useState({});
-  const [formData, setFormData] = useState(quotationTypeInitialState);
+  const [formData, setFormData] = useState(apparelPartsInitialState);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [serverError, setServerError] = useState("");
 
   useEffect(() => {
-    fetchTshirtType();
-  }, [id]);
+    fetchApparelParts();
+  }, []);
 
-  const fetchTshirtType = async () => {
-    setIsLoading(true);
+  const fetchApparelParts = async () => {
     try {
-      const response = await tshirtTypeApi.show(id);
-      const tshirtTypeData = response.data || response;
+      const response = await apparelPartsApi.show(id);
+      const data = response.data || response;
       setFormData({
-        name: tshirtTypeData.name || "",
-        base_price: tshirtTypeData.base_price || "",
-        description: tshirtTypeData.description || "",
+        name: data.name || "",
+        description: data.description || "",
       });
     } catch (error) {
-      console.error("Error fetching tshirt type:", error);
-      setServerError("Failed to load tshirt type data.");
+      setServerError("Failed to load apparel parts.");
     } finally {
       setIsLoading(false);
     }
@@ -48,6 +46,12 @@ const EditTshirtType = () => {
       ...prev,
       [name]: value,
     }));
+    if (errors[name]) {
+      setErrors((prev) => ({
+        ...prev,
+        [name]: "",
+      }));
+    }
   };
 
   const handleSubmit = async () => {
@@ -55,7 +59,7 @@ const EditTshirtType = () => {
     setSubmitSuccess(false);
     setServerError("");
 
-    const validationErrors = validateForm(formData, quotationTypeSchema);
+    const validationErrors = validateForm(formData, typesSchema);
 
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);
@@ -65,18 +69,24 @@ const EditTshirtType = () => {
     }
 
     try {
-      await tshirtTypeApi.update(id, formData);
+      const payload = new FormData();
+      payload.append("name", formData.name);
+      payload.append("description", formData.description);
+
+      await apparelPartsApi.update(id, payload);
       setSubmitSuccess(true);
+
       window.scrollTo({ top: 0, behavior: "smooth" });
+
       setTimeout(() => {
-        navigate(`/quotation/settings/tshirt-type`);
+        navigate("/admin/settings/apparel-parts");
       }, 1500);
     } catch (err) {
       if (err.response?.data?.errors) {
         setErrors(err.response.data.errors);
       } else {
         setServerError(
-          err.response?.data?.message || "Failed to update tshirt type.",
+          err.response?.data?.message || "Failed to update apparel parts.",
         );
       }
     } finally {
@@ -85,7 +95,7 @@ const EditTshirtType = () => {
   };
 
   const handleReset = () => {
-    fetchTshirtType();
+    fetchApparelParts();
     setErrors({});
     setSubmitSuccess(false);
     setServerError("");
@@ -93,19 +103,12 @@ const EditTshirtType = () => {
 
   if (isLoading) {
     return (
-      <AdminLayout
-        icon="fa-cog"
-        pageTitle="Edit Tshirt Type"
-        path="/quotation/settings/tshirt-type/edit"
-        links={[
-          { label: "Home", href: "/" },
-          { label: "Quotation Settings", href: "#" },
-          { label: "Tshirt Type", href: "/quotation/settings/tshirt-type" },
-          { label: "Edit", href: "#" },
-        ]}
-      >
-        <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
-          <div className="text-center py-8">Loading...</div>
+      <AdminLayout pageTitle="Edit Apparel Parts">
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="flex flex-col items-center gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p className="text-gray-600 text-sm font-medium">Loading...</p>
+          </div>
         </div>
       </AdminLayout>
     );
@@ -113,21 +116,21 @@ const EditTshirtType = () => {
 
   return (
     <AdminLayout
-      pageTitle="Edit Tshirt Type"
-      path="/quotation/settings/tshirt-type/edit"
+      icon="fa-cog"
+      pageTitle="Edit Apparel Parts"
+      path={`/admin/settings/apparel-parts/edit/${id}`}
       links={[
         { label: "Home", href: "/" },
-        { label: "Quotation Settings", href: "#" },
-        { label: "Tshirt Type", href: "/quotation/settings/tshirt-type" },
-        { label: "Edit", href: "#" },
+        { label: "Drop Down Settings", href: "#" },
+        { label: "Apparel Parts", href: "/admin/settings/apparel-parts" },
       ]}
     >
       <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
         {submitSuccess && (
           <AlertMessage
             type="success"
-            title="Tshirt Type updated successfully!"
-            message="The tshirt type has been updated in the system."
+            title="Apparel Parts updated successfully!"
+            message="The apparel parts record has been successfully updated in the system."
           />
         )}
 
@@ -138,29 +141,19 @@ const EditTshirtType = () => {
             message="Please check the form and try again."
           />
         )}
+
         <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4">
-          Edit Tshirt Type
+          Apparel Parts Details
         </h1>
 
         <Input
-          label="Tshirt Type Title"
+          label="Apparel Parts Title"
           name="name"
           value={formData.name}
           onChange={handleChange}
           error={errors.name}
           type="text"
-          placeholder="Enter tshirt type name"
-          required
-        />
-
-        <Input
-          label="Base Price"
-          name="base_price"
-          value={formData.base_price}
-          onChange={handleChange}
-          error={errors.base_price}
-          type="text"
-          placeholder="Enter base price"
+          placeholder="Enter apparel parts name"
           required
         />
 
@@ -173,7 +166,7 @@ const EditTshirtType = () => {
           rows={15}
           resizable
           required
-          placeholder="Enter tshirt type description"
+          placeholder="Enter apparel parts description"
         />
       </div>
 
@@ -189,4 +182,4 @@ const EditTshirtType = () => {
   );
 };
 
-export default EditTshirtType;
+export default EditApparelParts;

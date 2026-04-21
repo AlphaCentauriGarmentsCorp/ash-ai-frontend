@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
-import { tshirtTypeApi } from "../../../api/tshirtTypeApi";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
 import { useNavigate } from "react-router-dom";
+import { apparelNecklineApi } from "../../../api/apparelNecklineApi";
 
-const TshirtTypePage = () => {
+const ApparelNecklinePage = () => {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -21,17 +21,12 @@ const TshirtTypePage = () => {
       sortable: true,
     },
     {
-      key: "base_price",
-      label: "Base Price",
+      key: "price",
+      label: "Price",
       sortable: true,
       render: (item) => {
-        return <span>₱{item.base_price}</span>;
+        return <span>PHP {item.price}</span>;
       },
-    },
-    {
-      key: "description",
-      label: "Description",
-      sortable: false,
     },
   ];
 
@@ -39,9 +34,15 @@ const TshirtTypePage = () => {
     async (perPage = pageSize) => {
       setIsLoading(true);
       try {
-        const response = await tshirtTypeApi.index();
-        const responseData = response.data || response;
+        let response;
 
+        if (perPage === "all") {
+          response = await apparelNecklineApi.index();
+        } else {
+          response = await apparelNecklineApi.index({ per_page: perPage });
+        }
+
+        const responseData = response.data || response;
         setData(responseData);
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -71,11 +72,11 @@ const TshirtTypePage = () => {
 
     setIsDeleting(true);
     try {
-      await tshirtTypeApi.delete(selectedItem.id);
+      await apparelNecklineApi.delete(selectedItem.id);
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete tshirt type. Please try again.");
+      alert("Failed to delete apparel neckline. Please try again.");
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -90,10 +91,12 @@ const TshirtTypePage = () => {
   const handleAction = (action, rowData) => {
     switch (action) {
       case "edit":
-        navigate(`//quotation/settings/tshirt-type/edit/${rowData.id}`);
+        navigate(`/quotation/settings/apparel-neckline/edit/${rowData.id}`);
         break;
       case "delete":
         handleDeleteClick(rowData);
+        break;
+      default:
         break;
     }
   };
@@ -105,20 +108,20 @@ const TshirtTypePage = () => {
     filters: false,
     actions: ["edit", "delete"],
     pageSize: 10,
-    emptyMessage: "No tshirt types found",
-    searchPlaceholder: "Search tshirt type...",
+    emptyMessage: "No apparel neckline found",
+    searchPlaceholder: "Search apparel neckline...",
     showIndex: true,
   };
 
   return (
     <AdminLayout
       icon="fa-cog"
-      pageTitle="Tshirt Type"
-      path="/admin/settings/tshirt-type"
+      pageTitle="Apparel Neckline"
+      path="/quotation/settings/apparel-neckline"
       links={[
         { label: "Home", href: "/" },
-        { label: "Drop Down Settings", href: "#" },
-        { label: "Tshirt Type", href: "#" },
+        { label: "Quotation Settings", href: "#" },
+        { label: "Apparel Neckline", href: "#" },
       ]}
     >
       <Table
@@ -127,9 +130,9 @@ const TshirtTypePage = () => {
         config={tableConfig}
         onAction={handleAction}
         isLoading={isLoading}
-        url="/quotation/settings/tshirt-type/new"
-        button="Add Tshirt Type"
-        PageTitle="Tshirt Type"
+        url="/quotation/settings/apparel-neckline/new"
+        button="Add Apparel Neckline"
+        PageTitle="Apparel Neckline"
       />
 
       <DeleteConfirmationDialog
@@ -143,4 +146,4 @@ const TshirtTypePage = () => {
   );
 };
 
-export default TshirtTypePage;
+export default ApparelNecklinePage;

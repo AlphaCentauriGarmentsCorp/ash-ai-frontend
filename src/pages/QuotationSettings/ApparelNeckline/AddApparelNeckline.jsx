@@ -1,24 +1,21 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
-import Select from "../../../components/form/Select";
 import FormActions from "../../../components/form/FormActions";
 import Input from "../../../components/form/Input";
-import { printColorsInitialState } from "../../../constants/formInitialState/printColorsInitialState";
-import { printColorsSchema } from "../../../validations/printColorsSchema";
-import { validateForm, hasErrors } from "../../../utils/validation";
-import { printColorsApi } from "../../../api/printColorsApi";
 import AlertMessage from "../../../components/common/AlertMessage";
-import { printTypesApi } from "../../../api/printTypesApi";
+import { apparelNecklineInitialState } from "../../../constants/formInitialState/apparelNecklineInitialState";
+import { apparelNecklineSchema } from "../../../validations/apparelNecklineSchema";
+import { validateForm, hasErrors } from "../../../utils/validation";
+import { apparelNecklineApi } from "../../../api/apparelNecklineApi";
 
-const AddPrintColors = () => {
+const AddApparelNeckline = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
-  const [formData, setFormData] = useState(printColorsInitialState);
+  const [formData, setFormData] = useState(apparelNecklineInitialState);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [serverError, setServerError] = useState("");
-  const [printType, setDropdowns] = useState([]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,32 +25,12 @@ const AddPrintColors = () => {
     }));
   };
 
-  useEffect(() => {
-    const fetchDropdowns = async () => {
-      try {
-        const response = await printTypesApi.index();
-
-        const formatted = (response.data || []).map((item) => ({
-          value: item.id,
-          label: item.name,
-          title: item.description,
-        }));
-
-        setDropdowns(formatted);
-      } catch (err) {
-        console.error(err);
-        setServerError("Failed to load dropdown data.");
-      }
-    };
-
-    fetchDropdowns();
-  }, []);
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setSubmitSuccess(false);
     setServerError("");
 
-    const validationErrors = validateForm(formData, printColorsSchema);
+    const validationErrors = validateForm(formData, apparelNecklineSchema);
 
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);
@@ -63,21 +40,21 @@ const AddPrintColors = () => {
     }
 
     try {
-      await printColorsApi.create(formData);
+      await apparelNecklineApi.create(formData);
       setSubmitSuccess(true);
 
-      setFormData(printColorsInitialState);
+      setFormData(apparelNecklineInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
       setTimeout(() => {
-        navigate(`/quotation/settings/print-colors`);
+        navigate("/quotation/settings/apparel-neckline");
       }, 1500);
     } catch (err) {
       if (err.response?.data?.errors) {
         setErrors(err.response.data.errors);
       } else {
         setServerError(
-          err.response?.data?.message || "Failed to create print colors.",
+          err.response?.data?.message || "Failed to create apparel neckline.",
         );
       }
     } finally {
@@ -86,7 +63,7 @@ const AddPrintColors = () => {
   };
 
   const handleReset = () => {
-    setFormData(printColorsInitialState);
+    setFormData(apparelNecklineInitialState);
     setErrors({});
     setSubmitSuccess(false);
     setServerError("");
@@ -94,20 +71,20 @@ const AddPrintColors = () => {
 
   return (
     <AdminLayout
-      pageTitle="Add Print Colors"
-      path="/quotation/settings/print-colors/new"
+      pageTitle="Add Apparel Neckline"
+      path="/quotation/settings/apparel-neckline/new"
       links={[
         { label: "Home", href: "/" },
         { label: "Quotation Settings", href: "#" },
-        { label: "Print Colors", href: "/quotation/settings/print-colors" },
+        { label: "Apparel Neckline", href: "/quotation/settings/apparel-neckline" },
       ]}
     >
       <div className="bg-light p-3 lg:p-7 rounded-lg border border-gray-300">
         {submitSuccess && (
           <AlertMessage
             type="success"
-            title="Print Colors created successfully!"
-            message="The new print colors has been added to the system."
+            title="Apparel Neckline created successfully!"
+            message="The new apparel neckline has been added to the system."
           />
         )}
 
@@ -120,40 +97,30 @@ const AddPrintColors = () => {
         )}
 
         <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4">
-          Print Colors Details
+          Apparel Neckline Details
         </h1>
 
-        <Select
-          label="Print Type"
-          name="type_id"
-          options={printType}
-          onChange={handleChange}
-          value={formData.type_id}
-          searchable
-          error={errors.type_id}
-          icon={<i className="fas fa-shirt text-gray"></i>}
-          disabled={isSubmitting}
-        />
-
         <Input
-          label="Color count"
-          name="color_count"
-          value={formData.color_count}
+          label="Name"
+          name="name"
+          value={formData.name}
           onChange={handleChange}
-          error={errors.color_count}
-          type="number"
-          placeholder="Enter color count"
+          error={errors.name}
+          type="text"
+          placeholder="Enter apparel neckline name"
           required
         />
 
         <Input
-          label="Print Color Price"
+          label="Price"
           name="price"
           value={formData.price}
           onChange={handleChange}
           error={errors.price}
           type="number"
-          placeholder="Enter print color price"
+          placeholder="Enter price"
+          min="0"
+          step="0.01"
           required
         />
       </div>
@@ -170,4 +137,4 @@ const AddPrintColors = () => {
   );
 };
 
-export default AddPrintColors;
+export default AddApparelNeckline;

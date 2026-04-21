@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
-import { tshirtSizesApi } from "../../../api/tshirtSizesApi";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
-import { useNavigate } from "react-router-dom";
+import { apparelPartsApi } from "../../../api/apparelPartsApi";
 
-const TshirtSizesPage = () => {
+const ApparelPartsPage = () => {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,9 +34,9 @@ const TshirtSizesPage = () => {
         let response;
 
         if (perPage === "all") {
-          response = await tshirtSizesApi.index();
+          response = await apparelPartsApi.index();
         } else {
-          response = await tshirtSizesApi.index({ per_page: perPage });
+          response = await apparelPartsApi.index({ per_page: perPage });
         }
 
         const responseData = response.data || response;
@@ -57,7 +57,7 @@ const TshirtSizesPage = () => {
 
   useEffect(() => {
     fetchData(pageSize);
-  }, [pageSize]);
+  }, [pageSize, fetchData]);
 
   const handleDeleteClick = (rowData) => {
     setSelectedItem(rowData);
@@ -69,11 +69,11 @@ const TshirtSizesPage = () => {
 
     setIsDeleting(true);
     try {
-      await tshirtSizesApi.delete(selectedItem.id);
+      await apparelPartsApi.delete(selectedItem.id);
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete tshirt sizes. Please try again.");
+      alert("Failed to delete apparel parts. Please try again.");
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -88,10 +88,12 @@ const TshirtSizesPage = () => {
   const handleAction = (action, rowData) => {
     switch (action) {
       case "edit":
-        navigate(`/quotation/settings/tshirt-sizes/edit/${rowData.id}`);
+        navigate(`/admin/settings/apparel-parts/edit/${rowData.id}`);
         break;
       case "delete":
         handleDeleteClick(rowData);
+        break;
+      default:
         break;
     }
   };
@@ -103,20 +105,20 @@ const TshirtSizesPage = () => {
     filters: false,
     actions: ["edit", "delete"],
     pageSize: 10,
-    emptyMessage: "No tshirt sizes found",
-    searchPlaceholder: "Search tshirt sizes...",
+    emptyMessage: "No apparel parts found",
+    searchPlaceholder: "Search apparel parts...",
     showIndex: true,
   };
 
   return (
     <AdminLayout
       icon="fa-cog"
-      pageTitle="Tshirt Sizes"
-      path="/quotation/settings/tshirt-sizes"
+      pageTitle="Apparel Parts"
+      path="/admin/settings/apparel-parts"
       links={[
         { label: "Home", href: "/" },
-        { label: "Quotation Settings", href: "#" },
-        { label: "Tshirt Sizes", href: "#" },
+        { label: "Drop Down Settings", href: "#" },
+        { label: "Apparel Parts", href: "#" },
       ]}
     >
       <Table
@@ -125,9 +127,9 @@ const TshirtSizesPage = () => {
         config={tableConfig}
         onAction={handleAction}
         isLoading={isLoading}
-        url="/quotation/settings/tshirt-sizes/new"
-        button="Add Tshirt Sizes"
-        PageTitle="Tshirt Sizes"
+        url="/admin/settings/apparel-parts/new"
+        button="Add Apparel Parts"
+        PageTitle="Apparel Parts"
       />
 
       <DeleteConfirmationDialog
@@ -141,4 +143,4 @@ const TshirtSizesPage = () => {
   );
 };
 
-export default TshirtSizesPage;
+export default ApparelPartsPage;

@@ -5,8 +5,8 @@ import Textarea from "../../../components/form/Textarea";
 import FormActions from "../../../components/form/FormActions";
 import Input from "../../../components/form/Input";
 import FileUpload from "../../../components/form/FileUpload";
-import { typesInitialState } from "../../../constants/formInitialState/typesInitialState";
-import { typesSchema } from "../../../validations/typesSchema";
+import { patternTypeInitialState } from "../../../constants/formInitialState/patternTypeInitialState";
+import { patternTypeSchema } from "../../../validations/patternTypeSchema";
 import { validateForm, hasErrors } from "../../../utils/validation";
 import { patternTypeService } from "../../../services/patternTypeService";
 import AlertMessage from "../../../components/common/AlertMessage";
@@ -15,7 +15,7 @@ const AddPatternType = () => {
   const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
-  const [formData, setFormData] = useState(typesInitialState);
+  const [formData, setFormData] = useState(patternTypeInitialState);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [serverError, setServerError] = useState("");
 
@@ -38,7 +38,7 @@ const AddPatternType = () => {
     setSubmitSuccess(false);
     setServerError("");
 
-    const validationErrors = validateForm(formData, typesSchema);
+    const validationErrors = validateForm(formData, patternTypeSchema);
 
     if (hasErrors(validationErrors)) {
       setErrors(validationErrors);
@@ -59,7 +59,7 @@ const AddPatternType = () => {
       await patternTypeService.create(formDataToSend);
       setSubmitSuccess(true);
 
-      setFormData(typesInitialState);
+      setFormData(patternTypeInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
 
@@ -80,7 +80,7 @@ const AddPatternType = () => {
   };
 
   const handleReset = () => {
-    setFormData(typesInitialState);
+    setFormData(patternTypeInitialState);
     setErrors({});
     setSubmitSuccess(false);
     setServerError("");
