@@ -1,11 +1,11 @@
 import { useState, useContext, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { getMenuByRole } from "../../config/menuConfig";
+import { getMenuByPermissions } from "../../config/menuConfig";
 import { SidebarContext } from "../../context/SidebarContext";
 import Logo from "../../assets/images/logo/Logo.png";
 
 export default function Sidebar({
-  userType,
+  user,
   isOpen,
   setIsOpen,
   isMobileOpen,
@@ -13,7 +13,7 @@ export default function Sidebar({
   isMobileView,
 }) {
   const location = useLocation();
-  const menu = getMenuByRole(userType);
+  const menu = getMenuByPermissions(user);
   const { activeLink, setActiveLink, openSubMenu, setOpenSubMenu } =
     useContext(SidebarContext);
 

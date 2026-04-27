@@ -1,4 +1,5 @@
 import React from "react";
+import { isSuperAdmin } from "../../../utils/authz";
 
 const RoleProtected = ({
   children,
@@ -8,9 +9,13 @@ const RoleProtected = ({
 }) => {
   if (!userRoles || !Array.isArray(userRoles)) return fallback;
 
+  const normalizedRoles = userRoles.map((role) =>
+    String(role || "").trim().toLowerCase(),
+  );
+
   const hasAccess =
-    userRoles.includes("admin") ||
-    requiredRoles.some((role) => userRoles.includes(role));
+    isSuperAdmin({ roles: normalizedRoles }) ||
+    requiredRoles.some((role) => normalizedRoles.includes(role));
 
   return hasAccess ? children : fallback;
 };

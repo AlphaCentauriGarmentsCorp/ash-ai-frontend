@@ -1,4 +1,42 @@
-export const getMenuByRole = (userRole) => {
+import { hasRequiredPermissions } from "../utils/authz";
+import { inferPermissionsFromPath } from "../utils/permissionAccessMap";
+
+export const getMenuByPermissions = (user = null) => {
+  const resolvePermissions = (entry) => {
+    const explicit = Array.isArray(entry?.requiredPermissions)
+      ? entry.requiredPermissions
+      : [];
+
+    if (explicit.length > 0) return explicit;
+
+    if (typeof entry?.path === "string" && entry.path.trim().length > 0) {
+      return inferPermissionsFromPath(entry.path);
+    }
+
+    return [];
+  };
+
+  const canAccessByPermission = (entry) => {
+    const requiredPermissions = resolvePermissions(entry);
+    const permissionMode = entry?.permissionMode || "any";
+
+    if (!Array.isArray(requiredPermissions) || requiredPermissions.length === 0) {
+      return true;
+    }
+
+    return hasRequiredPermissions(user, requiredPermissions, permissionMode);
+  };
+
+  const canAccess = (entry) => {
+    const requiredPermissions = resolvePermissions(entry);
+
+    if (requiredPermissions.length === 0) {
+      return true;
+    }
+
+    return canAccessByPermission(entry);
+  };
+
   const menuConfig = [
     {
       section: "Home",
@@ -7,7 +45,6 @@ export const getMenuByRole = (userRole) => {
           name: "Dashboard",
           icon: "fa-solid fa-chart-line",
           path: "/",
-          access: ["admin", "general_manager", "screen_maker"],
         },
       ],
     },
@@ -21,12 +58,10 @@ export const getMenuByRole = (userRole) => {
             {
               name: "Add Order",
               path: "/orders/new",
-              access: ["admin", "general_manager"],
             },
             {
               name: "All Orders",
               path: "/orders",
-              access: ["admin", "general_manager"],
             },
           ],
         },
@@ -37,12 +72,10 @@ export const getMenuByRole = (userRole) => {
             {
               name: "All Quotation",
               path: "/quotations",
-              access: ["admin", "general_manager"],
             },
             {
               name: "Add Quotation",
               path: "/quotations/new",
-              access: ["admin", "general_manager"],
             },
           ],
         },
@@ -53,12 +86,10 @@ export const getMenuByRole = (userRole) => {
             {
               name: "All Clients",
               path: "/clients",
-              access: ["admin", "general_manager"],
             },
             {
               name: "Add Client",
               path: "/clients/new",
-              access: ["admin", "general_manager"],
             },
           ],
         },
@@ -69,12 +100,12 @@ export const getMenuByRole = (userRole) => {
             {
               name: "All Users",
               path: "/account/employee",
-              access: ["admin"],
+              requiredPermissions: ["access.employees"],
             },
             {
               name: "Add User",
               path: "/account/employee/new",
-              access: ["admin"],
+              requiredPermissions: ["access.employees"],
             },
           ],
         },
@@ -85,68 +116,55 @@ export const getMenuByRole = (userRole) => {
             {
               name: "Pattern Type",
               path: "/admin/settings/pattern-type",
-              access: ["admin"],
             },
             {
               name: "Apparel Type",
               path: "/admin/settings/apparel-type",
-              access: ["admin"],
             },
             {
               name: "Apparel Parts",
               path: "/admin/settings/apparel-parts",
-              access: ["admin"],
             },
             {
               name: "Service Type",
               path: "/admin/settings/service-type",
-              access: ["admin"],
             },
             {
               name: "Print Method",
               path: "/admin/settings/print-method",
-              access: ["admin"],
             },
             {
               name: "Size Label",
               path: "/admin/settings/size-label",
-              access: ["admin"],
             },
             {
               name: "Print Label Placements",
               path: "/admin/settings/print-label-placements",
-              access: ["admin"],
             },
             {
               name: "Freebies",
               path: "/admin/settings/freebies",
-              access: ["admin"],
             },
             {
               name: "Placement Measurements",
               path: "/admin/settings/placement-measurements",
-              access: ["admin"],
             },
 
             {
               name: "Courier Services",
               path: "/admin/settings/courier",
-              access: ["admin"],
             },
             {
               name: "Payment Methods",
               path: "/admin/settings/payment-methods",
-              access: ["admin"],
             },
             {
               name: "Shipping Methods",
               path: "/admin/settings/shipping-methods",
-              access: ["admin"],
             },
             {
               name: "Additional Options",
               path: "/admin/settings/additional-options",
-              access: ["admin"],
             },
           ],
         },
@@ -158,22 +176,39 @@ export const getMenuByRole = (userRole) => {
             {
               name: "Addons Categories",
               path: "/quotation/settings/addon-categories",
-              access: ["admin"],
             },
             {
               name: "Addons",
               path: "/quotation/settings/addons",
-              access: ["admin"],
             },
             {
               name: "Apparel Neckline",
               path: "/quotation/settings/apparel-neckline",
-              access: ["admin"],
             },
             {
               name: "Apparel Pattern Prices",
               path: "/quotation/settings/apparel-pattern-prices",
-              access: ["admin"],
+            },
+          ],
+        },
+        {
+          name: "Roles & Permissions",
+          icon: "fa-solid fa-user-shield",
+          subItems: [
+            {
+              name: "Roles",
+              path: "/admin/rbac/roles",
+              requiredPermissions: ["access.rbac"],
+            },
+            {
+              name: "Permissions",
+              path: "/admin/rbac/permissions",
+              requiredPermissions: ["access.rbac"],
+            },
+            {
+              name: "Matrix",
+              path: "/admin/rbac/matrix",
+              requiredPermissions: ["access.rbac"],
             },
           ],
         },
@@ -184,17 +219,17 @@ export const getMenuByRole = (userRole) => {
             {
               name: "Add Supplier",
               path: "/supplier/new",
-              access: ["admin"],
+              requiredPermissions: ["access.suppliers"],
             },
             {
               name: "All Suppliers",
               path: "/supplier",
-              access: ["admin"],
+              requiredPermissions: ["access.suppliers"],
             },
             {
               name: "All Materials",
               path: "/supplier/materials",
-              access: ["admin"],
+              requiredPermissions: ["access.materials"],
             },
           ],
         },
@@ -210,12 +245,12 @@ export const getMenuByRole = (userRole) => {
             {
               name: "All Equipment",
               path: "/equipment-inventory",
-              access: ["admin", "general_manager"],
+              requiredPermissions: ["access.equipment"],
             },
             {
               name: "Add Equipment",
               path: "/equipment-inventory/equipment/add",
-              access: ["admin", "general_manager"],
+              requiredPermissions: ["access.equipment"],
             },
           ],
         },
@@ -226,34 +261,12 @@ export const getMenuByRole = (userRole) => {
             {
               name: "All Screen",
               path: "/screen-inventory",
-              access: ["admin", "general_manager"],
+              requiredPermissions: ["access.screens"],
             },
             {
               name: "Add Screen",
               path: "/screen-inventory/new",
-              access: ["admin", "general_manager"],
-            },
-          ],
-        },
-      ],
-    },
-
-    {
-      section: "Production",
-      items: [
-        {
-          name: "Orders",
-          icon: "fa-solid fa-file-invoice",
-          subItems: [
-            {
-              name: "Assigned Orders",
-              path: "/orders/assigned",
-              access: ["screen_maker"],
-            },
-            {
-              name: "My Tasks",
-              path: "/tasks",
-              access: ["screen_maker"],
+              requiredPermissions: ["access.screens"],
             },
           ],
         },
@@ -268,15 +281,12 @@ export const getMenuByRole = (userRole) => {
         .map((item) => ({
           ...item,
           subItems: item.subItems
-            ? item.subItems.filter(
-                (subItem) =>
-                  subItem.access && subItem.access.includes(userRole),
-              )
+            ? item.subItems.filter((subItem) => canAccess(subItem))
             : undefined,
         }))
         .filter((item) => {
           if (item.path) {
-            return item.access && item.access.includes(userRole);
+            return canAccess(item);
           }
 
           if (item.subItems && item.subItems.length > 0) {

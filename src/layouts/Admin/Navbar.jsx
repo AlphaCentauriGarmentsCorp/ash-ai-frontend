@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { authApi } from "../../api/authApi";
 import {
   roleColors,
   roleDisplayNames,
@@ -8,7 +9,7 @@ import {
   getRoleColor,
   getRoleDisplayName,
 } from "../../config/roleConfig";
-import { getMenuByRole } from "../../config/menuConfig";
+import { getMenuByPermissions } from "../../config/menuConfig";
 
 const AVATAR_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
@@ -66,10 +67,7 @@ const Navbar = ({
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   const getAccessiblePages = () => {
-    if (!user?.domain_role || user.domain_role.length === 0) return [];
-
-    const primaryRole = user.domain_role[0];
-    const filteredMenu = getMenuByRole(primaryRole);
+    const filteredMenu = getMenuByPermissions(user);
 
     const pages = [];
 

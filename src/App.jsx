@@ -95,6 +95,13 @@ import AllQuotation from "./pages/Quotation/AllQuotation";
 import ViewQuotation from "./pages/Quotation/ViewQuotation";
 import EditQuotation from "./pages/Quotation/EditQuotation";
 import QuotationClient from "./pages/Quotation/QuotationClient";
+import RolesPage from "./pages/RBAC/Roles/RolesPage";
+import AddRole from "./pages/RBAC/Roles/AddRole";
+import EditRole from "./pages/RBAC/Roles/EditRole";
+import PermissionsPage from "./pages/RBAC/Permissions/PermissionsPage";
+import AddPermission from "./pages/RBAC/Permissions/AddPermission";
+import EditPermission from "./pages/RBAC/Permissions/EditPermission";
+import RolePermissionMatrix from "./pages/RBAC/RolePermissionMatrix";
 
 function App() {
   const { loading } = useAuth();
@@ -801,6 +808,76 @@ function App() {
           element={
             <ProtectedRoute>
               <EditApparelPatternPrices />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rbac/roles"
+          element={
+            <ProtectedRoute
+              requiredPermissions={["access.rbac"]}
+            >
+              <RolesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rbac/roles/new"
+          element={
+            <ProtectedRoute
+              requiredPermissions={["access.rbac"]}
+            >
+              <AddRole />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rbac/roles/edit/:id"
+          element={
+            <ProtectedRoute
+              requiredPermissions={["access.rbac"]}
+            >
+              <EditRole />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rbac/permissions"
+          element={
+            <ProtectedRoute
+              requiredPermissions={["access.rbac"]}
+            >
+              <PermissionsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rbac/permissions/new"
+          element={
+            <ProtectedRoute
+              requiredPermissions={["access.rbac"]}
+            >
+              <AddPermission />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rbac/permissions/edit/:id"
+          element={
+            <ProtectedRoute
+              requiredPermissions={["access.rbac"]}
+            >
+              <EditPermission />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/rbac/matrix"
+          element={
+            <ProtectedRoute
+              requiredPermissions={["access.rbac"]}
+            >
+              <RolePermissionMatrix />
             </ProtectedRoute>
           }
         />

@@ -1,3 +1,5 @@
+import { isSuperAdmin } from "./authz";
+
 export const RoleAccess = [
   { value: "admin", label: "Admin" },
   { value: "general_manager", label: "General Manager" },
@@ -110,7 +112,8 @@ export const PRODUCTION_ACCESS = {
 export const hasSectionAccess = (userRoles = [], section) => {
   if (!userRoles || !Array.isArray(userRoles) || !section) return false;
 
-  if (userRoles.includes("admin")) return true;
+  if (isSuperAdmin({ roles: userRoles }))
+    return true;
 
   const allowedRoles = SECTION_ACCESS[section];
   return allowedRoles?.some((role) => userRoles.includes(role)) || false;
@@ -120,7 +123,8 @@ export const hasProductionAccess = (userRoles = [], productionSection) => {
   if (!userRoles || !Array.isArray(userRoles) || !productionSection)
     return false;
 
-  if (userRoles.includes("admin")) return true;
+  if (isSuperAdmin({ roles: userRoles }))
+    return true;
 
   const allowedRoles = PRODUCTION_ACCESS[productionSection];
   return allowedRoles?.some((role) => userRoles.includes(role)) || false;
