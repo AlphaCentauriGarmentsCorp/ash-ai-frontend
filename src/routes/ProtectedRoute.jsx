@@ -1,8 +1,13 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { useEffect } from "react";
+import { hasRequiredPermissions } from "../utils/authz";
+import { inferPermissionsFromPath } from "../utils/permissionAccessMap";
 
-export default function ProtectedRoute({ children }) {
+export default function ProtectedRoute({
+  children,
+  requiredPermissions = [],
+  permissionMode = "all",
+}) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -19,6 +24,20 @@ export default function ProtectedRoute({ children }) {
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  const resolvedPermissions =
+    Array.isArray(requiredPermissions) && requiredPermissions.length > 0
+      ? requiredPermissions
+      : inferPermissionsFromPath(location.pathname);
+  const allowedByPermission = hasRequiredPermissions(
+    user,
+    resolvedPermissions,
+    permissionMode,
+  );
+
+  if (!allowedByPermission) {
+    return <Navigate to="/" replace />;
   }
 
   return children;

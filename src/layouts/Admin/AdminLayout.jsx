@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Navbar from "./Navbar";
 import Sidebar from "./Sidebar";
 import Breadcrumbs from "../../components/Page/Breadcrumbs";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function AdminLayout({
   children,
@@ -10,7 +11,7 @@ export default function AdminLayout({
   links = [],
   icon,
 }) {
-  const userType = "admin";
+  const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isMobileView, setIsMobileView] = useState(false);
@@ -44,7 +45,7 @@ export default function AdminLayout({
   return (
     <main className="flex min-h-screen">
       <Sidebar
-        userType={userType}
+        user={user}
         isOpen={sidebarOpen}
         setIsOpen={setSidebarOpen}
         isMobileOpen={isMobileOpen}
