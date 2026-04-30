@@ -6,6 +6,9 @@ import Step2Designs from "../../components/quotationClient/Step2Designs";
 import Step3Colors from "../../components/quotationClient/Step3Colors";
 import Step4Overview from "../../components/quotationClient/Step4Overview";
 import { publicQuotationApi } from "../../api/publicQuotationApi";
+import { publicApparelTypeApi } from "../../api/publicApparelTypeApi";
+import { publicPatternTypeApi } from "../../api/publicPatternTypeApi";
+import { publicApparelNecklineApi } from "../../api/publicApparelNecklineApi";
 
 const toStorageUrl = (path) => {
   const rawPath = String(path || "").trim();
@@ -47,6 +50,14 @@ const parseJsonField = (value, fallback) => {
   return value;
 };
 
+const normalizeApiRecord = (response) => response?.data || response || null;
+
+const toId = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  const numeric = Number(value);
+  return Number.isNaN(numeric) ? null : numeric;
+};
+
 const normalizeImageLinkForCompare = (value) => {
   const rawValue = String(value || "").trim();
   if (!rawValue) return "";
@@ -73,8 +84,10 @@ const normalizeComparableParts = (parts) => {
         ? null
         : Number(part.part_id),
     part: String(part?.part || "").trim(),
-    color_count: Math.max(1, parseInt(part?.color_count, 10) || 1),
-    price_per_color: Number(part?.price_per_color) || 0,
+    unit_count: Math.max(1, parseInt(part?.unit_count, 10) || 1),
+    price_per_unit: Number(part?.price_per_unit) || 0,
+    full_unit_count: Math.max(0, parseInt(part?.full_unit_count, 10) || 0),
+    price_per_full_unit: Number(part?.price_per_full_unit) || 0,
     image_input_type: String(part?.image_input_type || "").trim().toLowerCase(),
     image_link: normalizeImageLinkForCompare(part?.image_link),
     has_new_file: Boolean(part?._has_new_file),
@@ -99,8 +112,8 @@ const QuotationClient = () => {
       component: Step2Designs,
     },
     {
-      title: "Colors",
-      description: "Specify colors",
+      title: "Units",
+      description: "Specify units",
       component: Step3Colors,
     },
     {
@@ -120,7 +133,36 @@ const QuotationClient = () => {
       try {
         const response = await publicQuotationApi.show(token);
         const quotationData = response?.data || response || {};
-        setPublicQuotationData(quotationData);
+
+        const itemConfig = parseJsonField(
+          quotationData.item_config_json,
+          quotationData.item_config || {},
+        );
+
+        const apparelTypeId = toId(itemConfig.apparel_type_id || quotationData.apparel_type_id);
+        const patternTypeId = toId(itemConfig.pattern_type_id || quotationData.pattern_type_id);
+        const necklineId = toId(quotationData.apparel_neckline_id || quotationData.neckline_id);
+
+        const [apparelTypeRecord, patternTypeRecord, necklineRecord] = await Promise.all([
+          apparelTypeId
+            ? publicApparelTypeApi.show(apparelTypeId).then(normalizeApiRecord).catch(() => null)
+            : null,
+          patternTypeId
+            ? publicPatternTypeApi.show(patternTypeId).then(normalizeApiRecord).catch(() => null)
+            : null,
+          necklineId
+            ? publicApparelNecklineApi.show(necklineId).then(normalizeApiRecord).catch(() => null)
+            : null,
+        ]);
+
+        setPublicQuotationData({
+          ...quotationData,
+          _resolvedMeta: {
+            apparel_type_name: apparelTypeRecord?.name || null,
+            pattern_type_name: patternTypeRecord?.name || null,
+            apparel_neckline_name: necklineRecord?.name || null,
+          },
+        });
 
         const parts = Array.isArray(quotationData.print_parts)
           ? quotationData.print_parts
@@ -140,8 +182,10 @@ const QuotationClient = () => {
             key: String(part.part_id ?? part.id ?? index),
             part_id: part.part_id ?? part.id ?? null,
             part: String(part.part || part.name || `Part ${index + 1}`).trim(),
-            color_count: Math.max(1, parseInt(part.color_count, 10) || 1),
-            price_per_color: Number(part.price_per_color) || 0,
+            unit_count: Math.max(1, parseInt(part.unit_count, 10) || 1),
+            price_per_unit: Number(part.price_per_unit) || 0,
+            full_unit_count: Math.max(0, parseInt(part.full_unit_count, 10) || 0),
+            price_per_full_unit: Number(part.price_per_full_unit) || 0,
             image_input_type: imageInputType,
             image_link: imageInputType === "link" ? toStorageUrl(rawImagePath) : "",
             image_file: null,
@@ -205,8 +249,8 @@ const QuotationClient = () => {
 
       case 2:
         parts.forEach((part) => {
-          if (!(Number(part.color_count) > 0)) {
-            newErrors[`color_${part.key}`] = `Please specify color count for ${part.part}.`;
+          if (!(Number(part.unit_count) > 0)) {
+            newErrors[`unit_${part.key}`] = `Please specify unit count for ${part.part}.`;
           }
         });
         break;
@@ -269,8 +313,10 @@ const QuotationClient = () => {
         return {
           part_id: part.part_id,
           part: part.part,
-          color_count: Math.max(1, parseInt(part.color_count, 10) || 1),
-          price_per_color: Number(part.price_per_color) || 0,
+          unit_count: Math.max(1, parseInt(part.unit_count, 10) || 1),
+          price_per_unit: Number(part.price_per_unit) || 0,
+          full_unit_count: Math.max(0, parseInt(part.full_unit_count, 10) || 0),
+          price_per_full_unit: Number(part.price_per_full_unit) || 0,
           image_input_type: imageInputType,
           image_link: imageLink,
         };
@@ -316,8 +362,10 @@ const QuotationClient = () => {
           const baseMatches =
             expectedPart.part_id === actualPart.part_id
             && expectedPart.part === actualPart.part
-            && expectedPart.color_count === actualPart.color_count
-            && expectedPart.price_per_color === actualPart.price_per_color
+            && expectedPart.unit_count === actualPart.unit_count
+            && expectedPart.price_per_unit === actualPart.price_per_unit
+            && expectedPart.full_unit_count === actualPart.full_unit_count
+            && expectedPart.price_per_full_unit === actualPart.price_per_full_unit
             && expectedPart.image_input_type === actualPart.image_input_type;
 
           let imageMatches = false;
@@ -377,7 +425,7 @@ const QuotationClient = () => {
   // Success Screen
   if (isSubmitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
         <div className="max-w-2xl w-full">
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 md:p-12 text-center">
             <div className="mb-6">
@@ -399,7 +447,7 @@ const QuotationClient = () => {
 
   if (isLoadingTokenData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
         <div className="max-w-xl w-full bg-white rounded-xl shadow-lg border border-gray-200 p-8 text-center">
           <i className="fas fa-spinner fa-spin text-3xl text-primary"></i>
           <p className="text-gray-600 mt-4">Loading shared quotation...</p>
@@ -410,7 +458,7 @@ const QuotationClient = () => {
 
   if (tokenLoadError) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
         <div className="max-w-xl w-full bg-white rounded-xl shadow-lg border border-red-200 p-8 text-center">
           <i className="fas fa-exclamation-triangle text-3xl text-red-500"></i>
           <p className="text-red-700 mt-4 font-medium">Unable to load shared link</p>
@@ -423,7 +471,7 @@ const QuotationClient = () => {
   const CurrentStepComponent = steps[currentStep - 1].component;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50">
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-6">
@@ -466,6 +514,7 @@ const QuotationClient = () => {
           {/* Step Content */}
           <CurrentStepComponent
             formData={formData}
+            quotationData={publicQuotationData}
             onChange={handleChange}
             errors={errors}
           />

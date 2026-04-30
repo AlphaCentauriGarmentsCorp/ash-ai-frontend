@@ -84,11 +84,32 @@ class QuotationService {
       const color = colors.find((c) => Number(c.id) === selectionId);
       const basePrice =
         this.toNumber(selection.pricePerColor) ||
+        this.toNumber(selection.pricePerUnit) ||
         this.toNumber(selection.price_per_color) ||
+        this.toNumber(selection.price_per_unit) ||
         this.toNumber(selection.price) ||
         this.toNumber(color?.price);
-      const colorCount = this.toNumber(selection.colorCount) || 1;
-      return sum + basePrice * colorCount;
+      const colorCount =
+        this.toNumber(selection.colorCount) ||
+        this.toNumber(selection.unitCount) ||
+        this.toNumber(selection.color_count) ||
+        this.toNumber(selection.unit_count) ||
+        1;
+
+      const fullPrice =
+        this.toNumber(selection.pricePerFullColor) ||
+        this.toNumber(selection.pricePerFullUnit) ||
+        this.toNumber(selection.price_per_full_color) ||
+        this.toNumber(selection.price_per_full_unit) ||
+        0;
+      const fullCount =
+        this.toNumber(selection.fullColorCount) ||
+        this.toNumber(selection.fullUnitCount) ||
+        this.toNumber(selection.full_color_count) ||
+        this.toNumber(selection.full_unit_count) ||
+        0;
+
+      return sum + basePrice * colorCount + fullPrice * fullCount;
     }, 0);
   };
 

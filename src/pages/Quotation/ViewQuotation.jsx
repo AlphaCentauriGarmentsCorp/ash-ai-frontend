@@ -351,8 +351,8 @@ const handleDownloadPDF = async () => {
                   <tr>
                     <th className="px-3 py-2 text-left">Part</th>
                     <th className="px-3 py-2 text-left">Uploaded Image</th>
-                    <th className="px-3 py-2 text-right"># of Colors</th>
-                    <th className="px-3 py-2 text-right">Price/Color</th>
+                    <th className="px-3 py-2 text-right"># of Units</th>
+                    <th className="px-3 py-2 text-right">Price/Unit</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -360,6 +360,8 @@ const handleDownloadPDF = async () => {
                     printParts.map((part, idx) => {
                       const imageUrl = resolveImageUrl(part);
                       const partName = part.part || part.name || (part.part_id ? `Part #${part.part_id}` : "Unknown Part");
+                      const unitCount = Number(part.unit_count ?? part.unitCount ?? part.color_count ?? part.colorCount) || 0;
+                      const pricePerUnit = part.price_per_unit ?? part.pricePerUnit ?? part.price_per_color ?? part.pricePerColor;
 
                       return (
                       <tr key={idx} className="hover:bg-light/30">
@@ -383,8 +385,8 @@ const handleDownloadPDF = async () => {
                             <span className="text-xs text-gray-400">No uploaded image</span>
                           )}
                         </td>
-                        <td className="px-3 py-2 text-right">{Number(part.color_count ?? part.colorCount) || 0}</td>
-                        <td className="px-3 py-2 text-right font-semibold text-primary">{formatCurrency(part.price_per_color ?? part.pricePerColor)}</td>
+                        <td className="px-3 py-2 text-right">{unitCount}</td>
+                        <td className="px-3 py-2 text-right font-semibold text-primary">{formatCurrency(pricePerUnit)}</td>
                       </tr>
                       );
                     })

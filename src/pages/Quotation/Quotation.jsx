@@ -20,6 +20,21 @@ const DEFAULT_SIZE_OPTIONS = [
 ];
 
 const normalizeSizeName = (value) => String(value || "").trim().toLowerCase();
+
+const getDefaultSizeUnitPrice = (sizeName) => {
+  const normalizedSize = normalizeSizeName(sizeName);
+
+  if (normalizedSize === "l" || normalizedSize === "xl") {
+    return 10;
+  }
+
+  if (normalizedSize === "2xl" || normalizedSize === "3xl") {
+    return 30;
+  }
+
+  return 0;
+};
+
 const toNullableId = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
@@ -42,8 +57,8 @@ const buildDefaultSizeRows = ({
       id: index + 1,
       size_id: matchedExisting?.size_id || option.id,
       size_label: matchedExisting?.size_label || matchedExisting?.size || option.name,
-      quantity: matchedExisting?.quantity ?? 0,
-      unit_price: matchedExisting?.unit_price ?? 0,
+      quantity: matchedExisting?.quantity ?? 1,
+      unit_price: matchedExisting?.unit_price ?? getDefaultSizeUnitPrice(sizeName),
       price_per_piece: matchedExisting?.price_per_piece ?? 0,
       apparel_pattern_price_id:
         matchedExisting?.apparel_pattern_price_id || selectedApparelPattern?.id || null,
@@ -84,7 +99,7 @@ const Quotation = () => {
   const [discount, setDiscount] = useState({ type: "percentage", value: 0 });
   const [isCostBreakdownOpen, setIsCostBreakdownOpen] = useState(false);
   const [sampleBreakdown, setSampleBreakdown] = useState({
-    unit_price: 0,
+    unit_price: 1000,
     quantity: 1,
   });
 
@@ -236,26 +251,34 @@ const Quotation = () => {
 
   const printMethodLabels = useMemo(() => {
     const methodName = selectedPrintMethod?.name?.toLowerCase() || "";
+    const isSilkscreenSelected = Number(selectedPrintMethodId) === Number(silkscreenMethodId);
+
+    if (isSilkscreenSelected) {
+      return {
+        unitLabel: "Number of Colors",
+        priceLabel: "Price/Color",
+      };
+    }
     
     if (methodName.includes("dtf")) {
       return {
-        colorLabel: "Meters",
+        unitLabel: "Meters",
         priceLabel: "Price/m",
       };
     }
     
     if (methodName.includes("embroidery")) {
       return {
-        colorLabel: "Size",
+        unitLabel: "Size",
         priceLabel: "Price/size",
       };
     }
     
     return {
-      colorLabel: "Number of Colors",
-      priceLabel: "Price/Color",
+      unitLabel: "Number of Units",
+      priceLabel: "Price/Unit",
     };
-  }, [selectedPrintMethod]);
+      }, [selectedPrintMethod, selectedPrintMethodId, silkscreenMethodId]);
 
   const uniqueApparelNames = useMemo(() => {
     return Array.from(
@@ -401,10 +424,10 @@ const Quotation = () => {
           file: null,
           imageInputType: "file",
           imageLink: "",
-          colorCount: 1,
-          pricePerColor: 0,
-          fullColorCount: 1,
-          pricePerFullColor: 0,
+          unitCount: 1,
+          pricePerUnit: 20,
+          fullUnitCount: 1,
+          pricePerFullUnit: 0,
         },
       ];
     });
@@ -444,41 +467,41 @@ const Quotation = () => {
     );
   };
 
-  const updateColorCount = (colorId, count) => {
+  const updateUnitCount = (colorId, count) => {
     setSelectedColors((prev) =>
       prev.map((c) =>
         Number(c.colorId) === Number(colorId)
-          ? { ...c, colorCount: Math.max(1, parseInt(count, 10) || 1) }
+          ? { ...c, unitCount: Math.max(1, parseInt(count, 10) || 1) }
           : c,
       ),
     );
   };
 
-  const updateColorPrice = (colorId, price) => {
+  const updateUnitPrice = (colorId, price) => {
     setSelectedColors((prev) =>
       prev.map((c) =>
         Number(c.colorId) === Number(colorId)
-          ? { ...c, pricePerColor: Math.max(0, parseFloat(price) || 0) }
+          ? { ...c, pricePerUnit: Math.max(0, parseFloat(price) || 0) }
           : c,
       ),
     );
   };
 
-  const updateFullColorCount = (colorId, count) => {
+  const updateFullUnitCount = (colorId, count) => {
     setSelectedColors((prev) =>
       prev.map((c) =>
         Number(c.colorId) === Number(colorId)
-          ? { ...c, fullColorCount: Math.max(1, parseInt(count, 10) || 1) }
+          ? { ...c, fullUnitCount: Math.max(1, parseInt(count, 10) || 1) }
           : c,
       ),
     );
   };
 
-  const updateFullColorPrice = (colorId, price) => {
+  const updateFullUnitPrice = (colorId, price) => {
     setSelectedColors((prev) =>
       prev.map((c) =>
         Number(c.colorId) === Number(colorId)
-          ? { ...c, pricePerFullColor: Math.max(0, parseFloat(price) || 0) }
+          ? { ...c, pricePerFullUnit: Math.max(0, parseFloat(price) || 0) }
           : c,
       ),
     );
@@ -571,7 +594,7 @@ const Quotation = () => {
     setActiveApparelFilter("all");
     setActivePatternFilter("all");
     setDiscount({ type: "percentage", value: 0 });
-    setSampleBreakdown({ unit_price: 0, quantity: 1 });
+    setSampleBreakdown({ unit_price: 1000, quantity: 1 });
     setOrderInfo({
       client_name: "",
       client_email: "",
@@ -612,7 +635,6 @@ const Quotation = () => {
       total: item.total,
       apparel_pattern_price: item.apparelPatternPrice,
       neckline_price: item.necklinePrice,
-      color_price: item.colorPrice,
       unit_price: item.unitPrice,
     })),
     sample_breakdown: {
@@ -669,10 +691,10 @@ const Quotation = () => {
         return {
           part_id: toNullableId(partOption?.id ?? part.colorId),
           part: partOption?.name || part.part || `Part ${part.colorId}`,
-          color_count: part.colorCount,
-          price_per_color: quotationService.toNumber(part.pricePerColor),
-          full_color_count: part.fullColorCount || 0,
-          price_per_full_color: quotationService.toNumber(part.pricePerFullColor || 0),
+          unit_count: part.unitCount,
+          price_per_unit: quotationService.toNumber(part.pricePerUnit),
+          full_unit_count: part.fullUnitCount || 0,
+          price_per_full_unit: quotationService.toNumber(part.pricePerFullUnit || 0),
           image_input_type: imageInputType,
           image_link: imageLink,
           image,
@@ -708,10 +730,10 @@ const Quotation = () => {
           printParts.map((part) => ({
             part_id: part.part_id,
             part: part.part,
-            color_count: part.color_count,
-            price_per_color: part.price_per_color,
-            full_color_count: part.full_color_count,
-            price_per_full_color: part.price_per_full_color,
+            unit_count: part.unit_count,
+            price_per_unit: part.price_per_unit,
+            full_unit_count: part.full_unit_count,
+            price_per_full_unit: part.price_per_full_unit,
             image_input_type: part.image_input_type,
             image_link: part.image_link,
           })),
@@ -1194,13 +1216,13 @@ const Quotation = () => {
                           </div>
 
                           <div className="lg:pt-9 space-y-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.colorLabel}</label>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.unitLabel}</label>
                             <input
                               type="number"
                               min="1"
                               max="10"
-                              value={part.colorCount || 1}
-                              onChange={(e) => updateColorCount(part.colorId, e.target.value)}
+                              value={part.unitCount || 1}
+                              onChange={(e) => updateUnitCount(part.colorId, e.target.value)}
                               className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                             />
 
@@ -1210,8 +1232,8 @@ const Quotation = () => {
                                 type="number"
                                 min="0"
                                 step="0.01"
-                                value={part.pricePerColor ?? 0}
-                                onChange={(e) => updateColorPrice(part.colorId, e.target.value)}
+                                value={part.pricePerUnit ?? 0}
+                                onChange={(e) => updateUnitPrice(part.colorId, e.target.value)}
                                 className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                               />
                             </div>
@@ -1224,8 +1246,8 @@ const Quotation = () => {
                                     type="number"
                                     min="1"
                                     max="10"
-                                    value={part.fullColorCount || 1}
-                                    onChange={(e) => updateFullColorCount(part.colorId, e.target.value)}
+                                    value={part.fullUnitCount || 1}
+                                    onChange={(e) => updateFullUnitCount(part.colorId, e.target.value)}
                                     className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                                   />
                                 </div>
@@ -1236,8 +1258,8 @@ const Quotation = () => {
                                     type="number"
                                     min="0"
                                     step="0.01"
-                                    value={part.pricePerFullColor ?? 0}
-                                    onChange={(e) => updateFullColorPrice(part.colorId, e.target.value)}
+                                    value={part.pricePerFullUnit ?? 0}
+                                    onChange={(e) => updateFullUnitPrice(part.colorId, e.target.value)}
                                     className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                                   />
                                 </div>

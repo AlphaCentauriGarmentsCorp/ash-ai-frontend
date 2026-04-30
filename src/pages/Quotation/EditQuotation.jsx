@@ -21,6 +21,21 @@ const DEFAULT_SIZE_OPTIONS = [
 ];
 
 const normalizeSizeName = (value) => String(value || "").trim().toLowerCase();
+
+const getDefaultSizeUnitPrice = (sizeName) => {
+  const normalizedSize = normalizeSizeName(sizeName);
+
+  if (normalizedSize === "l" || normalizedSize === "xl") {
+    return 10;
+  }
+
+  if (normalizedSize === "2xl" || normalizedSize === "3xl") {
+    return 30;
+  }
+
+  return 0;
+};
+
 const toNullableId = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
@@ -43,8 +58,8 @@ const buildDefaultSizeRows = ({
       id: index + 1,
       size_id: matchedExisting?.size_id || option.id,
       size_label: matchedExisting?.size_label || matchedExisting?.size || option.name,
-      quantity: matchedExisting?.quantity ?? 0,
-      unit_price: matchedExisting?.unit_price ?? 0,
+      quantity: matchedExisting?.quantity ?? 1,
+      unit_price: matchedExisting?.unit_price ?? getDefaultSizeUnitPrice(sizeName),
       price_per_piece: matchedExisting?.price_per_piece ?? 0,
       apparel_pattern_price_id:
         matchedExisting?.apparel_pattern_price_id || selectedApparelPattern?.id || null,
@@ -130,7 +145,7 @@ const EditQuotation = () => {
   const [discount, setDiscount] = useState({ type: "percentage", value: 0 });
   const [isCostBreakdownOpen, setIsCostBreakdownOpen] = useState(false);
   const [sampleBreakdown, setSampleBreakdown] = useState({
-    unit_price: 0,
+    unit_price: 1000,
     quantity: 1,
   });
 
@@ -465,7 +480,12 @@ const EditQuotation = () => {
         quotation.sample_breakdown || parsedBreakdown?.sample_breakdown || {};
 
       setSampleBreakdown({
-        unit_price: quotationService.toNumber(parsedSampleBreakdown.unit_price),
+        unit_price:
+          parsedSampleBreakdown?.unit_price !== undefined &&
+          parsedSampleBreakdown?.unit_price !== null &&
+          parsedSampleBreakdown?.unit_price !== ""
+            ? quotationService.toNumber(parsedSampleBreakdown.unit_price)
+            : 1000,
         quantity: Math.max(
           0,
           parseInt(parsedSampleBreakdown.quantity, 10) || 0,
@@ -565,7 +585,12 @@ const EditQuotation = () => {
             existingImageUrl: resolvedImageLink,
             existingImageRawPath: String(imagePath || "").trim(),
             colorCount: Math.max(1, parseInt(part.color_count, 10) || 1),
-            pricePerColor: quotationService.toNumber(part.price_per_color),
+            pricePerColor:
+              part?.price_per_color !== undefined &&
+              part?.price_per_color !== null &&
+              part?.price_per_color !== ""
+                ? quotationService.toNumber(part.price_per_color)
+                : 20,
             fullColorCount: Math.max(1, parseInt(part.full_color_count, 10) || 1),
             pricePerFullColor: quotationService.toNumber(part.price_per_full_color || 0),
           };
@@ -658,7 +683,7 @@ const EditQuotation = () => {
           existingImageUrl: "",
           existingImageRawPath: "",
           colorCount: 1,
-          pricePerColor: 0,
+          pricePerColor: 20,
           fullColorCount: 1,
           pricePerFullColor: 0,
         },
