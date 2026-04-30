@@ -3,13 +3,13 @@ import React from "react";
 const Step3Colors = ({ formData, onChange, errors }) => {
   const parts = Array.isArray(formData.parts) ? formData.parts : [];
 
-  const handleColorCountChange = (partKey, value) => {
+  const handleUnitCountChange = (partKey, value) => {
     const numValue = parseInt(value, 10) || 1;
     const validValue = Math.max(1, numValue);
 
     const updatedParts = parts.map((part) =>
       String(part.key) === String(partKey)
-        ? { ...part, color_count: validValue }
+        ? { ...part, unit_count: validValue }
         : part,
     );
 
@@ -22,25 +22,25 @@ const Step3Colors = ({ formData, onChange, errors }) => {
         <div className="flex items-center gap-3 mb-4">
           <i className={`fas fa-palette text-2xl text-primary`}></i>
           <h3 className="text-lg font-semibold text-gray-800">
-            {part.part} Print Colors
+            {part.part} Print Units
           </h3>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Number of Colors
+            Number of Units
           </label>
           <input
             type="number"
             min="1"
-            value={part.color_count || 1}
-            onChange={(e) => handleColorCountChange(part.key, e.target.value)}
+            value={part.unit_count || 1}
+            onChange={(e) => handleUnitCountChange(part.key, e.target.value)}
             className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
           />
-          {errors[`color_${part.key}`] && (
+          {errors[`unit_${part.key}`] && (
             <p className="mt-1 text-xs text-red-500 flex items-center">
               <i className="fa-solid fa-exclamation-circle mr-1"></i>
-              {errors[`color_${part.key}`]}
+              {errors[`unit_${part.key}`]}
             </p>
           )}
         </div>
@@ -52,10 +52,10 @@ const Step3Colors = ({ formData, onChange, errors }) => {
     <div className="space-y-6">
       <div className="text-center mb-8">
         <h2 className="text-2xl font-bold text-primary mb-2">
-          Colors
+          Units
         </h2>
         <p className="text-gray-600">
-          Specify the number of print colors per part
+          Specify the number of print units per part
         </p>
       </div>
 
