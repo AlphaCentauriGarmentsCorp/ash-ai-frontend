@@ -168,6 +168,16 @@ export const getMenuByPermissions = (user = null) => {
             },
           ],
         },
+        {
+          name: "Tickets",
+          icon: "fa-solid fa-ticket",
+          subItems: [
+            {
+              name: "All Tickets",
+              path: "/tickets",
+            },
+          ],
+        },
 
         {
           name: "Quotation Settings",
