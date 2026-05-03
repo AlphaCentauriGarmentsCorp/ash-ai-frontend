@@ -5,6 +5,9 @@ const RULES = [
   { test: /^\/orders(\/|$)/, permissions: ["access.orders"] },
   { test: /^\/order\//, permissions: ["access.orders"] },
 
+  // Ticket routes
+  { test: /^\/tickets(\/|$)/, permissions: ["access.tickets"] },
+
   // Client routes
   { test: /^\/clients(\/|$)/, permissions: ["access.clients"] },
 

@@ -74,6 +74,10 @@ import AddScreen from "./pages/ScreenInventory/AddScreen";
 import AllScreen from "./pages/ScreenInventory/AllScreen";
 import EditScreen from "./pages/ScreenInventory/EditScreen";
 import Quotation from "./pages/Quotation/Quotation";
+import TicketsList from "./pages/Tickets/TicketsList";
+import TicketView from "./pages/Tickets/TicketView";
+import QuotationTicketView from "./pages/Tickets/QuotationTicketView";
+import OrderTicketView from "./pages/Tickets/OrderTicketView";
 
 
 import AddonCategoriesPage from "./pages/QuotationSettings/AddonCategories/AddonCategoriesPage";
@@ -808,6 +812,39 @@ function App() {
           element={
             <ProtectedRoute>
               <EditApparelPatternPrices />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tickets"
+          element={
+            <ProtectedRoute requiredPermissions={["access.tickets"]}>
+              <TicketsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tickets/quotation/:id"
+          element={
+            <ProtectedRoute requiredPermissions={["access.tickets"]}>
+              <QuotationTicketView />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/tickets/order/:id"
+          element={
+            <ProtectedRoute requiredPermissions={["access.tickets"]}>
+              <OrderTicketView />
+            </ProtectedRoute>
+          }
+        />
+        
+        <Route
+          path="/tickets/:id"
+          element={
+            <ProtectedRoute requiredPermissions={["access.tickets"]}>
+              <TicketView />
             </ProtectedRoute>
           }
         />

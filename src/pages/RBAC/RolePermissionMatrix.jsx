@@ -9,10 +9,18 @@ const normalizeRows = (response) => {
   return Array.isArray(data) ? data : [];
 };
 
+const normalizeRole = (response) => response?.data || response || {};
+
 const getRolePermissions = (role) => {
   const permissions = Array.isArray(role?.permissions) ? role.permissions : [];
-  return permissions
-    .map((permission) => Number(permission?.id))
+  const permissionIds = Array.isArray(role?.permission_ids)
+    ? role.permission_ids
+    : [];
+
+  return [...permissions, ...permissionIds]
+    .map((permission) =>
+      Number(typeof permission === "object" ? permission?.id : permission),
+    )
     .filter((id) => Number.isFinite(id));
 };
 
@@ -43,8 +51,31 @@ const RolePermissionMatrix = () => {
         permissionApi.index({ per_page: "all" }),
       ]);
 
-      setRoles(normalizeRows(rolesRes));
-      setPermissions(normalizeRows(permissionsRes));
+      const roleRows = normalizeRows(rolesRes);
+      const permissionRows = normalizeRows(permissionsRes);
+
+      // Some role list responses omit relations; hydrate each role to keep matrix assignments accurate.
+      let hydratedRoles = roleRows;
+      try {
+        hydratedRoles = await Promise.all(
+          roleRows.map(async (role) => {
+            if (!role?.id) return role;
+
+            const roleDetails = await roleApi.show(role.id);
+            const normalizedRole = normalizeRole(roleDetails);
+
+            return {
+              ...role,
+              ...normalizedRole,
+            };
+          }),
+        );
+      } catch (error) {
+        console.warn("Failed to hydrate role permissions from detail endpoint:", error);
+      }
+
+      setRoles(hydratedRoles);
+      setPermissions(permissionRows);
     } catch (error) {
       console.error("Failed to load matrix data:", error);
       setServerError("Failed to load roles and permissions.");
@@ -81,15 +112,18 @@ const RolePermissionMatrix = () => {
   };
 
   const togglePermission = async (roleId, permissionId) => {
+    const normalizedPermissionId = Number(permissionId);
+    if (!Number.isFinite(normalizedPermissionId)) return;
+
     const role = roles.find((item) => Number(item.id) === Number(roleId));
     if (!role) return;
 
     const currentPermissions = getRolePermissions(role);
-    const nextPermissionIds = currentPermissions.includes(permissionId)
-      ? currentPermissions.filter((id) => id !== permissionId)
-      : [...currentPermissions, permissionId];
+    const nextPermissionIds = currentPermissions.includes(normalizedPermissionId)
+      ? currentPermissions.filter((id) => id !== normalizedPermissionId)
+      : [...currentPermissions, normalizedPermissionId];
 
-    const key = `${roleId}-${permissionId}`;
+    const key = `${roleId}-${normalizedPermissionId}`;
     setSavingKey(key);
 
     setRoles((prev) =>
@@ -106,15 +140,54 @@ const RolePermissionMatrix = () => {
     );
 
     try {
+      let roleForUpdate = role;
+      try {
+        const roleDetails = await roleApi.show(roleId);
+        roleForUpdate = {
+          ...role,
+          ...normalizeRole(roleDetails),
+        };
+      } catch (error) {
+        console.warn("Failed to load latest role details before update:", error);
+      }
+
       await roleApi.update(roleId, {
-        name: role.name,
-        guard_name: role.guard_name || "web",
-        description: role.description || "",
+        name: String(roleForUpdate?.name || "").trim(),
+        guard_name: String(roleForUpdate?.guard_name || "web").trim(),
+        description: String(roleForUpdate?.description || "").trim(),
         permission_ids: nextPermissionIds,
       });
+
+      const roleDetails = await roleApi.show(roleId);
+      const updatedRole = normalizeRole(roleDetails);
+
+      setRoles((prev) =>
+        prev.map((item) =>
+          Number(item.id) === Number(roleId)
+            ? {
+                ...item,
+                ...updatedRole,
+              }
+            : item,
+        ),
+      );
     } catch (error) {
-      console.error("Failed to update role permissions:", error);
-      setServerError("Failed to update role permission assignment.");
+      console.error(
+        "Failed to update role permissions:",
+        error,
+        error?.response?.data,
+      );
+
+      const responseMessage = error?.response?.data?.message;
+      const fieldErrors = error?.response?.data?.errors;
+      if (fieldErrors && typeof fieldErrors === "object") {
+        const firstError = Object.values(fieldErrors)
+          .flat()
+          .find((message) => typeof message === "string");
+        setServerError(firstError || responseMessage || "Failed to update role permission assignment.");
+      } else {
+        setServerError(responseMessage || "Failed to update role permission assignment.");
+      }
 
       // Re-sync the matrix with backend source of truth when an update fails.
       await fetchData();
