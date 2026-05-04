@@ -243,9 +243,9 @@ const Quotation = () => {
     return printMethods.filter((method) => {
       const name = method.name?.toLowerCase() || "";
       // Exclude Silkscreen, Sublimation, and High Density from the dropdown
-      return !name.includes("silkscreen") && 
-             !name.includes("sublimation") && 
-             !name.includes("high density");
+      return !name.includes("silkscreen") &&
+        !name.includes("sublimation") &&
+        !name.includes("high density");
     });
   }, [printMethods]);
 
@@ -259,26 +259,26 @@ const Quotation = () => {
         priceLabel: "Price/Color",
       };
     }
-    
+
     if (methodName.includes("dtf")) {
       return {
         unitLabel: "Meters",
         priceLabel: "Price/m",
       };
     }
-    
+
     if (methodName.includes("embroidery")) {
       return {
         unitLabel: "Size",
         priceLabel: "Price/size",
       };
     }
-    
+
     return {
       unitLabel: "Number of Units",
       priceLabel: "Price/Unit",
     };
-      }, [selectedPrintMethod, selectedPrintMethodId, silkscreenMethodId]);
+  }, [selectedPrintMethod, selectedPrintMethodId, silkscreenMethodId]);
 
   const uniqueApparelNames = useMemo(() => {
     return Array.from(
@@ -382,19 +382,19 @@ const Quotation = () => {
   const { itemDetails, addonDetails, totalAmount, totalAddons, totalQuantity } =
     data && items.length > 0
       ? quotationService.calculateTotals(
-          { ...data, printColors: data?.apparelParts || [], necklines },
-          items,
-          selectedColors,
-          selectedAddons,
-          formData.apparel_neckline_id,
-        )
+        { ...data, printColors: data?.apparelParts || [], necklines },
+        items,
+        selectedColors,
+        selectedAddons,
+        formData.apparel_neckline_id,
+      )
       : {
-          itemDetails: [],
-          addonDetails: [],
-          totalAmount: 0,
-          totalAddons: 0,
-          totalQuantity: 0,
-        };
+        itemDetails: [],
+        addonDetails: [],
+        totalAmount: 0,
+        totalAddons: 0,
+        totalQuantity: 0,
+      };
 
   const sampleBreakdownTotal =
     quotationService.toNumber(sampleBreakdown.unit_price) *
@@ -632,7 +632,7 @@ const Quotation = () => {
         "Unknown",
       quantity: item.quantity,
       price_per_piece: item.pricePerPiece,
-      total: item.total,
+      total_amount: item.total,
       apparel_pattern_price: item.apparelPatternPrice,
       neckline_price: item.necklinePrice,
       unit_price: item.unitPrice,
@@ -1024,7 +1024,7 @@ const Quotation = () => {
                 <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">
                   Print Information
                 </h3>
-                
+
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Print Method</label>
@@ -1166,22 +1166,20 @@ const Quotation = () => {
                               <button
                                 type="button"
                                 onClick={() => updateColorInputType(part.colorId, "file")}
-                                className={`px-2 py-1 text-[11px] rounded border ${
-                                  (part.imageInputType || "file") === "file"
+                                className={`px-2 py-1 text-[11px] rounded border ${(part.imageInputType || "file") === "file"
                                     ? "bg-primary text-white border-primary"
                                     : "bg-white text-gray-600 border-gray-200"
-                                }`}
+                                  }`}
                               >
                                 File Upload
                               </button>
                               <button
                                 type="button"
                                 onClick={() => updateColorInputType(part.colorId, "link")}
-                                className={`px-2 py-1 text-[11px] rounded border ${
-                                  part.imageInputType === "link"
+                                className={`px-2 py-1 text-[11px] rounded border ${part.imageInputType === "link"
                                     ? "bg-primary text-white border-primary"
                                     : "bg-white text-gray-600 border-gray-200"
-                                }`}
+                                  }`}
                               >
                                 Link
                               </button>

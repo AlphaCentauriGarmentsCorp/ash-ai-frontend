@@ -28,16 +28,16 @@ export const quotationApi = {
     }
   },
 
-showPDF: async (id) => {
-  try {
-    const response = await api.get(`/quotations/${id}/pdf`, {
-      responseType: 'blob',
-    });
-    return response.data;
-  } catch (error) {
-    throw error;
-  }
-},
+  showPDF: async (id) => {
+    try {
+      const response = await api.get(`/quotations/${id}/pdf`, {
+        responseType: 'blob',
+      });
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
 
   update: async (id, payload) => {
     try {
@@ -53,6 +53,15 @@ showPDF: async (id) => {
       }
 
       const response = await api.put(`/quotations/${id}`, payload);
+      return response.data;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  confirm: async (id) => {
+    try {
+      const response = await api.post(`/quotations/${id}/confirm`);
       return response.data;
     } catch (error) {
       throw error;

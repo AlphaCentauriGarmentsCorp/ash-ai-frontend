@@ -244,29 +244,29 @@ const EditQuotation = () => {
     return printMethods.filter((method) => {
       const name = method.name?.toLowerCase() || "";
       // Exclude Silkscreen, Sublimation, and High Density from the dropdown
-      return !name.includes("silkscreen") && 
-             !name.includes("sublimation") && 
-             !name.includes("high density");
+      return !name.includes("silkscreen") &&
+        !name.includes("sublimation") &&
+        !name.includes("high density");
     });
   }, [printMethods]);
 
   const printMethodLabels = useMemo(() => {
     const methodName = selectedPrintMethod?.name?.toLowerCase() || "";
-    
+
     if (methodName.includes("dtf")) {
       return {
         colorLabel: "Meters",
         priceLabel: "Price/m",
       };
     }
-    
+
     if (methodName.includes("embroidery")) {
       return {
         colorLabel: "Size",
         priceLabel: "Price/size",
       };
     }
-    
+
     return {
       colorLabel: "Number of Colors",
       priceLabel: "Price/Color",
@@ -482,8 +482,8 @@ const EditQuotation = () => {
       setSampleBreakdown({
         unit_price:
           parsedSampleBreakdown?.unit_price !== undefined &&
-          parsedSampleBreakdown?.unit_price !== null &&
-          parsedSampleBreakdown?.unit_price !== ""
+            parsedSampleBreakdown?.unit_price !== null &&
+            parsedSampleBreakdown?.unit_price !== ""
             ? quotationService.toNumber(parsedSampleBreakdown.unit_price)
             : 1000,
         quantity: Math.max(
@@ -587,8 +587,8 @@ const EditQuotation = () => {
             colorCount: Math.max(1, parseInt(part.color_count, 10) || 1),
             pricePerColor:
               part?.price_per_color !== undefined &&
-              part?.price_per_color !== null &&
-              part?.price_per_color !== ""
+                part?.price_per_color !== null &&
+                part?.price_per_color !== ""
                 ? quotationService.toNumber(part.price_per_color)
                 : 20,
             fullColorCount: Math.max(1, parseInt(part.full_color_count, 10) || 1),
@@ -601,8 +601,8 @@ const EditQuotation = () => {
       const selectedPatternCandidate =
         mappedItems.length > 0
           ? apparelPatternOptions.find(
-              (row) => Number(row.id) === Number(mappedItems[0].apparel_pattern_price_id),
-            ) || null
+            (row) => Number(row.id) === Number(mappedItems[0].apparel_pattern_price_id),
+          ) || null
           : null;
 
       const resolvedPattern = selectedPatternCandidate || {
@@ -638,19 +638,19 @@ const EditQuotation = () => {
   const { itemDetails, addonDetails, totalAmount, totalAddons, totalQuantity } =
     data && items.length > 0
       ? quotationService.calculateTotals(
-          { ...data, printColors: data?.apparelParts || [], necklines },
-          items,
-          selectedColors,
-          selectedAddons,
-          formData.apparel_neckline_id,
-        )
+        { ...data, printColors: data?.apparelParts || [], necklines },
+        items,
+        selectedColors,
+        selectedAddons,
+        formData.apparel_neckline_id,
+      )
       : {
-          itemDetails: [],
-          addonDetails: [],
-          totalAmount: 0,
-          totalAddons: 0,
-          totalQuantity: 0,
-        };
+        itemDetails: [],
+        addonDetails: [],
+        totalAmount: 0,
+        totalAddons: 0,
+        totalQuantity: 0,
+      };
 
   const sampleBreakdownTotal =
     quotationService.toNumber(sampleBreakdown.unit_price) *
@@ -950,7 +950,7 @@ const EditQuotation = () => {
         "Unknown",
       quantity: item.quantity,
       price_per_piece: item.pricePerPiece,
-      total: item.total,
+      total_amount: item.total,
       apparel_pattern_price: item.apparelPatternPrice,
       neckline_price: item.necklinePrice,
       color_price: item.colorPrice,
@@ -1348,7 +1348,7 @@ const EditQuotation = () => {
                 <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">
                   Print Information
                 </h3>
-                
+
                 <div className="space-y-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-600 mb-1">Print Method</label>
@@ -1490,22 +1490,20 @@ const EditQuotation = () => {
                               <button
                                 type="button"
                                 onClick={() => updateColorInputType(part.colorId, "file")}
-                                className={`px-2 py-1 text-[11px] rounded border ${
-                                  (part.imageInputType || "file") === "file"
+                                className={`px-2 py-1 text-[11px] rounded border ${(part.imageInputType || "file") === "file"
                                     ? "bg-primary text-white border-primary"
                                     : "bg-white text-gray-600 border-gray-200"
-                                }`}
+                                  }`}
                               >
                                 File Upload
                               </button>
                               <button
                                 type="button"
                                 onClick={() => updateColorInputType(part.colorId, "link")}
-                                className={`px-2 py-1 text-[11px] rounded border ${
-                                  part.imageInputType === "link"
+                                className={`px-2 py-1 text-[11px] rounded border ${part.imageInputType === "link"
                                     ? "bg-primary text-white border-primary"
                                     : "bg-white text-gray-600 border-gray-200"
-                                }`}
+                                  }`}
                               >
                                 Link
                               </button>
