@@ -13,15 +13,13 @@ const ViewQuotation = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isConverting, setIsConverting] = useState(false);
+  const [convertError, setConvertError] = useState(null);
 
   const parseJsonField = (value, fallback) => {
     if (value === null || value === undefined || value === "") return fallback;
     if (typeof value === "string") {
-      try {
-        return JSON.parse(value);
-      } catch {
-        return fallback;
-      }
+      try { return JSON.parse(value); } catch { return fallback; }
     }
     return value;
   };
@@ -38,33 +36,18 @@ const ViewQuotation = () => {
     const rawPath = String(
       part?.image_link || part?.image_url || part?.image_path || part?.image || "",
     ).trim();
-
     if (!rawPath) return "";
     if (rawPath.startsWith("http") || rawPath.startsWith("data:")) return rawPath;
-
     const apiUrl = import.meta.env.VITE_API_URL || "";
     let origin = "";
-    try {
-      origin = new URL(apiUrl).origin;
-    } catch {
-      origin = "";
-    }
-
-    if (rawPath.startsWith("/storage/")) {
-      return origin ? `${origin}${rawPath}` : rawPath;
-    }
-
-    if (rawPath.startsWith("storage/")) {
-      return origin ? `${origin}/${rawPath}` : `/${rawPath}`;
-    }
-
+    try { origin = new URL(apiUrl).origin; } catch { origin = ""; }
+    if (rawPath.startsWith("/storage/")) return origin ? `${origin}${rawPath}` : rawPath;
+    if (rawPath.startsWith("storage/")) return origin ? `${origin}/${rawPath}` : `/${rawPath}`;
     const cleanedPath = rawPath.replace(/^\/+/, "");
     return origin ? `${origin}/storage/${cleanedPath}` : `/storage/${cleanedPath}`;
   };
 
-  useEffect(() => {
-    fetchQuotation();
-  }, [id]);
+  useEffect(() => { fetchQuotation(); }, [id]);
 
   const fetchQuotation = async () => {
     setLoading(true);
@@ -72,28 +55,15 @@ const ViewQuotation = () => {
     try {
       const response = await quotationApi.show(id);
       const quotationData = response.data || {};
-
-      const parsedItemConfig = parseJsonField(
-        quotationData.item_config_json,
-        quotationData.item_config || {},
-      );
-
-      const apparelTypeId = toId(
-        parsedItemConfig.apparel_type_id || quotationData.apparel_type_id,
-      );
-      const patternTypeId = toId(
-        parsedItemConfig.pattern_type_id || quotationData.pattern_type_id,
-      );
-      const necklineId = toId(
-        quotationData.apparel_neckline_id || quotationData.neckline_id,
-      );
-
+      const parsedItemConfig = parseJsonField(quotationData.item_config_json, quotationData.item_config || {});
+      const apparelTypeId = toId(parsedItemConfig.apparel_type_id || quotationData.apparel_type_id);
+      const patternTypeId = toId(parsedItemConfig.pattern_type_id || quotationData.pattern_type_id);
+      const necklineId = toId(quotationData.apparel_neckline_id || quotationData.neckline_id);
       const [apparelTypeRecord, patternTypeRecord, necklineRecord] = await Promise.all([
         apparelTypeId ? apparelTypeApi.show(apparelTypeId).then(normalizeApiRecord).catch(() => null) : null,
         patternTypeId ? patternTypeApi.show(patternTypeId).then(normalizeApiRecord).catch(() => null) : null,
         necklineId ? apparelNecklineApi.show(necklineId).then(normalizeApiRecord).catch(() => null) : null,
       ]);
-
       setQuotation({
         ...quotationData,
         _resolvedMeta: {
@@ -109,29 +79,55 @@ const ViewQuotation = () => {
       setLoading(false);
     }
   };
-  
-const handleDownloadPDF = async () => {
-  setIsDownloading(true);
-  try {
-    const data = await quotationApi.showPDF(id); // now returns blob
 
-    const url = window.URL.createObjectURL(new Blob([data], { type: 'application/pdf' }));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute(
-      'download',
-      `quotation_${quotation?.quotation_id || id}.pdf`
-    );
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(url);
-  } catch (err) {
-    console.error('Failed to download PDF:', err);
-  } finally {
-    setIsDownloading(false);
-  }
-};
+  const handleDownloadPDF = async () => {
+    setIsDownloading(true);
+    try {
+      const data = await quotationApi.showPDF(id);
+      const url = window.URL.createObjectURL(new Blob([data], { type: "application/pdf" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.setAttribute("download", `quotation_${quotation?.quotation_id || id}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to download PDF:", err);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  /**
+   * Confirm the quotation → marks it as "Converted" on the backend,
+   * then navigates to /orders/new with the pre-filled payload in route state.
+   */
+  const handleConvertToOrder = async () => {
+    if (quotation?.status === "Converted") return;
+    if (!window.confirm("Convert this quotation to an Order? This action cannot be undone.")) return;
+
+    setIsConverting(true);
+    setConvertError(null);
+    try {
+      const result = await quotationApi.confirm(id);
+      // Update local status immediately so the button reflects the change
+      setQuotation((prev) => ({ ...prev, status: "Converted" }));
+      // Navigate to AddNewOrder with the pre-filled payload
+      navigate("/orders/new", { state: { prefill: result.order_payload } });
+    } catch (err) {
+      // 409 means already converted — still navigate if payload present
+      if (err?.response?.status === 409) {
+        setQuotation((prev) => ({ ...prev, status: "Converted" }));
+        setConvertError("This quotation was already converted to an order.");
+      } else {
+        console.error("Failed to convert quotation:", err);
+        setConvertError("Failed to convert quotation. Please try again.");
+      }
+    } finally {
+      setIsConverting(false);
+    }
+  };
 
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -139,6 +135,7 @@ const handleDownloadPDF = async () => {
       approved: { color: "bg-green-100 text-green-800", icon: "fa-check-circle" },
       rejected: { color: "bg-red-100 text-red-800", icon: "fa-times-circle" },
       completed: { color: "bg-blue-100 text-blue-800", icon: "fa-check-double" },
+      converted: { color: "bg-purple-100 text-purple-800", icon: "fa-exchange-alt" },
     };
     const config = statusConfig[status?.toLowerCase()] || statusConfig.pending;
     return (
@@ -157,9 +154,7 @@ const handleDownloadPDF = async () => {
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("en-PH", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
+      year: "numeric", month: "long", day: "numeric",
     });
   };
 
@@ -230,26 +225,22 @@ const handleDownloadPDF = async () => {
   );
 
   const itemsSubtotal = items.length > 0
-    ? items.reduce(
-      (sum, item) =>
-        sum +
-        (Number(item.total_amount)
-          || Number(item.total)
-          || ((Number(item.price_per_piece) || 0) * (Number(item.quantity) || 0))),
-      0,
-    )
-    : breakdownItems.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+    ? items.reduce((sum, item) =>
+      sum + (Number(item.total_amount) || Number(item.total)
+        || ((Number(item.price_per_piece) || 0) * (Number(item.quantity) || 0))), 0)
+    : breakdownItems.reduce((sum, item) => sum + (Number(item.total_amount ?? item.total) || 0), 0);
 
   const addonsTotal = addons.reduce((sum, addon) => sum + (Number(addon.total) || 0), 0);
   const sampleTotal =
     Number(sampleBreakdown.price_per_piece)
     || ((Number(sampleBreakdown.unit_price) || 0) * (Number(sampleBreakdown.quantity) || 0));
-
   const subtotal = Number(quotation.subtotal) || (itemsSubtotal + addonsTotal + sampleTotal);
   const discountAmount = Number(quotation.discount_price) || 0;
   const grandTotal = Number(quotation.grand_total) || Math.max(subtotal - discountAmount, 0);
   const downPayment = grandTotal * 0.6;
   const balance = grandTotal * 0.4;
+
+  const isConverted = quotation?.status?.toLowerCase() === "converted";
 
   return (
     <AdminLayout
@@ -264,7 +255,7 @@ const handleDownloadPDF = async () => {
       {/* PDF Content Wrapper */}
       <div id="quotation-pdf-content">
         <section className="bg-white rounded-lg border border-gray-200 overflow-hidden font-poppins">
-          {/* Header - Printable */}
+          {/* Header */}
           <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 border-b border-gray-200">
             <div className="flex justify-between items-start">
               <div>
@@ -275,12 +266,8 @@ const handleDownloadPDF = async () => {
                 <div className="text-sm font-semibold text-gray-800">
                   {quotation.quotation_id || `QTN-${quotation.id}`}
                 </div>
-                <div className="text-xs text-gray-500">
-                  Date: {formatDate(quotation.created_at)}
-                </div>
-                {quotation.status && (
-                  <div className="mt-2">{getStatusBadge(quotation.status)}</div>
-                )}
+                <div className="text-xs text-gray-500">Date: {formatDate(quotation.created_at)}</div>
+                {quotation.status && <div className="mt-2">{getStatusBadge(quotation.status)}</div>}
               </div>
             </div>
           </div>
@@ -288,8 +275,7 @@ const handleDownloadPDF = async () => {
           {/* Client Information */}
           <div className="p-6 border-b border-gray-200 bg-light/20">
             <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-              <i className="fas fa-user-circle"></i>
-              Client Information
+              <i className="fas fa-user-circle"></i>Client Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
@@ -327,8 +313,7 @@ const handleDownloadPDF = async () => {
           {/* Apparel Information */}
           <div className="p-6 border-b border-gray-200">
             <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-              <i className="fas fa-tshirt"></i>
-              Apparel Information
+              <i className="fas fa-tshirt"></i>Apparel Information
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
               <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
@@ -362,39 +347,27 @@ const handleDownloadPDF = async () => {
                       const partName = part.part || part.name || (part.part_id ? `Part #${part.part_id}` : "Unknown Part");
                       const unitCount = Number(part.unit_count ?? part.unitCount ?? part.color_count ?? part.colorCount) || 0;
                       const pricePerUnit = part.price_per_unit ?? part.pricePerUnit ?? part.price_per_color ?? part.pricePerColor;
-
                       return (
-                      <tr key={idx} className="hover:bg-light/30">
-                        <td className="px-3 py-2 font-medium text-gray-800">{partName}</td>
-                        <td className="px-3 py-2">
-                          {imageUrl ? (
-                            <a
-                              href={imageUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="inline-flex items-center gap-2"
-                            >
-                              <img
-                                src={imageUrl}
-                                alt={partName}
-                                className="h-10 w-10 rounded border border-gray-200 object-cover bg-white"
-                              />
-                              <span className="text-xs text-primary hover:underline">View image</span>
-                            </a>
-                          ) : (
-                            <span className="text-xs text-gray-400">No uploaded image</span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-right">{unitCount}</td>
-                        <td className="px-3 py-2 text-right font-semibold text-primary">{formatCurrency(pricePerUnit)}</td>
-                      </tr>
+                        <tr key={idx} className="hover:bg-light/30">
+                          <td className="px-3 py-2 font-medium text-gray-800">{partName}</td>
+                          <td className="px-3 py-2">
+                            {imageUrl ? (
+                              <a href={imageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2">
+                                <img src={imageUrl} alt={partName} className="h-10 w-10 rounded border border-gray-200 object-cover bg-white" />
+                                <span className="text-xs text-primary hover:underline">View image</span>
+                              </a>
+                            ) : (
+                              <span className="text-xs text-gray-400">No uploaded image</span>
+                            )}
+                          </td>
+                          <td className="px-3 py-2 text-right">{unitCount}</td>
+                          <td className="px-3 py-2 text-right font-semibold text-primary">{formatCurrency(pricePerUnit)}</td>
+                        </tr>
                       );
                     })
                   ) : (
                     <tr>
-                      <td colSpan="4" className="px-3 py-8 text-center text-gray-400">
-                        No parts found
-                      </td>
+                      <td colSpan="4" className="px-3 py-8 text-center text-gray-400">No parts found</td>
                     </tr>
                   )}
                 </tbody>
@@ -402,12 +375,11 @@ const handleDownloadPDF = async () => {
             </div>
           </div>
 
-          {/* Addons Section */}
+          {/* Addons */}
           {addons.length > 0 && (
             <div className="p-6 border-b border-gray-200">
               <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                <i className="fas fa-plus-circle"></i>
-                Addons
+                <i className="fas fa-plus-circle"></i>Addons
               </h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
@@ -425,9 +397,7 @@ const handleDownloadPDF = async () => {
                         <td className="px-3 py-2">{addon.name}</td>
                         <td className="px-3 py-2 text-right">{formatCurrency(addon.price_per_piece || addon.price)}</td>
                         <td className="px-3 py-2 text-right">{addon.quantity || 1}</td>
-                        <td className="px-3 py-2 text-right font-semibold text-primary">
-                          {formatCurrency(addon.total)}
-                        </td>
+                        <td className="px-3 py-2 text-right font-semibold text-primary">{formatCurrency(addon.total)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -436,12 +406,11 @@ const handleDownloadPDF = async () => {
             </div>
           )}
 
-          {/* Cost Breakdown (Detailed) */}
+          {/* Detailed Cost Breakdown */}
           {breakdownItems.length > 0 && (
             <div className="p-6 border-b border-gray-200 bg-light/10">
               <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                <i className="fas fa-receipt"></i>
-                Detailed Cost Breakdown
+                <i className="fas fa-receipt"></i>Detailed Cost Breakdown
               </h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
@@ -467,7 +436,7 @@ const handleDownloadPDF = async () => {
                         <td className="px-2 py-1.5 text-right">{formatCurrency(item.color_price)}</td>
                         <td className="px-2 py-1.5 text-right">{formatCurrency(item.unit_price)}</td>
                         <td className="px-2 py-1.5 text-right font-semibold">{formatCurrency(item.price_per_piece)}</td>
-                        <td className="px-2 py-1.5 text-right font-bold text-primary">{formatCurrency(item.total)}</td>
+                        <td className="px-2 py-1.5 text-right font-bold text-primary">{formatCurrency(item.total_amount ?? item.total)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -476,11 +445,11 @@ const handleDownloadPDF = async () => {
             </div>
           )}
 
+          {/* Sample Breakdown */}
           {(sampleBreakdown.sample_apparel || sampleTotal > 0) && (
             <div className="p-6 border-b border-gray-200 bg-light/10">
               <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
-                <i className="fas fa-vial"></i>
-                Sample Breakdown
+                <i className="fas fa-vial"></i>Sample Breakdown
               </h2>
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
@@ -568,8 +537,7 @@ const handleDownloadPDF = async () => {
           {quotation.notes && (
             <div className="p-6 border-b border-gray-200 bg-light/10">
               <h2 className="text-sm font-semibold text-primary mb-2 flex items-center gap-2">
-                <i className="fas fa-pencil-alt"></i>
-                Notes
+                <i className="fas fa-pencil-alt"></i>Notes
               </h2>
               <p className="text-sm text-gray-600 whitespace-pre-wrap">{quotation.notes}</p>
             </div>
@@ -583,30 +551,54 @@ const handleDownloadPDF = async () => {
         </section>
       </div>
 
-      {/* Action Buttons - Not printed */}
+      {/* Inline error toast for convert */}
+      {convertError && (
+        <div className="fixed top-4 right-4 z-50 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm shadow-lg flex items-center gap-2 print:hidden">
+          <i className="fas fa-exclamation-circle"></i>
+          {convertError}
+          <button onClick={() => setConvertError(null)} className="ml-2 text-red-400 hover:text-red-600">
+            <i className="fas fa-times"></i>
+          </button>
+        </div>
+      )}
+
+      {/* Action Buttons */}
       <div className="fixed bottom-6 right-6 flex gap-3 print:hidden">
         <button
           onClick={() => navigate("/quotations")}
           className="px-4 py-2 bg-gray-500 text-white rounded-lg shadow-lg hover:bg-gray-600 transition-all text-sm flex items-center gap-2"
         >
-          <i className="fas fa-arrow-left"></i>
-          Back
+          <i className="fas fa-arrow-left"></i>Back
         </button>
+
+        {/* Convert to Order button — hidden once converted */}
+        {!isConverted ? (
+          <button
+            onClick={handleConvertToOrder}
+            disabled={isConverting}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg shadow-lg hover:bg-green-700 transition-all text-sm flex items-center gap-2 disabled:opacity-50"
+          >
+            {isConverting ? (
+              <><i className="fas fa-spinner fa-spin"></i>Converting...</>
+            ) : (
+              <><i className="fas fa-exchange-alt"></i>Convert to Order</>
+            )}
+          </button>
+        ) : (
+          <span className="px-4 py-2 bg-purple-100 text-purple-700 rounded-lg shadow-lg text-sm flex items-center gap-2 cursor-not-allowed">
+            <i className="fas fa-check-circle"></i>Already Converted
+          </span>
+        )}
+
         <button
           onClick={handleDownloadPDF}
           disabled={isDownloading}
           className="px-4 py-2 bg-primary text-white rounded-lg shadow-lg hover:bg-secondary transition-all text-sm flex items-center gap-2 disabled:opacity-50"
         >
           {isDownloading ? (
-            <>
-              <i className="fas fa-spinner fa-spin"></i>
-              Generating PDF...
-            </>
+            <><i className="fas fa-spinner fa-spin"></i>Generating PDF...</>
           ) : (
-            <>
-              <i className="fas fa-download"></i>
-              Download PDF
-            </>
+            <><i className="fas fa-download"></i>Download PDF</>
           )}
         </button>
       </div>
