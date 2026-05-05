@@ -1,10 +1,12 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Table from "../../components/table/Table";
 import DeleteConfirmationDialog from "../../components/common/DeleteConfirmationDialog";
 import TicketComposer from "../../components/tickets/TicketComposer";
+import { useAuth } from "../../hooks/useAuth";
 import ticketService from "../../services/ticketService";
+import { extractUserRoles } from "../../utils/authz";
 
 const getStatusClassName = (status) => {
   const normalized = String(status || "").trim().toLowerCase();
@@ -38,19 +40,134 @@ const resolveTicketViewPath = (ticket) => {
   return `/tickets/${ticket.id}`;
 };
 
+const normalizeTicketList = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+
+  const directData = payload?.data;
+  if (directData && typeof directData === "object") {
+    const incoming = Array.isArray(directData.incoming) ? directData.incoming : [];
+    const outgoing = Array.isArray(directData.outgoing) ? directData.outgoing : [];
+    return [...incoming, ...outgoing];
+  }
+
+  const queue = [payload];
+  const seen = new Set();
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current || typeof current !== "object" || seen.has(current)) continue;
+    seen.add(current);
+
+    if (Array.isArray(current)) return current;
+
+    const candidates = [current.data, current.tickets, current.items, current.rows, current.results];
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) return candidate;
+      if (candidate && typeof candidate === "object") {
+        const incoming = Array.isArray(candidate.incoming) ? candidate.incoming : [];
+        const outgoing = Array.isArray(candidate.outgoing) ? candidate.outgoing : [];
+        if (incoming.length > 0 || outgoing.length > 0) {
+          return [...incoming, ...outgoing];
+        }
+      }
+      if (candidate && typeof candidate === "object") queue.push(candidate);
+    }
+
+    for (const value of Object.values(current)) {
+      if (Array.isArray(value)) return value;
+      if (value && typeof value === "object") {
+        const incoming = Array.isArray(value.incoming) ? value.incoming : [];
+        const outgoing = Array.isArray(value.outgoing) ? value.outgoing : [];
+        if (incoming.length > 0 || outgoing.length > 0) {
+          return [...incoming, ...outgoing];
+        }
+      }
+      if (value && typeof value === "object") queue.push(value);
+    }
+  }
+
+  return [];
+};
+
+const getTicketRoleCandidates = (user) => {
+  const rawRoles = [];
+
+  const addRoleValues = (value) => {
+    if (!value) return;
+    const values = Array.isArray(value) ? value : [value];
+
+    values.forEach((role) => {
+      if (typeof role === "string") {
+        rawRoles.push(role.trim());
+        return;
+      }
+
+      if (role && typeof role === "object") {
+        rawRoles.push(String(role.name || role.slug || role.code || role.id || "").trim());
+      }
+    });
+  };
+
+  addRoleValues(user?.domain_role);
+  addRoleValues(user?.domain_roles);
+  addRoleValues(user?.roles);
+  addRoleValues(user?.role);
+  addRoleValues(user?.role_name);
+  addRoleValues(user?.user_role);
+
+  const normalizedRoles = extractUserRoles(user);
+
+  return Array.from(
+    new Set([...rawRoles, ...normalizedRoles].map((role) => String(role || "").trim()).filter(Boolean)),
+  );
+};
+
 export default function TicketsList() {
   const navigate = useNavigate();
+  const { user, loading } = useAuth();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const userRoles = useMemo(() => (user ? getTicketRoleCandidates(user) : []), [user]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     try {
-      const res = await ticketService.list();
-      const payload = res.data || res;
+      let payload = [];
+
+      if (userRoles.length > 0) {
+        const responses = await Promise.all(
+          userRoles.map(async (role) => {
+            try {
+              return await ticketService.byRole(role);
+            } catch (err) {
+              return [];
+            }
+          }),
+        );
+
+        const merged = [];
+        const seenIds = new Set();
+
+        responses.forEach((response) => {
+          normalizeTicketList(response).forEach((ticket) => {
+            const ticketKey = ticket?.id ?? JSON.stringify(ticket);
+            if (seenIds.has(ticketKey)) return;
+            seenIds.add(ticketKey);
+            merged.push(ticket);
+          });
+        });
+
+        payload = merged;
+      }
+
+      if (payload.length === 0) {
+        payload = normalizeTicketList(await ticketService.list());
+      }
+
       setData(payload);
     } catch (err) {
       console.error(err);
@@ -58,11 +175,13 @@ export default function TicketsList() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userRoles]);
 
   useEffect(() => {
+    if (loading) return;
+
     fetchData();
-  }, [fetchData]);
+  }, [fetchData, loading, userRoles]);
 
   const handleAction = (action, row) => {
     switch (action) {

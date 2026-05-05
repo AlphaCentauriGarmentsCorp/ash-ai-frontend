@@ -5,6 +5,7 @@ import { apparelTypeApi } from "../../api/apparelTypeApi";
 import { patternTypeApi } from "../../api/patternTypeApi";
 import { apparelNecklineApi } from "../../api/apparelNecklineApi";
 import { useParams, useNavigate } from "react-router-dom";
+import TicketComposer from "../../components/tickets/TicketComposer";
 
 const ViewQuotation = () => {
   const { id } = useParams();
@@ -15,6 +16,7 @@ const ViewQuotation = () => {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isConverting, setIsConverting] = useState(false);
   const [convertError, setConvertError] = useState(null);
+  const [showComposer, setShowComposer] = useState(false);
 
   const parseJsonField = (value, fallback) => {
     if (value === null || value === undefined || value === "") return fallback;
@@ -242,6 +244,24 @@ const ViewQuotation = () => {
 
   const isConverted = quotation?.status?.toLowerCase() === "converted";
 
+  const initialAttachments = [];
+  const pushIfLabeledUrl = (label, u) => {
+    if (!u) return;
+    if (!initialAttachments.find((a) => a.url === u)) initialAttachments.push({ label, url: u });
+  };
+  if (quotation) {
+    const topImg = resolveImageUrl(quotation);
+    pushIfLabeledUrl(`Quotation ${quotation.quotation_id || quotation.id}`, topImg);
+    (Array.isArray(items) ? items : []).forEach((it, idx) => {
+      const label = it.part || it.name || `Item ${idx + 1}`;
+      pushIfLabeledUrl(label, resolveImageUrl(it));
+    });
+    (Array.isArray(printParts) ? printParts : []).forEach((p, idx) => {
+      const label = p.part || p.name || `Part ${idx + 1}`;
+      pushIfLabeledUrl(label, resolveImageUrl(p));
+    });
+  }
+
   return (
     <AdminLayout
       pageTitle={`Quotation #${quotation.quotation_id || id}`}
@@ -256,7 +276,7 @@ const ViewQuotation = () => {
       <div id="quotation-pdf-content">
         <section className="bg-white rounded-lg border border-gray-200 overflow-hidden font-poppins">
           {/* Header */}
-          <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-6 border-b border-gray-200">
+          <div className="bg-linear-to-r from-primary/10 to-primary/5 p-6 border-b border-gray-200">
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-2xl font-bold text-primary">QUOTATION</h1>
@@ -572,6 +592,13 @@ const ViewQuotation = () => {
         </button>
 
         {/* Convert to Order button — hidden once converted */}
+        <button
+          onClick={() => setShowComposer(true)}
+          className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-all text-sm flex items-center gap-2"
+        >
+          <i className="fas fa-share"></i>Send to GA
+        </button>
+
         {!isConverted ? (
           <button
             onClick={handleConvertToOrder}
@@ -602,6 +629,21 @@ const ViewQuotation = () => {
           )}
         </button>
       </div>
+      {/* Ticket composer (hidden trigger) */}
+      {quotation && (
+        <TicketComposer
+          quotationId={quotation.id}
+          requestType="Quotation"
+          forceOpen={showComposer}
+          hideTrigger={true}
+          initialToRole="graphic artist"
+          initialAttachmentUrls={initialAttachments.map((a) => a.url)}
+          onCreated={() => {
+            setShowComposer(false);
+            window.alert("Ticket created and sent to Graphic Artist.");
+          }}
+        />
+      )}
     </AdminLayout>
   );
 };
