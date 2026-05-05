@@ -153,9 +153,10 @@ const RolePermissionMatrix = () => {
 
       await roleApi.update(roleId, {
         name: String(roleForUpdate?.name || "").trim(),
-        guard_name: String(roleForUpdate?.guard_name || "web").trim(),
-        description: String(roleForUpdate?.description || "").trim(),
-        permission_ids: nextPermissionIds,
+        permissions: permissions
+          .filter((permission) => nextPermissionIds.includes(Number(permission.id)))
+          .map((permission) => String(permission?.name || "").trim())
+          .filter(Boolean),
       });
 
       const roleDetails = await roleApi.show(roleId);

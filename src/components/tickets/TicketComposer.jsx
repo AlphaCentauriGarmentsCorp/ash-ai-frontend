@@ -3,8 +3,8 @@ import { useAuth } from "../../hooks/useAuth";
 import Input from "../form/Input";
 import Textarea from "../form/Textarea";
 import FileUpload from "../form/FileUpload";
-import { roleApi } from "../../api/roleApi";
 import ticketService from "../../services/ticketService";
+import { roleApi } from "../../api/roleApi";
 import { extractUserPrimaryRole } from "../../utils/authz";
 
 // A compact ticket composer component intended to be mounted behind buttons.
@@ -14,7 +14,17 @@ import { extractUserPrimaryRole } from "../../utils/authz";
 // - to_role: fetched from roleApi
 // - status: hidden and set to 'open'
 
-export default function TicketComposer({ quotationId = null, orderId = null, requestType = "Request", onCreated }) {
+export default function TicketComposer({
+  quotationId = null,
+  orderId = null,
+  requestType = "Request",
+  onCreated,
+  forceOpen = false,
+  hideTrigger = false,
+  initialToRole = "",
+  initialAttachmentUrls = [],
+  initialAttachments = [],
+}) {
   const { user } = useAuth();
   const requestTypeOptions = ["Request", "Quotation", "Order"];
   const [visible, setVisible] = useState(false);
@@ -59,11 +69,45 @@ export default function TicketComposer({ quotationId = null, orderId = null, req
   }, [requestType]);
 
   useEffect(() => {
+    if (initialToRole) {
+      setForm((f) => ({ ...f, to_role: initialToRole }));
+    }
+  }, [initialToRole]);
+
+  useEffect(() => {
+    if (Array.isArray(initialAttachmentUrls) && initialAttachmentUrls.length > 0) {
+      // keep a readonly preview list of attachment URLs
+      setForm((f) => ({ ...f }));
+    }
+  }, [initialAttachmentUrls]);
+
+  const isImageUrl = (u) => {
+    if (!u) return false;
+    if (typeof u !== "string") return false;
+    if (u.startsWith("data:")) return true;
+    return /\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i.test(u);
+  };
+
+  const getFilenameFromUrl = (u) => {
+    if (!u) return "file";
+    try {
+      const parsed = new URL(u, window.location.origin);
+      return (parsed.pathname || u).split("/").pop().split("?")[0];
+    } catch {
+      return u.split("/").pop().split("?")[0];
+    }
+  };
+
+  useEffect(() => {
+    if (forceOpen) setVisible(true);
+  }, [forceOpen]);
+
+  useEffect(() => {
     const loadRoles = async () => {
       setLoadingRoles(true);
       try {
         const res = await roleApi.index();
-        const list = Array.isArray(res?.data) ? res.data : res;
+        const list = Array.isArray(res?.data) ? res.data : Array.isArray(res) ? res : [];
         setToRoles(list.map((r) => (typeof r === "string" ? r : r.name || r.title || r.id)));
       } catch (err) {
         console.error("Failed to load roles", err);
@@ -98,6 +142,12 @@ export default function TicketComposer({ quotationId = null, orderId = null, req
     fd.append("message", form.message);
     fd.append("status", form.status);
     (form.attachments || []).forEach((f) => fd.append("attachments[]", f));
+    if (Array.isArray(initialAttachments) && initialAttachments.length > 0) {
+      initialAttachments.forEach((a) => a?.url && fd.append("attachment_urls[]", a.url));
+    }
+    if (Array.isArray(initialAttachmentUrls) && initialAttachmentUrls.length > 0) {
+      initialAttachmentUrls.forEach((u) => fd.append("attachment_urls[]", u));
+    }
 
     try {
       const res = await ticketService.create(fd);
@@ -123,6 +173,7 @@ export default function TicketComposer({ quotationId = null, orderId = null, req
     "inline-flex items-center gap-2 rounded-lg bg-secondary px-4 py-2 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-secondary/90 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-secondary/30";
 
   if (!isAnimating && !visible) {
+    if (hideTrigger) return null;
     return (
       <button type="button" className={modalButtonClass} onClick={() => setVisible(true)}>
         <i className="fa-solid fa-pen-to-square"></i>
@@ -243,15 +294,65 @@ export default function TicketComposer({ quotationId = null, orderId = null, req
             </div>
 
             <div className="md:col-span-2">
-              <FileUpload
-                label="Attachments"
-                name="attachments"
-                value={form.attachments}
-                onChange={handleFiles}
-                multiple
-                acceptedTypes="image/*,application/pdf,image/vnd.adobe.photoshop"
-                error={errors.attachments}
-              />
+              <label className="text-primary text-sm font-semibold">Attachments</label>
+              {Array.isArray(initialAttachments) && initialAttachments.length > 0 ? (
+                <div className="mt-2 grid grid-cols-3 gap-3">
+                  {initialAttachments.map((a, i) => {
+                    const url = a.url;
+                    const isImg = isImageUrl(url);
+                    const filename = a.label || getFilenameFromUrl(url);
+                    const ext = (filename.split(".").pop() || "").toLowerCase();
+                    const iconClass = ext === "pdf" ? "fa-file-pdf text-red-500" : "fa-file-alt text-gray-500";
+                    return (
+                      <div key={i} className="flex flex-col items-start">
+                        <a href={url} target="_blank" rel="noreferrer" className="inline-block">
+                          {isImg ? (
+                            <img src={url} alt={filename} className="h-16 w-16 rounded border border-gray-200 object-cover bg-white" />
+                          ) : (
+                            <div className="h-16 w-16 rounded border border-gray-200 bg-gray-50 flex items-center justify-center">
+                              <i className={`fas ${iconClass} text-2xl`}></i>
+                            </div>
+                          )}
+                        </a>
+                        <div className="mt-1 text-xs text-gray-700 break-all max-w-full">{filename}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : Array.isArray(initialAttachmentUrls) && initialAttachmentUrls.length > 0 ? (
+                <div className="mt-2 grid grid-cols-3 gap-3">
+                  {initialAttachmentUrls.map((u, i) => {
+                    const isImg = isImageUrl(u);
+                    const filename = getFilenameFromUrl(u);
+                    const ext = (filename.split(".").pop() || "").toLowerCase();
+                    const iconClass = ext === "pdf" ? "fa-file-pdf text-red-500" : "fa-file-alt text-gray-500";
+                    return (
+                      <div key={i} className="flex flex-col items-start">
+                        <a href={u} target="_blank" rel="noreferrer" className="inline-block">
+                          {isImg ? (
+                            <img src={u} alt={filename} className="h-16 w-16 rounded border border-gray-200 object-cover bg-white" />
+                          ) : (
+                            <div className="h-16 w-16 rounded border border-gray-200 bg-gray-50 flex items-center justify-center">
+                              <i className={`fas ${iconClass} text-2xl`}></i>
+                            </div>
+                          )}
+                        </a>
+                        <div className="mt-1 text-xs text-gray-700 break-all max-w-full">{filename}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <FileUpload
+                  label="Attachments"
+                  name="attachments"
+                  value={form.attachments}
+                  onChange={handleFiles}
+                  multiple
+                  acceptedTypes="image/*,application/pdf,image/vnd.adobe.photoshop"
+                  error={errors.attachments}
+                />
+              )}
             </div>
           </div>
         </div>

@@ -60,7 +60,8 @@ const OrderTicketView = () => {
             </div>
           </div>
         ) : ticket ? (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
             <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Status</p>
               <span className={`mt-2 inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-semibold uppercase tracking-wide ${getStatusClassName(ticket.status)}`}>
@@ -75,7 +76,32 @@ const OrderTicketView = () => {
               <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">Created</p>
               <p className="mt-2 text-lg font-semibold text-primary">{ticket.date_created || ticket.created_at || "-"}</p>
             </div>
-          </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <h4 className="text-sm font-semibold text-primary mb-4">Message</h4>
+                <div className="rounded-lg bg-gray-50 p-4 whitespace-pre-wrap text-sm text-gray-700 leading-6 min-h-45">
+                  {ticket.message || "-"}
+                </div>
+              </div>
+
+              <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+                <h4 className="text-sm font-semibold text-primary mb-3">Attachments</h4>
+                <ul className="space-y-2">
+                  {(ticket.attachments || []).length === 0 && <li className="text-sm text-gray-500">No attachments</li>}
+                  {(ticket.attachments || []).map((a, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm">
+                      <i className="fa-solid fa-paperclip text-gray-400"></i>
+                      <a href={a} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline break-all">
+                        {a}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </>
         ) : (
           <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm text-sm text-gray-500">
             Ticket not found.
