@@ -1,134 +1,122 @@
 import React from "react";
-import { parseJsonField } from "../../../utils/formatters";
+
+const Row = ({ label, value }) => (
+  <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2 last:border-b-0">
+    <p className="text-gray-500 text-xs sm:text-sm">{label}</p>
+    <p className="text-xs sm:text-sm font-medium text-right max-w-[60%] break-words">{value || "N/A"}</p>
+  </div>
+);
+
+const fmt = (v) =>
+  `₱${(Number(v) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const ProductDetails = ({ order }) => {
+  const breakdown = order?.breakdown_json || {};
+  const items = order?.items_json || [];
+  const addons = order?.addons_json || [];
+  const samples = breakdown?.sample_breakdown;
+
   return (
     <>
+      {/* ── Apparel Info ─────────────────────────────────────────────────── */}
       <section className="flex-col flex gap-y-2 sm:gap-y-3">
-        <h1 className="font-semibold text-base sm:text-lg">Product Details</h1>
+        <h1 className="font-semibold text-base sm:text-lg">Apparel Information</h1>
         <div className="border border-gray-200 sm:border-gray-300 p-2 sm:p-3 rounded-lg sm:rounded-xl">
-          <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">Design Name</p>
-            <p className="text-xs sm:text-sm font-medium">
-              {order?.design_name || "N/A"}
-            </p>
-          </div>
-          <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">Apparel Type</p>
-            <p className="text-xs sm:text-sm font-medium">
-              {order?.apparel_type || "N/A"}
-            </p>
-          </div>
-          <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">Pattern Type</p>
-            <p className="text-xs sm:text-sm font-medium">
-              {order?.pattern_type || "N/A"}
-            </p>
-          </div>
-          <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">Service Type</p>
-            <p className="text-xs sm:text-sm font-medium">
-              {order?.service_type || "N/A"}
-            </p>
-          </div>
-          <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">Print Method</p>
-            <p className="text-xs sm:text-sm font-medium">
-              {order?.print_method || "N/A"}
-            </p>
-          </div>
-          <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">Print Service</p>
-            <p className="text-xs sm:text-sm font-medium">
-              {order?.print_service || "N/A"}
-            </p>
-          </div>
-          <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">Size Label</p>
-            <p className="text-xs sm:text-sm font-medium">
-              {order?.size_label || "N/A"}
-            </p>
-          </div>
-          <div className="flex justify-between p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">
-              Print Label Placement
-            </p>
-            <p className="text-xs sm:text-sm font-medium text-right max-w-45 sm:max-w-xs wrap-break-word">
-              {order?.print_label_placement || "N/A"}
-            </p>
-          </div>
+          <Row label="Apparel Type" value={order?.apparel_type} />
+          <Row label="Pattern Type" value={order?.pattern_type} />
+          <Row label="Neckline" value={order?.apparel_neckline} />
+          <Row label="Print Method" value={order?.print_method} />
+          <Row label="Shirt Color" value={order?.shirt_color} />
+          <Row label="Print Area" value={order?.print_area} />
+          <Row label="Special Print" value={order?.special_print} />
         </div>
       </section>
 
-      <section className="flex-col flex gap-y-2 sm:gap-y-3">
-        <h1 className="font-semibold text-base sm:text-lg">Fabric Details</h1>
-        <div className="border border-gray-200 sm:border-gray-300 p-2 sm:p-3 rounded-lg sm:rounded-xl">
-          <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">Fabric Type</p>
-            <p className="text-xs sm:text-sm font-medium">
-              {order?.fabric_type || "N/A"}
-            </p>
-          </div>
-          <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">Fabric Supplier</p>
-            <p className="text-xs sm:text-sm font-medium">
-              {order?.fabric_supplier || "N/A"}
-            </p>
-          </div>
-          <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">Fabric Color</p>
-            <p className="text-xs sm:text-sm font-medium">
-              {order?.fabric_color || "N/A"}
-            </p>
-          </div>
-          <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">Thread Color</p>
-            <p className="text-xs sm:text-sm font-medium">
-              {order?.thread_color || "N/A"}
-            </p>
-          </div>
-          <div className="flex justify-between p-1.5 sm:p-2">
-            <p className="text-gray-500 text-xs sm:text-sm">Ribbing Color</p>
-            <p className="text-xs sm:text-sm font-medium">
-              {order?.ribbing_color || "N/A"}
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {order?.freebie_items && (
+      {/* ── Size Breakdown ───────────────────────────────────────────────── */}
+      {items.length > 0 && (
         <section className="flex-col flex gap-y-2 sm:gap-y-3">
-          <h1 className="font-semibold text-base sm:text-lg">Freebies</h1>
-          <div className="border border-gray-200 sm:border-gray-300 p-2 sm:p-3 rounded-lg sm:rounded-xl">
-            <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-              <p className="text-gray-500 text-xs sm:text-sm">Freebie Items</p>
-              <p className="text-xs sm:text-sm font-medium">
-                {order.freebie_items}
-              </p>
-            </div>
-            <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2">
-              <p className="text-gray-500 text-xs sm:text-sm">Freebie Color</p>
-              <p className="text-xs sm:text-sm font-medium">
-                {order.freebie_color || "N/A"}
-              </p>
-            </div>
-            <div className="flex justify-between p-1.5 sm:p-2">
-              <p className="text-gray-500 text-xs sm:text-sm">Freebie Others</p>
-              <p className="text-xs sm:text-sm font-medium">
-                {order.freebie_others || "N/A"}
-              </p>
+          <h1 className="font-semibold text-base sm:text-lg">Size Breakdown</h1>
+          <div className="border border-gray-200 sm:border-gray-300 rounded-lg sm:rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs sm:text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-600">Size</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-600">Qty</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-600">Unit Price</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-600">Price/Pc</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-600">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {items.map((item, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-3 py-2 font-semibold text-primary">{item.size_label || item.size || "—"}</td>
+                      <td className="px-3 py-2 text-right">{item.quantity ?? 0}</td>
+                      <td className="px-3 py-2 text-right">{fmt(item.unit_price)}</td>
+                      <td className="px-3 py-2 text-right">{fmt(item.price_per_piece)}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-primary">
+                        {fmt(item.total_amount ?? item.total ?? (item.price_per_piece ?? 0) * (item.quantity ?? 0))}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
       )}
 
-      {order?.placement_measurements && (
+      {/* ── Addons ───────────────────────────────────────────────────────── */}
+      {addons.length > 0 && (
         <section className="flex-col flex gap-y-2 sm:gap-y-3">
-          <h1 className="font-semibold text-base sm:text-lg">
-            Placement Measurements
-          </h1>
-          <p className="text-xs sm:text-sm mt-1 sm:mt-2 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 wrap-break-word whitespace-pre-line">
-            {order.placement_measurements}
+          <h1 className="font-semibold text-base sm:text-lg">Addons</h1>
+          <div className="border border-gray-200 sm:border-gray-300 rounded-lg sm:rounded-xl overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs sm:text-sm">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th className="px-3 py-2 text-left font-semibold text-gray-600">Name</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-600">Price/Pc</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-600">Qty</th>
+                    <th className="px-3 py-2 text-right font-semibold text-gray-600">Total</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {addons.map((addon, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-3 py-2">{addon.name || "—"}</td>
+                      <td className="px-3 py-2 text-right">{fmt(addon.price_per_piece ?? addon.price)}</td>
+                      <td className="px-3 py-2 text-right">{addon.quantity ?? 1}</td>
+                      <td className="px-3 py-2 text-right font-semibold text-primary">{fmt(addon.total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Sample Breakdown ─────────────────────────────────────────────── */}
+      {samples && (
+        <section className="flex-col flex gap-y-2 sm:gap-y-3">
+          <h1 className="font-semibold text-base sm:text-lg">Sample</h1>
+          <div className="border border-gray-200 sm:border-gray-300 p-2 sm:p-3 rounded-lg sm:rounded-xl">
+            <Row label="Sample Apparel" value={samples.sample_apparel} />
+            <Row label="Unit Price" value={fmt(samples.unit_price)} />
+            <Row label="Quantity" value={samples.quantity} />
+            <Row label="Price/Pc" value={fmt(samples.price_per_piece)} />
+          </div>
+        </section>
+      )}
+
+      {/* ── Free Items / Notes ───────────────────────────────────────────── */}
+      {order?.free_items && (
+        <section className="flex-col flex gap-y-2 sm:gap-y-3">
+          <h1 className="font-semibold text-base sm:text-lg">Free Items</h1>
+          <p className="text-xs sm:text-sm p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 whitespace-pre-line">
+            {order.free_items}
           </p>
         </section>
       )}
@@ -136,54 +124,9 @@ const ProductDetails = ({ order }) => {
       {order?.notes && (
         <section className="flex-col flex gap-y-2 sm:gap-y-3">
           <h1 className="font-semibold text-base sm:text-lg">Notes</h1>
-          <p className="text-xs sm:text-sm mt-1 sm:mt-2 p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 wrap-break-word whitespace-pre-line">
+          <p className="text-xs sm:text-sm p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 whitespace-pre-line">
             {order.notes}
           </p>
-        </section>
-      )}
-
-      {order?.options && (
-        <section className="flex-col flex gap-y-2 sm:gap-y-3">
-          <h1 className="font-semibold text-base sm:text-lg">
-            Additional Options
-          </h1>
-          <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-3 mt-1 sm:mt-2">
-            {parseJsonField(order.options).map((option, index) => {
-              if (typeof option === "object" && option !== null) {
-                return (
-                  <div
-                    key={index}
-                    className="p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200"
-                  >
-                    {option.name && (
-                      <p className="text-xs sm:text-sm font-medium wrap-break-word">
-                        {option.name}
-                      </p>
-                    )}
-                    {option.color && (
-                      <div className="flex items-center gap-2 mt-1">
-                        <span
-                          className="w-3 h-3 sm:w-4 sm:h-4 rounded-full shrink-0"
-                          style={{ backgroundColor: option.color }}
-                        ></span>
-                        <span className="text-xs text-gray-600 wrap-break-word">
-                          {option.color}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                );
-              }
-              return (
-                <span
-                  key={index}
-                  className="px-2 sm:px-3 py-1.5 sm:py-2 bg-gray-100 text-xs sm:text-sm rounded-lg wrap-break-word"
-                >
-                  {option}
-                </span>
-              );
-            })}
-          </div>
         </section>
       )}
     </>

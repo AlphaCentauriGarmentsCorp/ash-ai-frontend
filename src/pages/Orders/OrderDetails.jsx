@@ -16,7 +16,7 @@ import DesignFiles from "../../features/order/orderDetails/DesignFiles";
 import Pricing from "../../features/order/orderDetails/Pricing";
 import POItems from "../../features/order/orderDetails/POItems";
 import Logs from "../../features/order/orderDetails/Logs";
-import MockupCarousel from "../../features/order/OrderDetails/MockupCarousel";
+import MockupCarousel from "../../features/order/orderDetails/MockupCarousel";
 import { useAuth } from "../../hooks/useAuth";
 import Loader from "../../components/common/Loader";
 
@@ -536,11 +536,10 @@ const OrderDetailsPage = () => {
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 mb-4 sm:mb-5 border-b border-gray-200 pb-2">
           <button
             onClick={() => handleTabChange("order")}
-            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${
-              activeTab === "order"
+            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${activeTab === "order"
                 ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
                 : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
+              }`}
           >
             <i className="fas fa-shopping-bag"></i>
             <span className="truncate">Order Information</span>
@@ -548,11 +547,10 @@ const OrderDetailsPage = () => {
 
           <button
             onClick={() => handleTabChange("production")}
-            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${
-              activeTab === "production"
+            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${activeTab === "production"
                 ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
                 : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
+              }`}
           >
             <i className="fas fa-cogs"></i>
             <span className="truncate">
@@ -615,19 +613,17 @@ const OrderDetailsPage = () => {
                   <button
                     key={section.id}
                     onClick={() => handleSectionSelect(section.id)}
-                    className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 rounded-xl lg:rounded-2xl border p-3 sm:p-4 lg:p-5 transition-all ${
-                      activeSection === section.id
+                    className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 rounded-xl lg:rounded-2xl border p-3 sm:p-4 lg:p-5 transition-all ${activeSection === section.id
                         ? "bg-blue-50 border-primary shadow-sm"
                         : "bg-white border-gray-200 lg:border-gray-300 hover:bg-gray-50"
-                    }`}
+                      }`}
                   >
                     <span className="font-semibold text-xs sm:text-sm flex items-center gap-2">
                       <i
-                        className={`fas ${section.icon} ${
-                          activeSection === section.id
+                        className={`fas ${section.icon} ${activeSection === section.id
                             ? "text-primary/90"
                             : "text-gray-500"
-                        }`}
+                          }`}
                       ></i>
                       <span className="text-left">{section.label}</span>
                     </span>
@@ -647,11 +643,10 @@ const OrderDetailsPage = () => {
                       )}
 
                       <i
-                        className={`fas fa-chevron-right text-base sm:text-lg transition-transform duration-300 ease-in-out ${
-                          activeSection === section.id
+                        className={`fas fa-chevron-right text-base sm:text-lg transition-transform duration-300 ease-in-out ${activeSection === section.id
                             ? "text-primary/90 rotate-90 lg:rotate-90"
                             : "text-gray-300 rotate-0"
-                        }`}
+                          }`}
                       ></i>
                     </span>
                   </button>

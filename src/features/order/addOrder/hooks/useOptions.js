@@ -55,6 +55,7 @@ export const useOptions = () => {
 
   return {
     selectedOptions,
+    setSelectedOptions,
     optionsErrors: errors,
     addOption,
     removeOption,

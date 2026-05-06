@@ -1,180 +1,378 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Loader from "../../components/common/Loader";
+
+// ── Feature: OrderForm & its hooks ────────────────────────────────────────────
+import { OrderForm } from "../../features/order/addOrder/components/OrderForm";
+import { useOrderForm } from "../../features/order/addOrder/hooks/useOrderForm";
+import { useClients } from "../../features/order/addOrder/hooks/useClients";
+import { useDropdownOptions } from "../../features/order/addOrder/hooks/useDropdownOptions";
+import { useFabricMaterials } from "../../features/order/addOrder/hooks/useFabricMaterials";
+import { useOptions } from "../../features/order/addOrder/hooks/useOptions";
+import { useSampleSizes } from "../../features/order/addOrder/hooks/useSampleSizes";
+import { useOrderCalculations } from "../../features/order/addOrder/hooks/useOrderCalculations";
+
+// ── Quotation prefill bridge ──────────────────────────────────────────────────
+import { useQuotationPrefill } from "../../features/order/addOrder/hooks/useQuotationPrefill";
+import { QuotationSummaryPanel } from "../../features/order/addOrder/components/QuotationSummaryPanel";
+
+// ── Service ───────────────────────────────────────────────────────────────────
 import { orderApi } from "../../api/orderApi";
-import { clientApi } from "../../api/clientApi";
-import { apparelPartsApi } from "../../api/apparelPartsApi";
-import { apparelNecklineApi } from "../../api/apparelNecklineApi";
-import { printMethodApi } from "../../api/printMethodApi";
-
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
-const safeJson = (value, fallback) => {
-  if (value === null || value === undefined || value === "") return fallback;
-  if (typeof value === "object") return value;
-  try { return JSON.parse(value); } catch { return fallback; }
-};
 
 export default function AddNewOrder() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Prefill data passed from ViewQuotation via navigate state
-  const prefill = location.state?.prefill || null;
+  // Prefill payload: navigate("/orders/new", { state: { prefill: result.order_payload } })
+  const rawPrefill = location.state?.prefill ?? null;
 
-  // ── Reference data ─────────────────────────────────────────────────────────
-  const [clients, setClients] = useState([]);
-  const [necklines, setNecklines] = useState([]);
-  const [printMethods, setPrintMethods] = useState([]);
-  const [apparelParts, setApparelParts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // ── Quotation prefill bridge ─────────────────────────────────────────────
+  const { hasPrefill, prefillFormData, quotationMeta } =
+    useQuotationPrefill(rawPrefill);
 
-  // ── Form state ─────────────────────────────────────────────────────────────
-  const buildInitialForm = (p) => ({
-    quotation_id: p?.quotation_id ?? "",
-    client_id: p?.client_id ?? "",
-    client_name: p?.client_name ?? "",
-    client_brand: p?.client_brand ?? "",
-    apparel_type_id: p?.apparel_type_id ?? "",
-    pattern_type_id: p?.pattern_type_id ?? "",
-    apparel_neckline_id: p?.apparel_neckline_id ?? "",
-    print_method_id: p?.print_method_id ?? "",
-    shirt_color: p?.shirt_color ?? "",
-    special_print: p?.special_print ?? "",
-    print_area: p?.print_area ?? "Regular",
-    free_items: p?.free_items ?? "",
-    notes: p?.notes ?? "",
-    discount_type: p?.discount_type ?? "percentage",
-    discount_price: p?.discount_price ?? 0,
-    discount_amount: p?.discount_amount ?? 0,
-    subtotal: p?.subtotal ?? 0,
-    grand_total: p?.grand_total ?? 0,
-    item_config_json: safeJson(p?.item_config_json, null),
-    items_json: safeJson(p?.items_json, []),
-    addons_json: safeJson(p?.addons_json, []),
-    breakdown_json: safeJson(p?.breakdown_json, {}),
-    print_parts_json: safeJson(p?.print_parts_json, []),
-  });
+  // ── Core form state ──────────────────────────────────────────────────────
+  const {
+    formData,
+    setFormData,
+    errors,
+    setErrors,
+    serverError,
+    setServerError,
+    handleChange,
+    handleDepositPercentageChange,
+    handleFileChange,
+    resetForm,
+    validate,
+  } = useOrderForm();
 
-  const [form, setForm] = useState(() => buildInitialForm(prefill));
-  const [errors, setErrors] = useState({});
-  const [serverError, setServerError] = useState("");
+  // ── Reference data ───────────────────────────────────────────────────────
+  const {
+    clients,
+    rawClients,
+    clientBrands,
+    clientsLoading,
+    updateClientBrands,
+    fetchClients,
+  } = useClients();
+
+  const {
+    optionsLoading,
+    apparelTypeOptions,
+    patternTypeOptions,
+    serviceTypeOptions,
+    printMethodOptions,
+    sizeLabelOptions,
+    printLabelPlacementOptions,
+    fetchDropdownOptions,
+  } = useDropdownOptions();
+
+  const {
+    fabricTypeOptions,
+    fabricSupplierOptions,
+    fetchFabricMaterials,
+    updateSupplierOptions,
+  } = useFabricMaterials();
+
+  const { selectedOptions, setSelectedOptions, optionsErrors, addOption, removeOption } =
+    useOptions();
+
+  const {
+    samples,
+    setSamples,
+    errors: sampleErrors,
+    addSample,
+    removeSample,
+    updateSampleField,
+    validate: validateSamples,
+  } = useSampleSizes();
+
+  // ── Calculations ─────────────────────────────────────────────────────────
+  const summary = useOrderCalculations(
+    formData.sizes,
+    formData.deposit_percentage
+  );
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
-  // ── Load reference data ────────────────────────────────────────────────────
+  // ── Keep estimated_total in formData in sync with live summary ──────────
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const [clientsRes, necklinesRes, printMethodsRes, partsRes] = await Promise.all([
-          clientApi.index(),
-          apparelNecklineApi.index(),
-          printMethodApi.index(),
-          apparelPartsApi.index(),
-        ]);
-        setClients(clientsRes.data || clientsRes || []);
-        setNecklines(necklinesRes.data || necklinesRes || []);
-        setPrintMethods(printMethodsRes.data || printMethodsRes || []);
-        setApparelParts(partsRes.data || partsRes || []);
-      } catch (err) {
-        console.error("Failed to load reference data:", err);
-        setServerError("Failed to load form data. Please refresh.");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    setFormData((prev) => ({
+      ...prev,
+      estimated_total: summary.estimatedTotal,
+    }));
+  }, [summary.estimatedTotal]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setForm((prev) => ({ ...prev, [name]: value }));
-    setErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
+  // ── Boot: fetch all reference data ──────────────────────────────────────
+  useEffect(() => {
+    fetchClients();
+    fetchDropdownOptions();
+    fetchFabricMaterials();
+  }, [fetchClients, fetchDropdownOptions, fetchFabricMaterials]);
 
-  const validate = () => {
-    const newErrors = {};
-    if (!form.client_name?.trim()) newErrors.client_name = "Client name is required.";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  // ── Apply quotation prefill once clients are loaded ──────────────────────
+  const [prefillApplied, setPrefillApplied] = useState(false);
+  useEffect(() => {
+    if (!hasPrefill || clientsLoading || clients.length === 0 || prefillApplied) return;
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!validate()) { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    const { _prefillSamples, _prefillAddons, ...scalarPrefill } = prefillFormData;
 
-    setIsSubmitting(true);
-    setServerError("");
-    try {
-      const payload = {
-        ...form,
-        // Pass financial totals explicitly so OrderService can store them directly
-        subtotal: form.subtotal ?? 0,
-        grand_total: form.grand_total ?? 0,
-        discount_amount: form.discount_amount ?? 0,
-        item_config_json: form.item_config_json ? JSON.stringify(form.item_config_json) : undefined,
-        items_json: form.items_json ? JSON.stringify(form.items_json) : undefined,
-        addons_json: form.addons_json ? JSON.stringify(form.addons_json) : undefined,
-        breakdown_json: form.breakdown_json ? JSON.stringify(form.breakdown_json) : undefined,
-        print_parts_json: form.print_parts_json ? JSON.stringify(form.print_parts_json) : undefined,
-      };
+    // Merge scalar fields
+    setFormData((prev) => ({ ...prev, ...scalarPrefill }));
 
-      await orderApi.create(payload);
-      setSubmitSuccess(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch (err) {
-      if (err.response?.data?.errors) setErrors(err.response.data.errors);
-      setServerError(err.response?.data?.message || "An error occurred while submitting.");
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    } finally {
-      setIsSubmitting(false);
+    // Cascade brand/address from client
+    if (scalarPrefill.client) {
+      const brandDefaults = updateClientBrands(scalarPrefill.client);
+      setFormData((prev) => ({
+        ...prev,
+        ...scalarPrefill,
+        ...(brandDefaults || {}),
+        company: scalarPrefill.company || brandDefaults?.company || "",
+      }));
     }
-  };
 
-  const handleReset = () => {
-    setForm(buildInitialForm(prefill));
-    setErrors({});
-    setServerError("");
-    setSubmitSuccess(false);
-  };
+    // Pre-populate samples from quotation sample_breakdown
+    if (_prefillSamples?.length > 0) {
+      setSamples?.(_prefillSamples);
+    }
 
-  // ── Derived display values ──────────────────────────────────────────────────
-  const breakdownData = safeJson(form.breakdown_json, {});
-  const itemsData = safeJson(form.items_json, []);
-  const printPartsData = safeJson(form.print_parts_json, []);
-  const addonsData = safeJson(form.addons_json, []);
+    // Pre-populate options/addons from quotation addons_json
+    if (_prefillAddons?.length > 0) {
+      const mappedOptions = _prefillAddons.map((addon) => ({
+        id: crypto.randomUUID(),
+        name: addon.name ?? "Addon",
+        color: addon.color ?? "#000000",
+        colorValue: addon.color ?? "",
+        price: addon.price ?? addon.price_per_piece ?? 0,
+        quantity: addon.quantity ?? 1,
+        total: addon.line_total ?? addon.total ?? 0,
+        applyToAll: false,
+        isAddon: true,
+      }));
+      setSelectedOptions?.(mappedOptions);
+    }
 
-  // Read totals directly from form state (carried from quotation columns)
-  const subtotal = Number(form.subtotal) || 0;
-  const grandTotal = Number(form.grand_total) || 0;
-  const discountAmount = Number(form.discount_amount) || 0;
+    setPrefillApplied(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPrefill, clientsLoading, clients.length, prefillApplied]);
 
-  const resolveImageUrl = (part) => {
-    const rawPath = String(part?.image_link || part?.image_url || part?.image_path || part?.image || "").trim();
-    if (!rawPath) return "";
-    if (rawPath.startsWith("http") || rawPath.startsWith("data:")) return rawPath;
-    const apiUrl = import.meta.env.VITE_API_URL || "";
-    let origin = "";
-    try { origin = new URL(apiUrl).origin; } catch { origin = ""; }
-    if (rawPath.startsWith("/storage/")) return origin ? `${origin}${rawPath}` : rawPath;
-    const cleanedPath = rawPath.replace(/^\/+/, "");
-    return origin ? `${origin}/storage/${cleanedPath}` : `/storage/${cleanedPath}`;
-  };
-
-  const formatCurrency = (v) => {
-    const n = Number(v) || 0;
-    return `₱${n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  };
-
-  const selectedPrintMethod = printMethods.find(
-    (m) => Number(m.id) === Number(form.print_method_id)
+  // ── Client change handler ────────────────────────────────────────────────
+  const handleClientChange = useCallback(
+    (e) => {
+      const { name, value } = e.target;
+      const updates = updateClientBrands(value);
+      setFormData((prev) => ({ ...prev, [name]: value, ...(updates || {}) }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+    },
+    [updateClientBrands, setFormData, setErrors]
   );
 
-  if (loading) {
+  // ── Fabric type change handler ───────────────────────────────────────────
+  const handleFabricTypeChange = useCallback(
+    (e) => {
+      const { name, value } = e.target;
+      setFormData((prev) => ({ ...prev, [name]: value }));
+      updateSupplierOptions(value, formData.fabric_supplier, (updates) =>
+        setFormData((prev) => ({ ...prev, ...updates }))
+      );
+    },
+    [formData.fabric_supplier, updateSupplierOptions, setFormData]
+  );
+
+  // ── Composed handleChange ────────────────────────────────────────────────
+  const handleFormChange = useCallback(
+    (e) => {
+      const { name } = e.target;
+      if (name === "client") return handleClientChange(e);
+      if (name === "fabric_type") return handleFabricTypeChange(e);
+      handleChange(e);
+    },
+    [handleClientChange, handleFabricTypeChange, handleChange]
+  );
+
+  // ── Size handlers ────────────────────────────────────────────────────────
+  const handleSizeChange = useCallback(
+    (id, field, value) => {
+      setFormData((prev) => {
+        const sizes = prev.sizes.map((size) => {
+          if (size.id !== id) return size;
+          const updated = { ...size, [field]: value };
+          if (field === "quantity" || field === "costPrice") {
+            const qty = parseFloat(field === "quantity" ? value : size.quantity) || 0;
+            const cost = parseFloat(field === "costPrice" ? value : size.costPrice) || 0;
+            updated.unitPrice = cost;
+            updated.totalPrice = cost * qty;
+          }
+          return updated;
+        });
+        return { ...prev, sizes };
+      });
+    },
+    [setFormData]
+  );
+
+  const handleAddSize = useCallback(() => {
+    setFormData((prev) => ({
+      ...prev,
+      sizes: [
+        ...prev.sizes,
+        { id: crypto.randomUUID(), name: "", costPrice: 0, quantity: 0, unitPrice: 0, totalPrice: 0 },
+      ],
+    }));
+  }, [setFormData]);
+
+  const handleRemoveSize = useCallback(
+    (id) => setFormData((prev) => ({ ...prev, sizes: prev.sizes.filter((s) => s.id !== id) })),
+    [setFormData]
+  );
+
+  // ── Option handlers ──────────────────────────────────────────────────────
+  const handleAddOption = useCallback(() => {
+    addOption(formData.options, formData.option_color, formData.same_option_color);
+  }, [addOption, formData.options, formData.option_color, formData.same_option_color]);
+
+  const handleRemoveOption = useCallback((id) => removeOption(id), [removeOption]);
+
+  // ── Reset ────────────────────────────────────────────────────────────────
+  const handleReset = useCallback(() => {
+    resetForm();
+    setPrefillApplied(false); // allow re-applying prefill on next mount
+  }, [resetForm]);
+
+  // ── Submit ───────────────────────────────────────────────────────────────
+  const handleSubmit = useCallback(
+    async (e) => {
+      if (e?.preventDefault) e.preventDefault();
+
+      const formValid = validate();
+      const samplesValid = validateSamples();
+      if (!formValid || !samplesValid) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+
+      setIsSubmitting(true);
+      setServerError("");
+
+      try {
+        const fd = new FormData();
+
+        // ── Resolve client_name from rawClients ──────────────────────────
+        const selectedClient = rawClients?.find((c) => String(c.id) === String(formData.client));
+        const clientName = selectedClient?.name || rawPrefill?.client_name || "";
+
+        // ── Scalar fields ─────────────────────────────────────────────────
+        const scalars = {
+          // Traceability
+          quotation_id: formData.quotation_id || rawPrefill?.quotation_id || "",
+          // Client
+          client_id: formData.client || "",
+          client_name: clientName,
+          client_brand: formData.company || "",
+          // IDs for backend FK columns
+          apparel_type_id: rawPrefill?.apparel_type_id || "",
+          pattern_type_id: rawPrefill?.pattern_type_id || "",
+          apparel_neckline_id: rawPrefill?.apparel_neckline_id || "",
+          print_method_id: rawPrefill?.print_method_id || "",
+          // Shirt / print
+          shirt_color: formData.shirt_color || rawPrefill?.shirt_color || "",
+          special_print: formData.special_print || "",
+          print_area: formData.print_area || "",
+          free_items: formData.freebie_others || rawPrefill?.free_items || "",
+          notes: formData.notes || "",
+          // Financials from quotation
+          discount_type: rawPrefill?.discount_type || "",
+          discount_price: rawPrefill?.discount_price ?? 0,
+          discount_amount: rawPrefill?.discount_amount ?? 0,
+          subtotal: rawPrefill?.subtotal ?? summary.totalAmount,
+          grand_total: rawPrefill?.grand_total ?? summary.estimatedTotal,
+          // Order form fields
+          deadline: formData.deadline || "",
+          priority: formData.priority || "",
+          courier: formData.courier || "",
+          method: formData.method || "",
+          receiver_name: formData.receiver_name || "",
+          contact_number: formData.contact_number || "",
+          street_address: formData.street_address || "",
+          province_address: formData.province_address || "",
+          city_address: formData.city_address || "",
+          barangay_address: formData.barangay_address || "",
+          postal_address: formData.postal_address || "",
+          design_name: formData.design_name || "",
+          service_type: formData.service_type || "",
+          print_service: formData.print_service || "",
+          size_label: formData.size_label || "",
+          print_label_placement: formData.print_label_placement || "",
+          fabric_type: formData.fabric_type || "",
+          fabric_supplier: formData.fabric_supplier || "",
+          fabric_color: formData.fabric_color || "",
+          thread_color: formData.thread_color || "",
+          ribbing_color: formData.ribbing_color || "",
+          freebie_items: formData.freebie_items || "",
+          freebie_color: formData.freebie_color || "",
+          freebie_others: formData.freebie_others || "",
+          deposit_percentage: formData.deposit_percentage ?? 60,
+          payment_plan: formData.payment_plan || "",
+          payment_method: formData.payment_method || "",
+          estimated_total: summary.estimatedTotal,
+        };
+
+        Object.entries(scalars).forEach(([k, v]) => {
+          if (v !== undefined && v !== null) fd.append(k, v);
+        });
+
+        // ── JSON blobs ────────────────────────────────────────────────────
+        fd.append("sizes", JSON.stringify(formData.sizes));
+        fd.append("selectedOptions", JSON.stringify(selectedOptions));
+        fd.append("samples", JSON.stringify(samples));
+
+        const appendJson = (key, value) => {
+          if (!value) return;
+          fd.append(key, typeof value === "string" ? value : JSON.stringify(value));
+        };
+        appendJson("items_json", rawPrefill?.items_json);
+        appendJson("addons_json", rawPrefill?.addons_json);
+        appendJson("print_parts_json", rawPrefill?.print_parts_json);
+        appendJson("breakdown_json", rawPrefill?.breakdown_json);
+        appendJson("item_config_json", rawPrefill?.item_config_json);
+
+        // ── File arrays ───────────────────────────────────────────────────
+        ["design_files", "design_mockup", "size_label_files", "freebies_files", "payments"].forEach((key) => {
+          (formData[key] || []).forEach((file) => {
+            if (file instanceof File) fd.append(`${key}[]`, file);
+          });
+        });
+
+        await orderApi.create(fd);
+        setSubmitSuccess(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } catch (err) {
+        if (err?.type === "validation") {
+          setErrors(err.errors);
+        } else {
+          if (err?.response?.data?.errors) setErrors(err.response.data.errors);
+          setServerError(
+            err?.response?.data?.message ||
+            "An error occurred while submitting the order. Please check all required fields."
+          );
+        }
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [
+      validate, validateSamples, formData, selectedOptions, samples,
+      rawPrefill, rawClients, summary, setErrors, setServerError,
+    ]
+  );
+
+  // ── Boot loading ─────────────────────────────────────────────────────────
+  if (clientsLoading && clients.length === 0) {
     return (
       <Loader
-        pageTitle="Add Order"
+        pageTitle={hasPrefill ? "New Order (from Quotation)" : "Add Order"}
         path="/"
         links={[{ label: "Home", href: "/" }, { label: "Orders", href: "/orders" }]}
       />
@@ -183,14 +381,15 @@ export default function AddNewOrder() {
 
   return (
     <AdminLayout
-      pageTitle={prefill ? "New Order (from Quotation)" : "Add Order"}
+      pageTitle={hasPrefill ? "New Order (from Quotation)" : "Add Order"}
       path="/"
       links={[
         { label: "Home", href: "/" },
         { label: "Orders", href: "/orders" },
-        { label: prefill ? "New from Quotation" : "Add", href: "#" },
+        { label: hasPrefill ? "New from Quotation" : "Add", href: "#" },
       ]}
     >
+      {/* ── Success banner ──────────────────────────────────────────────── */}
       {submitSuccess && (
         <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
           <i className="fas fa-check-circle text-green-500 text-lg"></i>
@@ -207,334 +406,57 @@ export default function AddNewOrder() {
         </div>
       )}
 
-      {serverError && (
-        <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3 flex items-center gap-2 text-red-700 text-sm">
-          <i className="fas fa-exclamation-circle"></i>
-          {serverError}
-        </div>
-      )}
-
-      {/* Prefill banner */}
-      {prefill && (
+      {/* ── Prefill origin banner ────────────────────────────────────────── */}
+      {hasPrefill && !submitSuccess && (
         <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2 text-blue-700 text-sm">
           <i className="fas fa-info-circle"></i>
-          This order has been pre-filled from Quotation #{prefill.quotation_id}. Review and edit as needed before saving.
+          Pre-filled from Quotation&nbsp;<strong>#{quotationMeta?.quotationId}</strong>.
+          Review all sections and fill in any remaining details before saving.
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* ── Client Info ──────────────────────────────────────────────── */}
-        <section className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
-            <i className="fas fa-user-circle"></i>Client Information
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Client <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="client_id"
-                value={form.client_id}
-                onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                <option value="">— Select Client —</option>
-                {clients.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Client Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="client_name"
-                value={form.client_name}
-                onChange={handleChange}
-                className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 ${errors.client_name ? "border-red-400" : "border-gray-200"}`}
-                placeholder="Client name"
-              />
-              {errors.client_name && <p className="text-red-500 text-xs mt-1">{errors.client_name}</p>}
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Brand</label>
-              <input
-                type="text"
-                name="client_brand"
-                value={form.client_brand}
-                onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                placeholder="Brand name"
-              />
-            </div>
-          </div>
-        </section>
+      {/* ── Quotation carried data panel (read-only) ─────────────────────── */}
+      {hasPrefill && <QuotationSummaryPanel meta={quotationMeta} />}
 
-        {/* ── Apparel & Print Details ───────────────────────────────────── */}
-        <section className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
-            <i className="fas fa-tshirt"></i>Apparel & Print Details
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Shirt Color</label>
-              <input
-                type="text"
-                name="shirt_color"
-                value={form.shirt_color}
-                onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                placeholder="e.g. White"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Neckline</label>
-              <select
-                name="apparel_neckline_id"
-                value={form.apparel_neckline_id}
-                onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                <option value="">— Select Neckline —</option>
-                {necklines.map((n) => <option key={n.id} value={n.id}>{n.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Free Items</label>
-              <input
-                type="text"
-                name="free_items"
-                value={form.free_items}
-                onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                placeholder="e.g. Tote bag"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Print Method</label>
-              <select
-                name="print_method_id"
-                value={form.print_method_id}
-                onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                <option value="">— Select Print Method —</option>
-                {printMethods.map((m) => <option key={m.id} value={m.id}>{m.name}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Special Print</label>
-              <input
-                type="text"
-                name="special_print"
-                value={form.special_print}
-                onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-                placeholder="e.g. Reflective"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Print Area</label>
-              <select
-                name="print_area"
-                value={form.print_area}
-                onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                <option value="Regular">Regular</option>
-                <option value="Full">Full</option>
-              </select>
-            </div>
-          </div>
-          <div className="mt-4">
-            <label className="block text-xs font-medium text-gray-600 mb-1">Notes</label>
-            <textarea
-              name="notes"
-              value={form.notes}
-              onChange={handleChange}
-              rows={3}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 resize-none"
-              placeholder="Additional notes..."
-            />
-          </div>
-        </section>
-
-        {/* ── Discount ─────────────────────────────────────────────────── */}
-        <section className="bg-white rounded-lg border border-gray-200 p-6">
-          <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
-            <i className="fas fa-tag"></i>Pricing & Discount
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Discount Type</label>
-              <select
-                name="discount_type"
-                value={form.discount_type}
-                onChange={handleChange}
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                <option value="percentage">Percentage (%)</option>
-                <option value="fixed">Fixed (₱)</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
-                Discount Value {form.discount_type === "percentage" ? "(%)" : "(₱)"}
-              </label>
-              <input
-                type="number"
-                name="discount_price"
-                value={form.discount_price}
-                onChange={handleChange}
-                min="0"
-                step="0.01"
-                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30"
-              />
-            </div>
-          </div>
-          {(subtotal > 0 || grandTotal > 0) && (
-            <div className="mt-4 bg-gray-50 rounded-lg p-4 space-y-1.5 text-sm">
-              <div className="flex justify-between text-gray-600">
-                <span>Subtotal:</span><span>{formatCurrency(subtotal)}</span>
-              </div>
-              {discountAmount > 0 && (
-                <div className="flex justify-between text-red-600">
-                  <span>Discount ({form.discount_type === "percentage" ? `${form.discount_price}%` : "Fixed"}):</span>
-                  <span>- {formatCurrency(discountAmount)}</span>
-                </div>
-              )}
-              <div className="flex justify-between font-bold text-primary border-t border-gray-200 pt-2">
-                <span>Grand Total:</span><span>{formatCurrency(grandTotal)}</span>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* ── Print Parts (read-only from quotation) ────────────────────── */}
-        {printPartsData.length > 0 && (
-          <section className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
-              <i className="fas fa-images"></i>Print Parts
-              <span className="text-xs font-normal text-gray-400 ml-1">(carried from quotation)</span>
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {printPartsData.map((part, idx) => {
-                const imageUrl = resolveImageUrl(part);
-                const partName = part.part || part.name || `Part ${idx + 1}`;
-                return (
-                  <div key={idx} className="rounded-lg border border-gray-200 p-3 text-center">
-                    {imageUrl ? (
-                      <a href={imageUrl} target="_blank" rel="noreferrer">
-                        <img src={imageUrl} alt={partName} className="h-20 w-full object-cover rounded mb-2 border" />
-                      </a>
-                    ) : (
-                      <div className="h-20 w-full bg-gray-100 rounded mb-2 flex items-center justify-center">
-                        <i className="fas fa-image text-gray-300 text-2xl"></i>
-                      </div>
-                    )}
-                    <p className="text-xs font-medium text-gray-700">{partName}</p>
-                    <p className="text-xs text-gray-400">{part.color_count ?? part.colorCount ?? 0} colors</p>
-                  </div>
-                );
-              })}
-            </div>
-          </section>
-        )}
-
-        {/* ── Size / Items Summary (read-only from quotation) ───────────── */}
-        {itemsData.length > 0 && (
-          <section className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
-              <i className="fas fa-ruler-combined"></i>Size Breakdown
-              <span className="text-xs font-normal text-gray-400 ml-1">(carried from quotation)</span>
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Size</th>
-                    <th className="px-3 py-2 text-right">Qty</th>
-                    <th className="px-3 py-2 text-right">Unit Price</th>
-                    <th className="px-3 py-2 text-right">Price/Pc</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {itemsData.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/50">
-                      <td className="px-3 py-2 font-medium text-primary">{item.size_label || item.size || "—"}</td>
-                      <td className="px-3 py-2 text-right">{item.quantity ?? 0}</td>
-                      <td className="px-3 py-2 text-right">{formatCurrency(item.unit_price)}</td>
-                      <td className="px-3 py-2 text-right font-semibold">{formatCurrency(item.price_per_piece)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {/* ── Addons Summary (read-only from quotation) ─────────────────── */}
-        {addonsData.length > 0 && (
-          <section className="bg-white rounded-lg border border-gray-200 p-6">
-            <h2 className="text-sm font-semibold text-primary mb-4 flex items-center gap-2">
-              <i className="fas fa-plus-circle"></i>Addons
-              <span className="text-xs font-normal text-gray-400 ml-1">(carried from quotation)</span>
-            </h2>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Name</th>
-                    <th className="px-3 py-2 text-right">Qty</th>
-                    <th className="px-3 py-2 text-right">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {addonsData.map((addon, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50/50">
-                      <td className="px-3 py-2">{addon.name || "—"}</td>
-                      <td className="px-3 py-2 text-right">{addon.quantity ?? 1}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-primary">{formatCurrency(addon.total)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        )}
-
-        {/* ── Actions ──────────────────────────────────────────────────── */}
-        <div className="flex justify-end gap-3 pb-8">
-          <button
-            type="button"
-            onClick={() => navigate("/orders")}
-            className="px-5 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition-colors"
-          >
-            <i className="fas fa-times mr-2"></i>Cancel
-          </button>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="px-5 py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg text-sm hover:bg-yellow-100 transition-colors"
-          >
-            <i className="fas fa-undo mr-2"></i>Reset
-          </button>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="px-6 py-2 bg-primary text-white rounded-lg text-sm hover:bg-secondary transition-colors disabled:opacity-50 flex items-center gap-2"
-          >
-            {isSubmitting ? (
-              <><i className="fas fa-spinner fa-spin"></i>Saving...</>
-            ) : (
-              <><i className="fas fa-save"></i>Save Order</>
-            )}
-          </button>
-        </div>
-      </form>
+      {/* ── Full feature-based OrderForm ─────────────────────────────────── */}
+      <OrderForm
+        formData={formData}
+        errors={{ ...errors, ...optionsErrors }}
+        serverError={serverError}
+        handleChange={handleFormChange}
+        handleDepositPercentageChange={handleDepositPercentageChange}
+        handleFileChange={handleFileChange}
+        handleSizeChange={handleSizeChange}
+        handleAddSize={handleAddSize}
+        handleRemoveSize={handleRemoveSize}
+        handleAddOption={handleAddOption}
+        handleRemoveOption={handleRemoveOption}
+        handleSubmit={handleSubmit}
+        handleReset={handleReset}
+        isSubmitting={isSubmitting}
+        submitSuccess={submitSuccess}
+        summary={summary}
+        clients={clients}
+        clientsLoading={clientsLoading}
+        clientBrands={clientBrands}
+        optionsLoading={optionsLoading}
+        apparelTypeOptions={apparelTypeOptions}
+        patternTypeOptions={patternTypeOptions}
+        serviceTypeOptions={serviceTypeOptions}
+        printMethodOptions={printMethodOptions}
+        sizeLabelOptions={sizeLabelOptions}
+        printLabelPlacementOptions={printLabelPlacementOptions}
+        fabricTypeOptions={fabricTypeOptions}
+        fabricSupplierOptions={fabricSupplierOptions}
+        selectedOptions={selectedOptions}
+        samples={samples}
+        onSampleChange={updateSampleField}
+        onAddSample={addSample}
+        onRemoveSample={removeSample}
+        sampleErrors={sampleErrors}
+        // Pass print_parts for DesignFilesSection
+        printParts={hasPrefill ? (quotationMeta?.printParts ?? []) : []}
+      />
     </AdminLayout>
   );
 }

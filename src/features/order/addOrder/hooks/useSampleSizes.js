@@ -136,6 +136,7 @@ export const useSampleSizes = (initialSamples = [], onSamplesChange) => {
 
   return {
     samples,
+    setSamples,
     errors,
     summary,
     addSample,

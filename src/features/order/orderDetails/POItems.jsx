@@ -1,124 +1,50 @@
 import React from "react";
 
+const fmt = (v) =>
+  `₱${(Number(v) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+/**
+ * POItems
+ *
+ * Displays the size breakdown from items_json (carried from quotation).
+ * The legacy `order.items` (PoItem rows) may also be available if the backend
+ * creates them; we show whichever is non-empty.
+ */
 const POItems = ({ order }) => {
-  const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
+  const itemsJson = order?.items_json || [];
+  const baseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+
+  // Prefer items_json for display; fall back to items_list relation
+  const hasJsonItems = itemsJson.length > 0;
 
   return (
     <section className="flex-col flex gap-y-2 sm:gap-y-3">
       <h1 className="font-semibold text-base sm:text-lg">PO Items</h1>
-      {order?.items && order.items.length > 0 ? (
-        <div className="border border-gray-200 sm:border-gray-300 rounded-lg sm:rounded-xl overflow-hidden">
-          {/* Mobile View (Card Layout) */}
-          <div className="block sm:hidden">
-            {order.items.map((item) => (
-              <div
-                key={item.id}
-                className="p-3 border-b border-gray-100 last:border-b-0"
-              >
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <p className="font-medium text-sm">{item.sku}</p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {item.color} {item.size && `• ${item.size}`}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    {item.qr_path && (
-                      <a
-                        href={`${baseUrl}${item.qr_path}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-500 hover:text-blue-700 p-1.5 bg-blue-50 rounded-lg transition-colors"
-                        title="View QR Code"
-                      >
-                        <i className="fas fa-qrcode text-sm"></i>
-                      </a>
-                    )}
-                    {item.barcode_path && (
-                      <a
-                        href={`${baseUrl}${item.barcode_path}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-green-500 hover:text-green-700 p-1.5 bg-green-50 rounded-lg transition-colors"
-                        title="View Barcode"
-                      >
-                        <i className="fas fa-barcode text-sm"></i>
-                      </a>
-                    )}
-                  </div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <p className="text-xs text-gray-500">Quantity:</p>
-                  <p className="text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
-                    {item.quantity}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
 
-          {/* Desktop View (Table) */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+      {hasJsonItems ? (
+        <div className="border border-gray-200 sm:border-gray-300 rounded-lg sm:rounded-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs sm:text-sm">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    SKU
-                  </th>
-                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Color
-                  </th>
-                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Size
-                  </th>
-                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Quantity
-                  </th>
-                  <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Codes
-                  </th>
+                  <th className="px-3 sm:px-4 py-2 sm:py-3 text-left font-semibold text-gray-600">Size</th>
+                  <th className="px-3 sm:px-4 py-2 sm:py-3 text-right font-semibold text-gray-600">Qty</th>
+                  <th className="px-3 sm:px-4 py-2 sm:py-3 text-right font-semibold text-gray-600">Unit Price</th>
+                  <th className="px-3 sm:px-4 py-2 sm:py-3 text-right font-semibold text-gray-600">Price/Pc</th>
+                  <th className="px-3 sm:px-4 py-2 sm:py-3 text-right font-semibold text-gray-600">Total</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {order.items.map((item) => (
-                  <tr key={item.id} className="hover:bg-gray-50">
-                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm font-medium text-gray-900">
-                      {item.sku}
+              <tbody className="divide-y divide-gray-100 bg-white">
+                {itemsJson.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-gray-50">
+                    <td className="px-3 sm:px-4 py-2 sm:py-3 font-semibold text-primary">
+                      {item.size_label || item.size || "—"}
                     </td>
-                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500">
-                      {item.color}
-                    </td>
-                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500">
-                      {item.size}
-                    </td>
-                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500">
-                      {item.quantity}
-                    </td>
-                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-xs lg:text-sm text-gray-500">
-                      <div className="flex gap-2 lg:gap-3">
-                        {item.qr_path && (
-                          <a
-                            href={`${baseUrl}${item.qr_path}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:text-blue-700 transition-colors"
-                            title="View QR Code"
-                          >
-                            <i className="fas fa-qrcode text-base lg:text-lg"></i>
-                          </a>
-                        )}
-                        {item.barcode_path && (
-                          <a
-                            href={`${baseUrl}${item.barcode_path}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-green-500 hover:text-green-700 transition-colors"
-                            title="View Barcode"
-                          >
-                            <i className="fas fa-barcode text-base lg:text-lg"></i>
-                          </a>
-                        )}
-                      </div>
+                    <td className="px-3 sm:px-4 py-2 sm:py-3 text-right">{item.quantity ?? 0}</td>
+                    <td className="px-3 sm:px-4 py-2 sm:py-3 text-right">{fmt(item.unit_price)}</td>
+                    <td className="px-3 sm:px-4 py-2 sm:py-3 text-right">{fmt(item.price_per_piece)}</td>
+                    <td className="px-3 sm:px-4 py-2 sm:py-3 text-right font-semibold text-primary">
+                      {fmt(item.total_amount ?? item.total ?? (item.price_per_piece ?? 0) * (item.quantity ?? 0))}
                     </td>
                   </tr>
                 ))}
@@ -127,8 +53,8 @@ const POItems = ({ order }) => {
           </div>
         </div>
       ) : (
-        <p className="text-gray-500 text-sm sm:text-base text-center py-6 sm:py-8 border border-gray-200 sm:border-gray-300 rounded-lg sm:rounded-xl">
-          No items found for this order
+        <p className="text-gray-500 text-sm text-center py-8 border border-gray-200 rounded-lg">
+          No PO items found for this order.
         </p>
       )}
     </section>
