@@ -1,6 +1,11 @@
 import api from "./axios";
 
 export const orderApi = {
+  delete: async (id) => {
+    const { data } = await api.delete(`/orders/${id}`);
+    return data;
+  },
+
   create: async (payload) => {
     const config =
       payload instanceof FormData

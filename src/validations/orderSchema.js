@@ -209,23 +209,24 @@ export const orderSchema = {
     message: "Freebie others field is required.",
   },
 
-  deposit_percentage: {
-    required: true,
-    pattern: /^[0-9]{1,3}%?$/,
-    message: "Deposit percentage is required.",
-    invalidMessage: "Deposit percentage must be a percentage (e.g., 60%).",
-  },
-
-  payment_method: {
-    required: true,
-    message: "Payment method is required.",
-  },
-
   estimated_total: {
     required: true,
-    pattern: /^[0-9,.]+$/,
     message: "Estimated total is required.",
+    validation: (value) => {
+      const n = parseFloat(String(value).replace(/,/g, ""));
+      return !isNaN(n) && n >= 0;
+    },
     invalidMessage: "Estimated total must be a valid number.",
+  },
+
+  deposit_percentage: {
+    required: true,
+    message: "Deposit percentage is required.",
+    validation: (value) => {
+      const n = parseInt(String(value).replace(/%/g, ""));
+      return !isNaN(n) && n >= 0 && n <= 100;
+    },
+    invalidMessage: "Deposit percentage must be between 0 and 100.",
   },
 
   payment_plan: {

@@ -4,94 +4,108 @@ import Table from "../../components/table/Table";
 import { orderApi } from "../../api/orderApi";
 import { useNavigate } from "react-router-dom";
 
-const ClientsPage = () => {
+const AllOrders = () => {
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
+
+  // ── Status badge ──────────────────────────────────────────────────────────
+  const getStatusBadge = (status) => {
+    const map = {
+      "Pending Approval": "bg-yellow-100 text-yellow-700",
+      "Approved": "bg-blue-100 text-blue-700",
+      "In Production": "bg-purple-100 text-purple-700",
+      "Completed": "bg-green-100 text-green-700",
+      "Cancelled": "bg-red-100 text-red-700",
+    };
+    const cls = map[status] || "bg-gray-100 text-gray-600";
+    return (
+      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>
+        {status || "—"}
+      </span>
+    );
+  };
 
   const columns = [
     {
       key: "po_code",
       label: "P.O Number",
       sortable: true,
+      render: (item) => (
+        <div className="flex items-center gap-2 font-medium text-primary">
+          <i className="fas fa-file-alt text-xs text-gray-400"></i>
+          {item.po_code}
+        </div>
+      ),
+    },
+    {
+      key: "client_name",
+      label: "Client",
+      sortable: true,
+      render: (item) => (
+        <div>
+          <p className="font-medium text-sm">{item.client_name || item.client?.name || "—"}</p>
+          {item.client_brand && (
+            <p className="text-xs text-gray-400">{item.client_brand}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "apparel_type",
+      label: "Apparel",
+      sortable: true,
+      render: (item) => (
+        <div>
+          <p className="text-sm">{item.apparel_type || "—"}</p>
+          {item.pattern_type && (
+            <p className="text-xs text-gray-400">{item.pattern_type}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "print_method",
+      label: "Print Method",
+      sortable: true,
+      render: (item) => item.print_method || "—",
+    },
+    {
+      key: "shirt_color",
+      label: "Shirt Color",
+      sortable: true,
+      render: (item) => item.shirt_color || "—",
+    },
+    {
+      key: "grand_total",
+      label: "Grand Total",
+      sortable: true,
       render: (item) => {
-        // Choose a color for the circle (example: brand-based)
-        const circleColor =
-          item.brand === "reefer"
-            ? "bg-[#FF7802]"
-            : item.brand === "sorbetes"
-              ? "bg-black"
-              : "bg-gray-400";
-
+        const val = Number(item.grand_total) || 0;
         return (
-          <div className="flex items-center gap-2">
-            <span className={`w-3 h-3 rounded-full ${circleColor}`}></span>
-            <span>{item.po_code}</span>
-          </div>
+          <span className="font-semibold text-primary">
+            ₱{val.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          </span>
         );
       },
     },
     {
-      key: "service_type",
-      label: "Service Type",
-      sortable: true,
-      filterable: true,
-    },
-
-    {
-      key: "priority",
-      label: "Priority",
-      sortable: true,
-      filterable: true,
-    },
-    {
-      key: "client_brand",
-      label: "Clothing",
-      sortable: true,
-    },
-
-    {
-      key: "design_name",
-      label: "Design Name",
-      sortable: true,
-      filters: true,
-    },
-
-    {
       key: "status",
       label: "Status",
       sortable: true,
-      filters: true,
+      filterable: true,
+      render: (item) => getStatusBadge(item.status),
     },
     {
-      key: "leadTimeLeft",
-      label: "Lead Time Left",
+      key: "created_at",
+      label: "Created",
       sortable: true,
       render: (item) => {
-        if (!item.deadline) return "N/A";
-
-        const today = new Date();
-        const deadline = new Date(item.deadline);
-        const diffTime = deadline - today;
-
-        // Convert to days
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        let text = "";
-        let color = "black"; // default text color
-
-        if (diffDays > 0) {
-          text = `${diffDays} day${diffDays > 1 ? "s" : ""} left`;
-        } else if (diffDays === 0) {
-          text = "Today";
-          color = "orange"; // optional: highlight today
-        } else {
-          text = `${Math.abs(diffDays)} day${Math.abs(diffDays) > 1 ? "s" : ""} overdue`;
-          color = "red"; // overdue in red
-        }
-
-        return <span style={{ color }}>{text}</span>;
+        if (!item.created_at) return "—";
+        return new Date(item.created_at).toLocaleDateString("en-PH", {
+          month: "short", day: "2-digit", year: "numeric",
+        });
       },
     },
   ];
@@ -100,53 +114,44 @@ const ClientsPage = () => {
     async (perPage = pageSize) => {
       setIsLoading(true);
       try {
-        let response;
-
-        if (perPage === "all") {
-          response = await orderApi.index();
-        } else {
-          response = await orderApi.index({ per_page: perPage });
-        }
-
+        const response = await orderApi.index(
+          perPage === "all" ? {} : { per_page: perPage }
+        );
         const responseData = response.data || response;
-        setData(responseData);
+        setData(Array.isArray(responseData) ? responseData : []);
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching orders:", error);
         setData([]);
       } finally {
         setIsLoading(false);
       }
     },
-    [pageSize],
+    [pageSize]
   );
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchData(); }, [fetchData]);
+  useEffect(() => { fetchData(pageSize); }, [pageSize]);
 
-  useEffect(() => {
-    fetchData(pageSize);
-  }, [pageSize]);
+  const handlePageSizeChange = (newPageSize) => setPageSize(newPageSize);
 
-  const handlePageSizeChange = (newPageSize) => {
-    setPageSize(newPageSize);
-  };
-
-  const handleAction = (action, rowData) => {
+  const handleAction = async (action, rowData) => {
     switch (action) {
       case "view":
         navigate(`/order/${rowData.po_code}`);
         break;
       case "edit":
+        // Edit not yet implemented — can be wired to an edit page
         console.log("Edit:", rowData);
         break;
       case "delete":
-        if (
-          window.confirm(
-            `Are you sure you want to delete ${rowData.design_name}?`,
-          )
-        ) {
-          console.log("Delete:", rowData);
+        if (window.confirm(`Delete order ${rowData.po_code}? This cannot be undone.`)) {
+          try {
+            await orderApi.delete?.(rowData.id || rowData.po_code);
+            fetchData();
+          } catch (err) {
+            console.error("Delete failed:", err);
+            alert("Failed to delete order. Please try again.");
+          }
         }
         break;
     }
@@ -157,11 +162,11 @@ const ClientsPage = () => {
     pagination: true,
     search: true,
     filters: true,
-    actions: ["view", "edit", "delete"],
+    actions: ["view", "delete"],
     pageSize: pageSize,
-    pageSizeOptions: [20, 50, 100, 500, "All"],
-    emptyMessage: "No order found",
-    searchPlaceholder: "Search order...",
+    pageSizeOptions: [10, 20, 50, 100, "All"],
+    emptyMessage: "No orders found",
+    searchPlaceholder: "Search by PO code, client, apparel...",
     showIndex: true,
   };
 
@@ -169,7 +174,7 @@ const ClientsPage = () => {
     <AdminLayout
       icon="fa-shirt"
       pageTitle="All Orders"
-      path="/account/employee"
+      path="/orders"
       links={[
         { label: "Home", href: "/" },
         { label: "Orders", href: "/orders" },
@@ -184,28 +189,9 @@ const ClientsPage = () => {
         isLoading={isLoading}
         url="/orders/new"
         button="New Order"
-        PageTitle={
-          <>
-            <div className="flex items-center justify-start gap-4 mt-4">
-              <div>
-                <small className="text-normal">Legends</small>
-              </div>
-              <div className="flex items-center gap-2 border rounded px-2 py-1 border-gray-300">
-                <span className="text-sm">Reefer</span>
-                <span className="w-3 h-3 rounded-full bg-[#FF7802]"></span>
-              </div>
-
-              {/* Legend for Sorbetes */}
-              <div className="flex items-center gap-2 border rounded px-2 py-1 border-gray-300">
-                <span className="text-sm">Sorbetes</span>
-                <span className="w-3 h-3 rounded-full bg-black"></span>
-              </div>
-            </div>
-          </>
-        }
       />
     </AdminLayout>
   );
 };
 
-export default ClientsPage;
+export default AllOrders;

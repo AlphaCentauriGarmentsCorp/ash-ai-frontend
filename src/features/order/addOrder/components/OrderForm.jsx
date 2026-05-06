@@ -43,12 +43,14 @@ export const OrderForm = ({
   fabricTypeOptions,
   fabricSupplierOptions,
   selectedOptions,
-  // New sample props
+  // Sample props
   samples = [],
   onSampleChange,
   onAddSample,
   onRemoveSample,
   sampleErrors,
+  // Print parts from quotation for DesignFilesSection
+  printParts = [],
 }) => {
   const renderSuccessMessage = () => {
     if (!submitSuccess) return null;
@@ -157,13 +159,12 @@ export const OrderForm = ({
           sizeLabelOptions={sizeLabelOptions}
         />
 
-        <SummarySection summary={summary} />
-
         <DesignFilesSection
           formData={formData}
           handleChange={handleChange}
           handleFileChange={handleFileChange}
           errors={errors}
+          printParts={printParts}
         />
 
         <FreebiesSection
@@ -172,6 +173,8 @@ export const OrderForm = ({
           handleFileChange={handleFileChange}
           errors={errors}
         />
+
+        <SummarySection summary={summary} />
 
         <PaymentSection
           formData={formData}
