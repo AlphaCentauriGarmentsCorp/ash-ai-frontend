@@ -4,10 +4,11 @@ import AdminLayout from "../../layouts/Admin/AdminLayout";
 import { orderApi } from "../../api/orderApi";
 import {
   SECTION_ACCESS,
-  PRODUCTION_ACCESS,
   hasSectionAccess,
-  hasProductionAccess,
+  hasWorkPageAccess,
 } from "../../utils/roleAccess";
+import { WorkPages } from "../../constants/formOptions/workPages";
+import { getStatusMeta } from "../../constants/formOptions/orderStages";
 import RoleProtected from "../../features/order/orderDetails/RoleProtected";
 import ClientInformation from "../../features/order/orderDetails/ClientInformation";
 import ShippingInformation from "../../features/order/orderDetails/ShippingInformation";
@@ -27,11 +28,24 @@ import ScreenChecking from "../../features/screenChecking/ScreenChecking";
 import SampleMaterials from "../../features/order/productionSection/SampleMaterials";
 import SampleCutting from "../../features/sampleCutting/SampleCutting";
 import SamplePrinting from "../../features/samplePrinting/SamplePrinting";
+import SampleSewing from "../../features/sampleSewing/SampleSewing";
 
 import MassMaterials from "../../features/massMaterials/MassMaterials";
 import MassCutting from "../../features/massCutting/MassCutting";
 import MassPrinting from "../../features/massPrinting/MassPrinting";
 
+/**
+ * OrderDetailsPage
+ *
+ * Two tabs:
+ *  - Order Information: client, shipping, product, design, pricing, items, logs
+ *  - Production: a single "Workflow" section (the 14-stage timeline) plus
+ *    role-specific work pages the user has access to (graphic editing,
+ *    screen making, sample/mass cutting/printing/sewing, packing, …).
+ *
+ * The 14-step workflow is auto-created on the backend when the order is
+ * stored, so the user never has to "select stages" any more.
+ */
 const OrderDetailsPage = () => {
   const { po_code } = useParams();
   const { user } = useAuth();
@@ -43,268 +57,102 @@ const OrderDetailsPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const userRoles = user?.domain_role || [];
 
+  // ---- Tab 1: Order Information sections ----
   const orderSections = [
-    {
-      id: "all",
-      label: "All Information",
-      icon: "fa-info-circle",
-      tab: "order",
-    },
-    {
-      id: "client",
-      label: "Client Information",
-      icon: "fa-user",
-      tab: "order",
-    },
-    {
-      id: "shipping",
-      label: "Shipping Information",
-      icon: "fa-truck",
-      tab: "order",
-    },
-    {
-      id: "product",
-      label: "Product Details",
-      icon: "fa-tshirt",
-      tab: "order",
-    },
-    {
-      id: "design",
-      label: "Design Files & Mockups",
-      icon: "fa-image",
-      tab: "order",
-    },
+    { id: "all", label: "All Information", icon: "fa-info-circle", tab: "order" },
+    { id: "client", label: "Client Information", icon: "fa-user", tab: "order" },
+    { id: "shipping", label: "Shipping Information", icon: "fa-truck", tab: "order" },
+    { id: "product", label: "Product Details", icon: "fa-tshirt", tab: "order" },
+    { id: "design", label: "Design Files & Mockups", icon: "fa-image", tab: "order" },
     { id: "pricing", label: "Pricing", icon: "fa-tag", tab: "order" },
     { id: "items", label: "PO Items", icon: "fa-boxes", tab: "order" },
-    {
-      id: "logs",
-      label: "Activity Logs",
-      icon: "fa-history",
-      tab: "production",
-    },
+    { id: "logs", label: "Activity Logs", icon: "fa-history", tab: "production" },
   ].filter(
     (section) =>
       section.id === "all" || hasSectionAccess(userRoles, section.id),
   );
 
-  const baseProductionSections = [
-    {
-      id: "order_stages",
-      label: "Order Stages",
-      icon: "fa-list-check",
-      tab: "production",
-    },
-    {
-      id: "graphic_editing",
-      label: "Graphic Editing",
-      icon: "fa-pencil-ruler",
-      tab: "production",
-    },
-    {
-      id: "screen_making",
-      label: "Screen Making",
-      icon: "fa-th-large",
-      tab: "production",
-    },
-    {
-      id: "screen_checking",
-      label: "Screen Checking",
-      icon: "fa-eye",
-      tab: "production",
-    },
-
-    // Sample Production
-    {
-      id: "sample_material_preparation",
-      label: "Sample Material Preparation",
-      icon: "fa-boxes",
-      tab: "production",
-    },
-    {
-      id: "sample_material_receiving",
-      label: "Sample Material Receiving",
-      icon: "fa-truck-loading",
-      tab: "production",
-    },
-    {
-      id: "sample_cutting",
-      label: "Sample Cutting",
-      icon: "fa-cut",
-      tab: "production",
-    },
-    {
-      id: "sample_printing",
-      label: "Sample Printing",
-      icon: "fa-print",
-      tab: "production",
-    },
-    {
-      id: "sample_sewing",
-      label: "Sample Sewing",
-      icon: "fa-hand-paper",
-      tab: "production",
-    },
-    {
-      id: "sample_quality_assurance",
-      label: "Sample QA",
-      icon: "fa-check-circle",
-      tab: "production",
-    },
-    {
-      id: "sample_approval",
-      label: "Sample Approval",
-      icon: "fa-thumbs-up",
-      tab: "production",
-    },
-
-    // Mass Production
-    {
-      id: "production_material_preparation",
-      label: "Mass Material Preparation",
-      icon: "fa-boxes",
-      tab: "production",
-    },
-    {
-      id: "production_material_receiving",
-      label: "Mass Material Receiving",
-      icon: "fa-truck-loading",
-      tab: "production",
-    },
-    {
-      id: "production_cutting",
-      label: "Mass Cutting",
-      icon: "fa-cut",
-      tab: "production",
-    },
-    {
-      id: "production_printing",
-      label: "Mass Printing",
-      icon: "fa-print",
-      tab: "production",
-    },
-    {
-      id: "production_sewing",
-      label: "Mass Sewing",
-      icon: "fa-hand-paper",
-      tab: "production",
-    },
-    {
-      id: "production_revision",
-      label: "Mass Revision",
-      icon: "fa-edit",
-      tab: "production",
-    },
-    {
-      id: "production_quality_assurance",
-      label: "Mass QA",
-      icon: "fa-check-circle",
-      tab: "production",
-    },
-
-    // Delivery
-    {
-      id: "delivery",
-      label: "Delivery",
-      icon: "fa-truck",
-      tab: "production",
-    },
-  ];
-
-  // Filter production sections based on order stages and user roles
+  // ---- Tab 2: Production sections ----
+  // Always start with the unified Workflow timeline, then append the
+  // role-specific work pages the user has access to.
   const productionSections = React.useMemo(() => {
-    if (!order || !order.orderStages || order.orderStages.length === 0) {
-      // If no order stages data, only show order_stages
-      return baseProductionSections.filter(
-        (section) =>
-          section.id === "order_stages" &&
-          hasProductionAccess(userRoles, section.id),
-      );
+    const sections = [];
+
+    if (hasWorkPageAccess(userRoles, "workflow")) {
+      sections.push({
+        id: "workflow",
+        label: "Workflow Timeline",
+        icon: "fa-list-check",
+      });
     }
 
-    // Extract stage values from the array of stage objects
-    const availableStages = order.orderStages.map((stageObj) => stageObj.stage);
-
-    return baseProductionSections.filter((section) => {
-      // Always include order_stages regardless of available stages
-      if (section.id === "order_stages") {
-        return hasProductionAccess(userRoles, section.id);
+    WorkPages.forEach((page) => {
+      if (hasWorkPageAccess(userRoles, page.id)) {
+        sections.push({
+          id: page.id,
+          label: page.label,
+          icon: `fa-solid ${page.icon}`,
+          rollupStage: page.rollupStage,
+        });
       }
-
-      // For other sections, only show if they exist in orderStages and user has access
-      return (
-        availableStages.includes(section.id) &&
-        hasProductionAccess(userRoles, section.id)
-      );
     });
-  }, [order, userRoles]);
+
+    return sections;
+  }, [userRoles]);
 
   const visibleSections =
     activeTab === "order" ? orderSections : productionSections;
 
+  // ---- Status helpers (read from order.orderStages, never mocked) ----
   const getProductionStatus = (sectionId) => {
-    // Special case for order_stages - if there are any stages configured, mark as completed
-    if (sectionId === "order_stages") {
-      // If there are order stages in the data, mark as completed
-      if (order?.orderStages && order.orderStages.length > 0) {
-        return "completed";
-      }
-      return "in-progress";
+    if (!order?.orderStages) return "pending";
+
+    if (sectionId === "workflow") {
+      // Workflow is "completed" once every stage is completed.
+      const allDone =
+        order.orderStages.length > 0 &&
+        order.orderStages.every((s) => s.status === "completed");
+      if (allDone) return "completed";
+      const anyDelayed = order.orderStages.some((s) => s.status === "delayed");
+      if (anyDelayed) return "delayed";
+      const anyInProgress = order.orderStages.some(
+        (s) => s.status === "in_progress" || s.status === "for_approval",
+      );
+      return anyInProgress ? "in_progress" : "pending";
     }
 
-    // For other sections, use real status data from the API if available
-    if (order?.orderStages) {
-      const stageObj = order.orderStages.find((s) => s.stage === sectionId);
-      if (stageObj) {
-        return stageObj.status;
-      }
+    // For work pages – look up by their roll-up stage on the workflow.
+    const page = WorkPages.find((p) => p.id === sectionId);
+    if (page) {
+      const matching = order.orderStages.find(
+        (s) => s.stage === page.rollupStage,
+      );
+      return matching?.status || "pending";
     }
 
-    // Fallback to mock status
-    const mockStatus = {
-      "cutting": "in-progress",
-      "printing": "pending",
-      "sewing": "completed",
-      "embroidery": "pending",
-      "quality": "in-progress",
-      "packing": "pending",
-      "shipping": "pending",
-      "screen-making": "completed",
-      "sample-making": "in-progress",
-      "subcontract": "pending",
-    };
-    return mockStatus[sectionId] || "pending";
+    return "pending";
   };
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "completed":
-        return "text-green-600 bg-green-50";
-      case "in-progress":
-        return "text-yellow-600 bg-yellow-50";
-      case "pending":
-        return "text-gray-500 bg-gray-50";
-      default:
-        return "text-gray-500 bg-gray-50";
-    }
+  const getStatusBadge = (status) => {
+    const meta = getStatusMeta(status);
+    return `${meta.bg} ${meta.text} border ${meta.border}`;
   };
 
   const getStatusIcon = (status) => {
-    switch (status) {
-      case "completed":
-        return "fa-check-circle";
-      case "in-progress":
-        return "fa-spinner fa-pulse";
-      case "pending":
-        return "fa-clock";
-      default:
-        return "fa-clock";
-    }
+    const meta = getStatusMeta(status);
+    return meta.icon;
   };
 
+  const getStatusLabel = (status) => {
+    return getStatusMeta(status).label;
+  };
+
+  // ---- Data fetch ----
   useEffect(() => {
     if (po_code) {
       fetchOrderDetails();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [po_code]);
 
   const fetchOrderDetails = async () => {
@@ -318,7 +166,7 @@ const OrderDetailsPage = () => {
           const sectionExists = productionSections.some(
             (section) => section.id === activeSection,
           );
-          setActiveSection(sectionExists ? activeSection : "order_stages");
+          setActiveSection(sectionExists ? activeSection : "workflow");
         } else {
           setActiveSection(activeSection);
         }
@@ -329,6 +177,7 @@ const OrderDetailsPage = () => {
       setLoading(false);
     }
   };
+
   const handleSectionSelect = (sectionId) => {
     setActiveSection(sectionId);
     setIsSidebarOpen(false);
@@ -337,7 +186,6 @@ const OrderDetailsPage = () => {
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     if (tab === "production" && productionSections.length > 0) {
-      // Set to first available production section (should be order_stages if nothing else)
       setActiveSection(productionSections[0].id);
     } else {
       setActiveSection("all");
@@ -345,6 +193,7 @@ const OrderDetailsPage = () => {
     setIsSidebarOpen(false);
   };
 
+  // ---- Render content body ----
   const renderContent = () => {
     if (!order) return null;
 
@@ -419,60 +268,67 @@ const OrderDetailsPage = () => {
             hasSectionAccess(userRoles, "pricing") && <Pricing order={order} />}
           {activeSection === "items" &&
             hasSectionAccess(userRoles, "items") && <POItems order={order} />}
-
           {activeSection === "logs" &&
-            hasProductionAccess(userRoles, "logs") && <Logs order={order} />}
-        </div>
-      );
-    } else {
-      return (
-        <div className="bg-white rounded-lg lg:rounded-xl p-4 sm:p-5 lg:p-7 border border-gray-200 lg:border-gray-300 flex flex-col gap-y-4 sm:gap-y-5">
-          {activeSection === "order_stages" &&
-            hasProductionAccess(userRoles, "order_stages") && (
-              <OrderStage order={order} onStagesUpdated={fetchOrderDetails} />
-            )}
-          {activeSection === "graphic_editing" &&
-            hasProductionAccess(userRoles, "graphic_editing") && (
-              <GraphicEditing order={order} onSuccess={fetchOrderDetails} />
-            )}
-          {activeSection === "screen_making" &&
-            hasProductionAccess(userRoles, "screen_maker") && (
-              <ScreenMaking order={order} onSuccess={fetchOrderDetails} />
-            )}
-          {activeSection === "screen_checking" &&
-            hasProductionAccess(userRoles, "screen_checking") && (
-              <ScreenChecking order={order} onSuccess={fetchOrderDetails} />
-            )}
-          {activeSection === "sample_material_preparation" &&
-            hasProductionAccess(userRoles, "sample_material_preparation") && (
-              <SampleMaterials order={order} />
-            )}
-          {activeSection === "sample_cutting" &&
-            hasProductionAccess(userRoles, "sample_cutting") && (
-              <SampleCutting order={order} />
-            )}
-          {activeSection === "sample_printing" &&
-            hasProductionAccess(userRoles, "sample_printing") && (
-              <SamplePrinting order={order} />
-            )}
-          {activeSection === "production_material_preparation" &&
-            hasProductionAccess(
-              userRoles,
-              "production_material_preparation",
-            ) && <MassMaterials order={order} />}
-          {activeSection === "production_cutting" &&
-            hasProductionAccess(userRoles, "production_cutting") && (
-              <MassCutting order={order} />
-            )}
-          {activeSection === "production_printing" &&
-            hasProductionAccess(userRoles, "production_printing") && (
-              <MassPrinting order={order} />
-            )}
+            hasSectionAccess(userRoles, "logs") && <Logs order={order} />}
         </div>
       );
     }
+
+    // ---- Production tab ----
+    return (
+      <div className="bg-white rounded-lg lg:rounded-xl p-4 sm:p-5 lg:p-7 border border-gray-200 lg:border-gray-300 flex flex-col gap-y-4 sm:gap-y-5">
+        {activeSection === "workflow" &&
+          hasWorkPageAccess(userRoles, "workflow") && (
+            <OrderStage order={order} onStagesUpdated={fetchOrderDetails} />
+          )}
+
+        {activeSection === "graphic_editing" &&
+          hasWorkPageAccess(userRoles, "graphic_editing") && (
+            <GraphicEditing order={order} onSuccess={fetchOrderDetails} />
+          )}
+        {activeSection === "screen_making" &&
+          hasWorkPageAccess(userRoles, "screen_making") && (
+            <ScreenMaking order={order} onSuccess={fetchOrderDetails} />
+          )}
+        {activeSection === "screen_checking" &&
+          hasWorkPageAccess(userRoles, "screen_checking") && (
+            <ScreenChecking order={order} onSuccess={fetchOrderDetails} />
+          )}
+
+        {activeSection === "sample_material_preparation" &&
+          hasWorkPageAccess(userRoles, "sample_material_preparation") && (
+            <SampleMaterials order={order} />
+          )}
+        {activeSection === "sample_cutting" &&
+          hasWorkPageAccess(userRoles, "sample_cutting") && (
+            <SampleCutting order={order} />
+          )}
+        {activeSection === "sample_printing" &&
+          hasWorkPageAccess(userRoles, "sample_printing") && (
+            <SamplePrinting order={order} />
+          )}
+        {activeSection === "sample_sewing" &&
+          hasWorkPageAccess(userRoles, "sample_sewing") && (
+            <SampleSewing order={order} />
+          )}
+
+        {activeSection === "production_material_preparation" &&
+          hasWorkPageAccess(userRoles, "production_material_preparation") && (
+            <MassMaterials order={order} />
+          )}
+        {activeSection === "production_cutting" &&
+          hasWorkPageAccess(userRoles, "production_cutting") && (
+            <MassCutting order={order} />
+          )}
+        {activeSection === "production_printing" &&
+          hasWorkPageAccess(userRoles, "production_printing") && (
+            <MassPrinting order={order} />
+          )}
+      </div>
+    );
   };
 
+  // ---- Loading / error / not-found ----
   if (loading) {
     return (
       <Loader
@@ -537,8 +393,8 @@ const OrderDetailsPage = () => {
           <button
             onClick={() => handleTabChange("order")}
             className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${activeTab === "order"
-                ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
+              : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
           >
             <i className="fas fa-shopping-bag"></i>
@@ -548,16 +404,20 @@ const OrderDetailsPage = () => {
           <button
             onClick={() => handleTabChange("production")}
             className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${activeTab === "production"
-                ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+              ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
+              : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
               }`}
           >
             <i className="fas fa-cogs"></i>
             <span className="truncate">
-              Production Options
+              Production
               {order.orderStages?.length > 0 && (
                 <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
-                  {order.orderStages.length}
+                  {
+                    order.orderStages.filter((s) => s.status === "completed")
+                      .length
+                  }
+                  /{order.orderStages.length}
                 </span>
               )}
             </span>
@@ -571,7 +431,7 @@ const OrderDetailsPage = () => {
           </div>
         )}
 
-        {/* Mobile Sidebar Toggle (Below Mockup) */}
+        {/* Mobile Sidebar Toggle */}
         <div className="lg:hidden mb-3">
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -579,10 +439,12 @@ const OrderDetailsPage = () => {
           >
             <span className="font-medium text-sm flex items-center gap-2">
               <i className="fas fa-bars text-gray-500"></i>
-              {activeTab === "order" ? "Order Sections" : "Production Sections"}
+              {activeTab === "order"
+                ? "Order Sections"
+                : "Production Sections"}
               {activeTab === "production" &&
                 productionSections.length === 0 && (
-                  <span className="text-xs text-gray-400">(No stages)</span>
+                  <span className="text-xs text-gray-400">(No access)</span>
                 )}
             </span>
             <i
@@ -601,7 +463,6 @@ const OrderDetailsPage = () => {
           `}
           >
             <div className="togglers flex flex-col gap-y-2 sm:gap-y-3">
-              {/* Mockup Carousel - Desktop (Inside Sidebar) */}
               {activeTab === "order" && (
                 <div className="hidden lg:block mb-2">
                   <MockupCarousel order={order} />
@@ -614,15 +475,15 @@ const OrderDetailsPage = () => {
                     key={section.id}
                     onClick={() => handleSectionSelect(section.id)}
                     className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 rounded-xl lg:rounded-2xl border p-3 sm:p-4 lg:p-5 transition-all ${activeSection === section.id
-                        ? "bg-blue-50 border-primary shadow-sm"
-                        : "bg-white border-gray-200 lg:border-gray-300 hover:bg-gray-50"
+                      ? "bg-blue-50 border-primary shadow-sm"
+                      : "bg-white border-gray-200 lg:border-gray-300 hover:bg-gray-50"
                       }`}
                   >
                     <span className="font-semibold text-xs sm:text-sm flex items-center gap-2">
                       <i
                         className={`fas ${section.icon} ${activeSection === section.id
-                            ? "text-primary/90"
-                            : "text-gray-500"
+                          ? "text-primary/90"
+                          : "text-gray-500"
                           }`}
                       ></i>
                       <span className="text-left">{section.label}</span>
@@ -631,21 +492,21 @@ const OrderDetailsPage = () => {
                     <span className="flex items-center gap-x-2 w-full sm:w-auto justify-between sm:justify-end">
                       {activeTab === "production" && (
                         <span
-                          className={`text-[10px] sm:text-xs px-2 py-1 rounded-full flex items-center gap-1 ${getStatusColor(getProductionStatus(section.id))}`}
+                          className={`text-[10px] sm:text-xs px-2 py-1 rounded-full flex items-center gap-1 ${getStatusBadge(getProductionStatus(section.id))}`}
                         >
                           <i
                             className={`fas ${getStatusIcon(getProductionStatus(section.id))}`}
                           ></i>
                           <span className="hidden xs:inline capitalize">
-                            {getProductionStatus(section.id).replace("-", " ")}
+                            {getStatusLabel(getProductionStatus(section.id))}
                           </span>
                         </span>
                       )}
 
                       <i
                         className={`fas fa-chevron-right text-base sm:text-lg transition-transform duration-300 ease-in-out ${activeSection === section.id
-                            ? "text-primary/90 rotate-90 lg:rotate-90"
-                            : "text-gray-300 rotate-0"
+                          ? "text-primary/90 rotate-90 lg:rotate-90"
+                          : "text-gray-300 rotate-0"
                           }`}
                       ></i>
                     </span>
@@ -655,7 +516,7 @@ const OrderDetailsPage = () => {
                 <div className="bg-white border border-gray-200 rounded-xl p-6 text-center">
                   <i className="fas fa-info-circle text-gray-400 text-3xl mb-2"></i>
                   <p className="text-gray-500 text-sm">
-                    No production stages available for this order
+                    No production sections available for your role
                   </p>
                 </div>
               )}

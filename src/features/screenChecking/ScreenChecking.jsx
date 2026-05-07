@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { ScreenCheckingApi } from "../../api/ScreenCheckingApi";
+import { onImageError } from "../../utils/placeholderImage";
 
 const ScreenChecking = ({ order, onSuccess, onError }) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
@@ -593,10 +594,7 @@ const ScreenChecking = ({ order, onSuccess, onError }) => {
                 src={screenData.sizeLabelImage}
                 alt="Size label"
                 className="w-full h-full object-contain"
-                onError={(e) => {
-                  e.target.onerror = null;
-                  e.target.src = "/placeholder-image.png";
-                }}
+                onError={onImageError}
               />
             </div>
             <div>
@@ -668,10 +666,7 @@ const ScreenChecking = ({ order, onSuccess, onError }) => {
                               src={placement.mockupImage}
                               alt={`${getPlacementLabel(placement.type)} mockup`}
                               className="w-20 h-20 sm:w-32 sm:h-32 object-cover"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = "/placeholder-image.png";
-                              }}
+                              onError={onImageError}
                             />
                           </div>
                         ) : (
@@ -859,8 +854,8 @@ const ScreenChecking = ({ order, onSuccess, onError }) => {
                                         Verified{" "}
                                         {screenCheck.updatedAt
                                           ? new Date(
-                                              screenCheck.updatedAt,
-                                            ).toLocaleTimeString()
+                                            screenCheck.updatedAt,
+                                          ).toLocaleTimeString()
                                           : ""}
                                       </span>
                                     )}
@@ -1065,11 +1060,10 @@ const ScreenChecking = ({ order, onSuccess, onError }) => {
     Print Report
   </button> */}
         <button
-          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md transition-colors text-xs sm:text-sm flex items-center ${
-            getTotalScreensToCheck() > 0 && !isSubmitting
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md transition-colors text-xs sm:text-sm flex items-center ${getTotalScreensToCheck() > 0 && !isSubmitting
               ? "bg-primary text-white hover:bg-secondary cursor-pointer"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
-          }`}
+            }`}
           disabled={getTotalScreensToCheck() === 0 || isSubmitting}
           onClick={handleSubmit}
         >

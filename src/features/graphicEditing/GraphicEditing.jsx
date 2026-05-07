@@ -4,6 +4,7 @@ import Select from "../../components/form/Select";
 import Textarea from "../../components/form/Textarea";
 import { useGraphicEditing } from "./hooks/useGraphicEditing";
 import { getPlacementLabel } from "./utlis/graphicEditingUtils";
+import { onImageError } from "../../utils/placeholderImage";
 
 const GraphicEditing = ({ order, onSuccess }) => {
   const {
@@ -130,10 +131,7 @@ const GraphicEditing = ({ order, onSuccess }) => {
                     src={formData.sizeLabelImage}
                     alt="Size label"
                     className="w-40 h-40 object-contain border-2 border-light2"
-                    onError={(e) => {
-                      e.target.onerror = null;
-                      e.target.src = "/placeholder-image.png";
-                    }}
+                    onError={onImageError}
                   />
                   <div className="absolute inset-0 bg-black/50 bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <div className="flex gap-2">
@@ -287,10 +285,7 @@ const GraphicEditing = ({ order, onSuccess }) => {
                               src={placement.mockupImage}
                               alt="Placement mockup"
                               className="w-40 h-40 object-cover border-2 border-light2"
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = "/placeholder-image.png";
-                              }}
+                              onError={onImageError}
                             />
                             <div className="absolute inset-0 bg-black/50 bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200 flex items-center justify-center opacity-0 group-hover:opacity-100">
                               <div className="flex gap-2">
@@ -406,11 +401,10 @@ const GraphicEditing = ({ order, onSuccess }) => {
           type="button"
           onClick={handleSubmit}
           disabled={!isFormValid || isSubmitting}
-          className={`px-6 py-2.5 rounded-md font-medium text-sm flex items-center gap-2 shadow-sm transition-colors ${
-            isFormValid && !isSubmitting
+          className={`px-6 py-2.5 rounded-md font-medium text-sm flex items-center gap-2 shadow-sm transition-colors ${isFormValid && !isSubmitting
               ? "bg-primary text-white hover:bg-secondary cursor-pointer"
               : "bg-light text-gray cursor-not-allowed"
-          }`}
+            }`}
         >
           {isSubmitting ? (
             <>

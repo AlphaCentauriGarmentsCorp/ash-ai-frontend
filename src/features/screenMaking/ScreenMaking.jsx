@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Select from "../../components/form/Select";
 import { ScreenTypeApi } from "../../api/ScreenTypeApi";
 import { ScreenMakingApi } from "../../api/ScreenMakingApi";
+import { onImageError } from "../../utils/placeholderImage";
 
 const ScreenMaking = ({ order, onSuccess }) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
@@ -179,12 +180,12 @@ const ScreenMaking = ({ order, onSuccess }) => {
       placements: prev.placements.map((placement) =>
         placement.id === placementId
           ? {
-              ...placement,
-              screens: {
-                ...placement.screens,
-                [`color_${colorIndex + 1}`]: selectedScreen || null,
-              },
-            }
+            ...placement,
+            screens: {
+              ...placement.screens,
+              [`color_${colorIndex + 1}`]: selectedScreen || null,
+            },
+          }
           : placement,
       ),
     }));
@@ -309,8 +310,8 @@ const ScreenMaking = ({ order, onSuccess }) => {
 
       setSubmitError(
         err.response?.data?.message ||
-          err.message ||
-          "Failed to save screen assignments. Please try again.",
+        err.message ||
+        "Failed to save screen assignments. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -488,10 +489,7 @@ const ScreenMaking = ({ order, onSuccess }) => {
                 src={getImageUrl(screenData.sizeLabelImage)}
                 alt="Size label"
                 className="w-full h-full object-contain"
-                onError={(e) => {
-                  e.target.src =
-                    "https://via.placeholder.com/150?text=No+Image";
-                }}
+                onError={onImageError}
               />
             </div>
             <div>
@@ -584,10 +582,7 @@ const ScreenMaking = ({ order, onSuccess }) => {
                                 src={getImageUrl(placement.mockupImage)}
                                 alt={`${getPlacementLabel(placement.type)} mockup`}
                                 className="w-20 h-20 sm:w-32 sm:h-32 object-cover"
-                                onError={(e) => {
-                                  e.target.src =
-                                    "https://via.placeholder.com/150?text=No+Image";
-                                }}
+                                onError={onImageError}
                               />
                             </div>
                           ) : (
@@ -880,11 +875,10 @@ const ScreenMaking = ({ order, onSuccess }) => {
       {/* Action Buttons */}
       <div className="flex justify-end gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-200">
         <button
-          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md transition-colors text-xs sm:text-sm flex items-center ${
-            areAllScreensAssigned() && screenInventory.length > 0 && !submitting
+          className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-md transition-colors text-xs sm:text-sm flex items-center ${areAllScreensAssigned() && screenInventory.length > 0 && !submitting
               ? "bg-primary text-white hover:bg-secondary cursor-pointer"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
-          }`}
+            }`}
           disabled={
             !areAllScreensAssigned() ||
             screenInventory.length === 0 ||

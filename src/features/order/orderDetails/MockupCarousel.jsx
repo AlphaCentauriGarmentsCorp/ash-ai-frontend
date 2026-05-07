@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { parseJsonField } from "../../../utils/formatters";
+import { onImageError } from "../../../utils/placeholderImage";
 
 const MockupCarousel = ({ order }) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
@@ -22,10 +23,7 @@ const MockupCarousel = ({ order }) => {
           src={`${baseUrl}${designMockup[currentSlide]}`}
           alt={`Design Mockup ${currentSlide + 1}`}
           className="w-full h-full object-contain"
-          onError={(e) => {
-            e.target.onerror = null;
-            e.target.src = "/placeholder-image.png";
-          }}
+          onError={onImageError}
         />
       </div>
 
@@ -60,11 +58,10 @@ const MockupCarousel = ({ order }) => {
               <button
                 key={index}
                 onClick={() => setCurrentSlide(index)}
-                className={`w-1.5 h-1.5 rounded-full transition-all ${
-                  currentSlide === index
+                className={`w-1.5 h-1.5 rounded-full transition-all ${currentSlide === index
                     ? "bg-white w-4"
                     : "bg-gray-400 bg-opacity-50 hover:bg-opacity-75"
-                }`}
+                  }`}
                 aria-label={`Go to mockup ${index + 1}`}
               />
             ))}
