@@ -94,8 +94,14 @@ export const getMenuByPermissions = (user = null) => {
               path: "/material-requests",
             },
             {
+              // The sidebar "New" link gets an explicit permission so
+              // view-only roles (e.g., finance, warehouse_manager) see
+              // the section but not the create entry. The page itself
+              // also checks the perm, this just removes the dead-end
+              // link from the sidebar.
               name: "New Material Request",
               path: "/material-requests/new",
+              requiredPermissions: ["material_requests.create"],
             },
           ],
         },

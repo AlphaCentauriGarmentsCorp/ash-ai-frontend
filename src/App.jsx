@@ -108,7 +108,10 @@ import EditPermission from "./pages/RBAC/Permissions/EditPermission";
 import RolePermissionMatrix from "./pages/RBAC/RolePermissionMatrix";
 import NotificationsInbox from "./pages/Notifications/NotificationsInbox";
 import MaterialRequestsList from "./pages/MaterialRequests/MaterialRequestsList";
+import CreateMaterialRequest from "./pages/MaterialRequests/CreateMaterialRequest";
+import MaterialRequestDetail from "./pages/MaterialRequests/MaterialRequestDetail";
 import PurchaseRequestsList from "./pages/PurchaseRequests/PurchaseRequestsList";
+import PurchaseRequestDetail from "./pages/PurchaseRequests/PurchaseRequestDetail";
 
 function App() {
   const { loading } = useAuth();
@@ -930,9 +933,9 @@ function App() {
           }
         />
         {/* Phase 3 — Material Requests + Purchase Requests.
-            Detail and create routes ship in Layer 5b; for now Layer 5a
-            ships only the list pages so the sidebar entries land
-            somewhere meaningful. */}
+            Note on route ordering: /material-requests/new must come
+            BEFORE /material-requests/:id, otherwise React Router would
+            interpret "new" as an id parameter. */}
         <Route
           path="/material-requests"
           element={
@@ -942,10 +945,34 @@ function App() {
           }
         />
         <Route
+          path="/material-requests/new"
+          element={
+            <ProtectedRoute>
+              <CreateMaterialRequest />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/material-requests/:id"
+          element={
+            <ProtectedRoute>
+              <MaterialRequestDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/purchase-requests"
           element={
             <ProtectedRoute>
               <PurchaseRequestsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/purchase-requests/:id"
+          element={
+            <ProtectedRoute>
+              <PurchaseRequestDetail />
             </ProtectedRoute>
           }
         />

@@ -24,6 +24,15 @@ export const orderApi = {
     }
   },
 
+  /**
+   * Phase 3 — lightweight picker payload for the New Material Request form.
+   * Returns only orders with an active workflow stage.
+   */
+  withActiveStage: async () => {
+    const { data } = await api.get("/orders/with-active-stage");
+    return data;
+  },
+
   getOrder: async (po_code) => {
     try {
       const response = await api.get(`/orders/details/${po_code}`);
