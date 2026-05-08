@@ -742,6 +742,8 @@ const Quotation = () => {
 
       printParts.forEach((part, index) => {
         if (part.image) {
+          // Single file per print part. Matches the validator rule
+          // `print_parts_files.*` => `nullable|file|image|...`
           formDataToSend.append(`print_parts_files[${index}]`, part.image);
         }
       });
@@ -750,7 +752,25 @@ const Quotation = () => {
       navigate("/quotations", { replace: true });
     } catch (error) {
       console.error("Error saving quotation:", error);
-      alert("An error occurred while saving the quotation. Please try again.");
+
+      // Surface validation errors so the user can fix them.
+      const status = error?.response?.status;
+      const data = error?.response?.data;
+
+      if (status === 422 && data?.errors) {
+        // Pull each "field: first message" out of the errors object
+        const lines = Object.entries(data.errors).map(([field, msgs]) => {
+          const msg = Array.isArray(msgs) ? msgs[0] : msgs;
+          return `• ${field}: ${msg}`;
+        });
+        alert(
+          `Validation failed. Please fix the following:\n\n${lines.join("\n")}`,
+        );
+      } else if (data?.message) {
+        alert(`Could not save quotation:\n${data.message}`);
+      } else {
+        alert("An error occurred while saving the quotation. Please try again.");
+      }
     } finally {
       setSaving(false);
     }

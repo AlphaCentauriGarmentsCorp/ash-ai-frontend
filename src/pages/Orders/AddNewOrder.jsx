@@ -270,6 +270,14 @@ export default function AddNewOrder() {
           client_id: formData.client || "",
           client_name: clientName,
           client_brand: formData.company || "",
+          // Apparel brand (Sorbetes / Reefer / etc)
+          brand: formData.brand || "",
+          // Apparel + pattern + print method (the form has dropdowns
+          // bound to these — submit them so the validator + service
+          // can persist them on the order row).
+          apparel_type: formData.apparel_type || "",
+          pattern_type: formData.pattern_type || "",
+          print_method: formData.print_method || "",
           // IDs for backend FK columns
           apparel_type_id: rawPrefill?.apparel_type_id || "",
           pattern_type_id: rawPrefill?.pattern_type_id || "",
@@ -315,6 +323,10 @@ export default function AddNewOrder() {
           deposit_percentage: formData.deposit_percentage ?? 60,
           payment_plan: formData.payment_plan || "",
           payment_method: formData.payment_method || "",
+          // Totals (from useOrderCalculations summary)
+          total_quantity: summary.totalQuantity ?? 0,
+          total_amount: Number(summary.totalAmount ?? 0),
+          average_unit_price: Number(summary.averageUnitPrice ?? 0),
           estimated_total: summary.estimatedTotal,
         };
 
