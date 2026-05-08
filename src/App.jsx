@@ -106,6 +106,7 @@ import PermissionsPage from "./pages/RBAC/Permissions/PermissionsPage";
 import AddPermission from "./pages/RBAC/Permissions/AddPermission";
 import EditPermission from "./pages/RBAC/Permissions/EditPermission";
 import RolePermissionMatrix from "./pages/RBAC/RolePermissionMatrix";
+import NotificationsInbox from "./pages/Notifications/NotificationsInbox";
 
 function App() {
   const { loading } = useAuth();
@@ -685,7 +686,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-         <Route
+        <Route
           path="/quotations"
           element={
             <ProtectedRoute>
@@ -693,7 +694,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-         <Route
+        <Route
           path="/quotations/view/:id"
           element={
             <ProtectedRoute>
@@ -701,7 +702,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-         <Route
+        <Route
           path="/quotations/edit/:id"
           element={
             <ProtectedRoute>
@@ -839,7 +840,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
+
         <Route
           path="/tickets/:id"
           element={
@@ -915,6 +916,14 @@ function App() {
               requiredPermissions={["access.rbac"]}
             >
               <RolePermissionMatrix />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsInbox />
             </ProtectedRoute>
           }
         />
