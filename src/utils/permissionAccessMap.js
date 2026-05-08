@@ -41,6 +41,10 @@ const RULES = [
 
   { test: /^\/screen-inventory(\/|$)/, permissions: ["access.screens"] },
 
+  // Phase 3: MR + PR
+  { test: /^\/material-requests(\/|$)/, permissions: ["access.material-requests"] },
+  { test: /^\/purchase-requests(\/|$)/, permissions: ["access.purchase-requests"] },
+
   // Quotation routes
   { test: /^\/quotations(\/|$)/, permissions: ["access.quotations"] },
 

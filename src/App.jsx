@@ -107,6 +107,8 @@ import AddPermission from "./pages/RBAC/Permissions/AddPermission";
 import EditPermission from "./pages/RBAC/Permissions/EditPermission";
 import RolePermissionMatrix from "./pages/RBAC/RolePermissionMatrix";
 import NotificationsInbox from "./pages/Notifications/NotificationsInbox";
+import MaterialRequestsList from "./pages/MaterialRequests/MaterialRequestsList";
+import PurchaseRequestsList from "./pages/PurchaseRequests/PurchaseRequestsList";
 
 function App() {
   const { loading } = useAuth();
@@ -924,6 +926,26 @@ function App() {
           element={
             <ProtectedRoute>
               <NotificationsInbox />
+            </ProtectedRoute>
+          }
+        />
+        {/* Phase 3 — Material Requests + Purchase Requests.
+            Detail and create routes ship in Layer 5b; for now Layer 5a
+            ships only the list pages so the sidebar entries land
+            somewhere meaningful. */}
+        <Route
+          path="/material-requests"
+          element={
+            <ProtectedRoute>
+              <MaterialRequestsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/purchase-requests"
+          element={
+            <ProtectedRoute>
+              <PurchaseRequestsList />
             </ProtectedRoute>
           }
         />

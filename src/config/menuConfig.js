@@ -79,6 +79,36 @@ export const getMenuByPermissions = (user = null) => {
             },
           ],
         },
+        // Phase 3 — Material Requests & Purchase Requests.
+        // Visibility resolved by inferPermissionsFromPath:
+        //   /material-requests  → access.material-requests
+        //   /purchase-requests  → access.purchase-requests
+        // So roles without those perms (e.g., csr, packer, driver,
+        // qa, logistics, customer) won't see these entries at all.
+        {
+          name: "Material Requests",
+          icon: "fa-solid fa-boxes-packing",
+          subItems: [
+            {
+              name: "All Material Requests",
+              path: "/material-requests",
+            },
+            {
+              name: "New Material Request",
+              path: "/material-requests/new",
+            },
+          ],
+        },
+        {
+          name: "Purchase Requests",
+          icon: "fa-solid fa-cart-shopping",
+          subItems: [
+            {
+              name: "All Purchase Requests",
+              path: "/purchase-requests",
+            },
+          ],
+        },
         {
           name: "Clients",
           icon: "fa-solid fa-users",
