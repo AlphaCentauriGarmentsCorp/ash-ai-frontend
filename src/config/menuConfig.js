@@ -202,6 +202,14 @@ export const getMenuByPermissions = (user = null) => {
               name: "Additional Options",
               path: "/admin/settings/additional-options",
             },
+            {
+              // Pre-existing pages that had no sidebar entry; surfaced
+              // here so admin can manage subcontractor vendors used by
+              // sewing/cutting/printing stages. Auto-hidden for roles
+              // without access.sewing-subcontractor.
+              name: "Sewing Subcontractor",
+              path: "/admin/settings/sewing-subcontractor",
+            },
           ],
         },
         {

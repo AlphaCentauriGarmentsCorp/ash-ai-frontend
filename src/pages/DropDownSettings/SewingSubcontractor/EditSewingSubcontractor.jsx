@@ -160,10 +160,10 @@ const EditSewingSubcontractor = () => {
 
         <Input
           label="Rate per piece"
-          name="rate_per_piece"
-          value={formData.rate_per_piece}
+          name="rate_per_pcs"
+          value={formData.rate_per_pcs}
           onChange={handleChange}
-          error={errors.rate_per_piece}
+          error={errors.rate_per_pcs}
           type="number"
           step="0.01"
           placeholder="Enter rate per piece"

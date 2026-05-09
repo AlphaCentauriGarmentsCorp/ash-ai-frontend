@@ -27,7 +27,7 @@ const SewingSubcontractorPage = () => {
       sortable: false,
     },
     {
-      key: "rate_per_piece",
+      key: "rate_per_pcs",
       label: "Rate/pcs",
       sortable: true,
     },
