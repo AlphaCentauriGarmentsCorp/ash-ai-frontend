@@ -6,6 +6,24 @@ import {
 } from "../../constants/formOptions/orderStages";
 import { getRoleDisplayName } from "../../config/roleConfig";
 import { useOrderStages } from "./hooks/useOrderStages";
+import { useAuth } from "../../hooks/useAuth";
+import { hasRequiredPermissions } from "../../utils/authz";
+import LogWasteModal from "../stageInputs/LogWasteModal";
+import LogRejectModal from "../stageInputs/LogRejectModal";
+import SendToSubcontractorModal from "../stageInputs/SendToSubcontractorModal";
+
+// Stages where Send-to-Subcontractor makes sense (Cutting / Sample / Mass).
+// QC and packing aren't subcontractable; preprod stages aren't either.
+const SUBCONTRACT_ELIGIBLE_STAGES = [
+  "sample_creation",
+  "mass_production",
+  "cutting",
+  "sample_cutting",
+  "mass_cutting",
+];
+
+// Reject logging is QA-only and only meaningful on quality_control.
+const REJECT_ELIGIBLE_STAGES = ["quality_control"];
 
 /**
  * OrderStage – sequential workflow timeline view.
@@ -15,6 +33,8 @@ import { useOrderStages } from "./hooks/useOrderStages";
  * for status and exposes action buttons only on the currently active stage.
  */
 const OrderStage = ({ order, onStagesUpdated }) => {
+  const { user } = useAuth();
+
   const {
     stages,
     currentStage,
@@ -33,6 +53,16 @@ const OrderStage = ({ order, onStagesUpdated }) => {
   const [actionStageId, setActionStageId] = useState(null);
   const [actionType, setActionType] = useState(null); // 'delay' | 'hold' | 'approval' | 'complete'
   const [actionInput, setActionInput] = useState("");
+
+  // Phase 4 — modals for waste / reject / subcontract actions.
+  // Each holds the OrderStage being acted upon (or null when closed).
+  const [wasteModalStage, setWasteModalStage] = useState(null);
+  const [rejectModalStage, setRejectModalStage] = useState(null);
+  const [subcontractModalStage, setSubcontractModalStage] = useState(null);
+
+  const canLogWaste = hasRequiredPermissions(user, ["stage_inputs.log_waste"]);
+  const canLogReject = hasRequiredPermissions(user, ["stage_inputs.log_reject"]);
+  const canSubcontract = hasRequiredPermissions(user, ["stage_inputs.log_subcontract"]);
 
   // Auto-dismiss success message after 3s
   useEffect(() => {
@@ -109,8 +139,9 @@ const OrderStage = ({ order, onStagesUpdated }) => {
           </div>
           {!isLast && (
             <div
-              className={`flex-1 w-0.5 my-1 ${isCompleted ? "bg-green-300" : "bg-gray-200"
-                }`}
+              className={`flex-1 w-0.5 my-1 ${
+                isCompleted ? "bg-green-300" : "bg-gray-200"
+              }`}
               style={{ minHeight: "32px" }}
             ></div>
           )}
@@ -220,6 +251,42 @@ const OrderStage = ({ order, onStagesUpdated }) => {
                     >
                       <i className="fas fa-pause mr-1"></i> Hold
                     </button>
+
+                    {/* ── Phase 4 inputs ─────────────────────────────────── */}
+                    {canLogWaste && (
+                      <button
+                        type="button"
+                        onClick={() => setWasteModalStage(stage)}
+                        disabled={isLoading}
+                        className="text-xs px-3 py-1.5 rounded bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 disabled:opacity-50 transition-colors inline-flex items-center"
+                      >
+                        <i className="fas fa-trash-can mr-1"></i> Log Waste
+                      </button>
+                    )}
+                    {canLogReject &&
+                      REJECT_ELIGIBLE_STAGES.includes(stage.stage) && (
+                        <button
+                          type="button"
+                          onClick={() => setRejectModalStage(stage)}
+                          disabled={isLoading}
+                          className="text-xs px-3 py-1.5 rounded bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 disabled:opacity-50 transition-colors inline-flex items-center"
+                        >
+                          <i className="fas fa-ban mr-1"></i> Log Reject
+                        </button>
+                      )}
+                    {canSubcontract &&
+                      SUBCONTRACT_ELIGIBLE_STAGES.some((slug) =>
+                        String(stage.stage || "").includes(slug),
+                      ) && (
+                        <button
+                          type="button"
+                          onClick={() => setSubcontractModalStage(stage)}
+                          disabled={isLoading}
+                          className="text-xs px-3 py-1.5 rounded bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100 disabled:opacity-50 transition-colors inline-flex items-center"
+                        >
+                          <i className="fas fa-truck-arrow-right mr-1"></i> Send to Subcontractor
+                        </button>
+                      )}
                   </>
                 )}
 
@@ -473,6 +540,44 @@ const OrderStage = ({ order, onStagesUpdated }) => {
       </div>
 
       {renderActionDialog()}
+
+      {/* Phase 4 — modals for waste / reject / subcontract */}
+      {wasteModalStage && (
+        <LogWasteModal
+          orderId={order?.id}
+          stageId={wasteModalStage.id}
+          stageLabel={wasteModalStage.label || wasteModalStage.stage}
+          onClose={() => setWasteModalStage(null)}
+          onSaved={() => {
+            setWasteModalStage(null);
+            onStagesUpdated?.();
+          }}
+        />
+      )}
+      {rejectModalStage && (
+        <LogRejectModal
+          orderId={order?.id}
+          stageId={rejectModalStage.id}
+          stageLabel={rejectModalStage.label || rejectModalStage.stage}
+          onClose={() => setRejectModalStage(null)}
+          onSaved={() => {
+            setRejectModalStage(null);
+            onStagesUpdated?.();
+          }}
+        />
+      )}
+      {subcontractModalStage && (
+        <SendToSubcontractorModal
+          orderId={order?.id}
+          stageId={subcontractModalStage.id}
+          stageLabel={subcontractModalStage.label || subcontractModalStage.stage}
+          onClose={() => setSubcontractModalStage(null)}
+          onSaved={() => {
+            setSubcontractModalStage(null);
+            onStagesUpdated?.();
+          }}
+        />
+      )}
     </section>
   );
 };
