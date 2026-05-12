@@ -10,6 +10,7 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(() => {
     localStorage.removeItem("token");
+    localStorage.removeItem("user");
     setUser(null);
     window.location.href = "/login";
   }, []);
@@ -21,12 +22,34 @@ export const AuthProvider = ({ children }) => {
       return;
     }
 
+    // If we have a cached user object from a previous session, use it
+    // immediately so UI (menus, buttons) keep their state while we
+    // refresh the profile from the server.
+    const cached = localStorage.getItem("user");
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        setUser(parsed);
+      } catch (err) {
+        // ignore parse errors and continue to fetch
+      }
+    }
+
     try {
       const res = await authApi.meApi();
       setUser(res.data);
+      try {
+        localStorage.setItem("user", JSON.stringify(res.data));
+      } catch (err) {
+        // ignore storage errors
+      }
+
+      // no debug logging here
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Failed to fetch user:", error);
       localStorage.removeItem("token");
+      localStorage.removeItem("user");
       setUser(null);
     } finally {
       setLoading(false);
