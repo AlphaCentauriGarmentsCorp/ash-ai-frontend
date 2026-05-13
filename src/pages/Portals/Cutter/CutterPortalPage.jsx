@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { portalApi } from "../../../api/portalApi";
 import { cutterPortalApi } from "../../../api/cutterPortalApi";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
+import ServiceTypeToggle from "../../../components/portals/ServiceTypeToggle";
+import SubcontractModeView from "../../../components/portals/SubcontractModeView";
 import OrderDetailsSection from "./sections/OrderDetailsSection";
 import SizeChartSection from "./sections/SizeChartSection";
 import FabricTrackingSection from "./sections/FabricTrackingSection";
@@ -29,11 +31,11 @@ import ActivityLogSection from "./sections/ActivityLogSection";
 
 const STATUS_FLOW = [
   { key: "payment_verification_sample", label: "Payment Verified", icon: "fa-credit-card" },
-  { key: "graphic_artwork", label: "Graphic Artwork", icon: "fa-pen-ruler" },
-  { key: "screen_making", label: "Screen Making", icon: "fa-stamp" },
-  { key: "sample_creation", label: "Sample Creation", icon: "fa-shirt" },
-  { key: "sample_approval", label: "Sample Approval", icon: "fa-circle-check" },
-  { key: "mass_production", label: "Mass Production", icon: "fa-industry" },
+  { key: "graphic_artwork",             label: "Graphic Artwork", icon: "fa-pen-ruler" },
+  { key: "screen_making",               label: "Screen Making",   icon: "fa-stamp" },
+  { key: "sample_creation",             label: "Sample Creation", icon: "fa-shirt" },
+  { key: "sample_approval",             label: "Sample Approval", icon: "fa-circle-check" },
+  { key: "mass_production",             label: "Mass Production", icon: "fa-industry" },
 ];
 
 const CutterPortalPage = () => {
@@ -72,7 +74,7 @@ const CutterPortalPage = () => {
         if (cancelled) return;
         setResolveError(
           err?.response?.data?.message ||
-          "Hindi ma-load ang assignment mo. Try refreshing.",
+            "Hindi ma-load ang assignment mo. Try refreshing.",
         );
       } finally {
         if (!cancelled) setResolving(false);
@@ -99,7 +101,7 @@ const CutterPortalPage = () => {
         if (cancelled) return;
         setContextError(
           err?.response?.data?.message ||
-          "Hindi ma-load ang order details. Refresh para subukan ulit.",
+            "Hindi ma-load ang order details. Refresh para subukan ulit.",
         );
       } finally {
         if (!cancelled) setContextLoading(false);
@@ -257,33 +259,50 @@ const CutterPortalPage = () => {
           {/* Section 1: Order Details */}
           <OrderDetailsSection order={context.order} stage={context.stage} />
 
-          {/* Two-column on lg: Size chart + Fabric tracking */}
-          <div className="grid lg:grid-cols-2 gap-4">
-            <SizeChartSection sizeChart={context.size_chart} order={context.order} />
-            <FabricTrackingSection
-              fabricTracking={context.fabric_tracking}
-              orderId={context.order.id}
-              orderStageId={context.stage.id}
-              onChanged={handleRefresh}
-            />
-          </div>
+          {/* Phase 5-D — Service Type Toggle (managers only) */}
+          <ServiceTypeToggle
+            stage={context.stage}
+            onChanged={handleRefresh}
+          />
 
-          {/* Section 4: Material Requests (Phase 3 integration) */}
+          {/*
+            Phase 5-D — Branch on service_type:
+            - in_house: render the normal tracking sections
+            - subcontract: render the SubcontractModeView instead
+          */}
+          {context.stage?.service_type === "subcontract" ? (
+            <SubcontractModeView subcontract={context.subcontract} />
+          ) : (
+            <>
+              {/* Two-column on lg: Size chart + Fabric tracking */}
+              <div className="grid lg:grid-cols-2 gap-4">
+                <SizeChartSection sizeChart={context.size_chart} order={context.order} />
+                <FabricTrackingSection
+                  fabricTracking={context.fabric_tracking}
+                  orderId={context.order.id}
+                  orderStageId={context.stage.id}
+                  onChanged={handleRefresh}
+                />
+              </div>
+
+              {/* Section 5: Sample Output & Upload */}
+              <SampleUploadSection
+                sampleUploads={context.sample_uploads}
+                orderId={context.order.id}
+                orderStageId={context.stage.id}
+                onChanged={handleRefresh}
+              />
+            </>
+          )}
+
+          {/* Section 4: Material Requests — shown in both modes */}
           <MaterialRequestsSection
             materialRequests={context.material_requests}
             orderId={context.order.id}
             orderStageId={context.stage.id}
           />
 
-          {/* Section 5: Sample Output & Upload */}
-          <SampleUploadSection
-            sampleUploads={context.sample_uploads}
-            orderId={context.order.id}
-            orderStageId={context.stage.id}
-            onChanged={handleRefresh}
-          />
-
-          {/* Section 6: Activity Log */}
+          {/* Section 6: Activity Log — shown in both modes */}
           <ActivityLogSection activityLog={context.activity_log} />
         </div>
       )}

@@ -94,4 +94,16 @@ export const orderStagesApi = {
     });
     return data;
   },
+
+  /**
+   * Phase 5-D — Switch a stage's service_type between in_house and subcontract.
+   * Gated by action.switch-service-type permission server-side.
+   */
+  switchServiceType: async (stageId, serviceType, reason = null) => {
+    const { data } = await api.patch(`/order-stages/${stageId}/service-type`, {
+      service_type: serviceType,
+      reason: reason || undefined,
+    });
+    return data;
+  },
 };

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { portalApi } from "../../../api/portalApi";
 import { printerPortalApi } from "../../../api/printerPortalApi";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
+import ServiceTypeToggle from "../../../components/portals/ServiceTypeToggle";
+import SubcontractModeView from "../../../components/portals/SubcontractModeView";
 import OrderDetailsSection from "../Cutter/sections/OrderDetailsSection";
 import MaterialRequestsSection from "../Cutter/sections/MaterialRequestsSection";
 import ActivityLogSection from "../Cutter/sections/ActivityLogSection";
@@ -28,11 +30,11 @@ import PrinterSampleUploadSection from "./sections/PrinterSampleUploadSection";
 
 const STATUS_FLOW = [
   { key: "payment_verification_sample", label: "Payment Verified", icon: "fa-credit-card" },
-  { key: "graphic_artwork", label: "Graphic Artwork", icon: "fa-pen-ruler" },
-  { key: "screen_making", label: "Screen Making", icon: "fa-stamp" },
-  { key: "sample_creation", label: "Sample Creation", icon: "fa-shirt" },
-  { key: "sample_approval", label: "Sample Approval", icon: "fa-circle-check" },
-  { key: "mass_production", label: "Mass Production", icon: "fa-industry" },
+  { key: "graphic_artwork",             label: "Graphic Artwork", icon: "fa-pen-ruler" },
+  { key: "screen_making",               label: "Screen Making",   icon: "fa-stamp" },
+  { key: "sample_creation",             label: "Sample Creation", icon: "fa-shirt" },
+  { key: "sample_approval",             label: "Sample Approval", icon: "fa-circle-check" },
+  { key: "mass_production",             label: "Mass Production", icon: "fa-industry" },
 ];
 
 const PrinterPortalPage = () => {
@@ -67,7 +69,7 @@ const PrinterPortalPage = () => {
         if (cancelled) return;
         setResolveError(
           err?.response?.data?.message ||
-          "Hindi ma-load ang assignment mo. Try refreshing.",
+            "Hindi ma-load ang assignment mo. Try refreshing.",
         );
       } finally {
         if (!cancelled) setResolving(false);
@@ -90,7 +92,7 @@ const PrinterPortalPage = () => {
         if (cancelled) return;
         setContextError(
           err?.response?.data?.message ||
-          "Hindi ma-load ang order details. Refresh para subukan ulit.",
+            "Hindi ma-load ang order details. Refresh para subukan ulit.",
         );
       } finally {
         if (!cancelled) setContextLoading(false);
@@ -238,28 +240,46 @@ const PrinterPortalPage = () => {
         <div className="flex flex-col gap-4">
           <OrderDetailsSection order={context.order} stage={context.stage} />
 
-          <ScreenDetailsSection screenDetails={context.screen_details} />
-
-          <PrintPlacementSection placements={context.print_placements} />
-
-          <InkTrackingSection
-            inkTracking={context.ink_tracking}
-            orderId={context.order.id}
-            orderStageId={context.stage.id}
+          {/* Phase 5-D — Service Type Toggle (managers only) */}
+          <ServiceTypeToggle
+            stage={context.stage}
             onChanged={handleRefresh}
           />
 
+          {/*
+            Phase 5-D — Branch on service_type:
+            - in_house: render the normal Printer tracking sections
+            - subcontract: render the SubcontractModeView instead
+          */}
+          {context.stage?.service_type === "subcontract" ? (
+            <SubcontractModeView subcontract={context.subcontract} />
+          ) : (
+            <>
+              <ScreenDetailsSection screenDetails={context.screen_details} />
+
+              <PrintPlacementSection placements={context.print_placements} />
+
+              <InkTrackingSection
+                inkTracking={context.ink_tracking}
+                orderId={context.order.id}
+                orderStageId={context.stage.id}
+                onChanged={handleRefresh}
+              />
+
+              <PrinterSampleUploadSection
+                sampleUploads={context.sample_uploads}
+                orderId={context.order.id}
+                orderStageId={context.stage.id}
+                onChanged={handleRefresh}
+              />
+            </>
+          )}
+
+          {/* Material Requests + Activity Log shown in both modes */}
           <MaterialRequestsSection
             materialRequests={context.material_requests}
             orderId={context.order.id}
             orderStageId={context.stage.id}
-          />
-
-          <PrinterSampleUploadSection
-            sampleUploads={context.sample_uploads}
-            orderId={context.order.id}
-            orderStageId={context.stage.id}
-            onChanged={handleRefresh}
           />
 
           <ActivityLogSection activityLog={context.activity_log} />
