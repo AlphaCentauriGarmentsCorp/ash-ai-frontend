@@ -116,6 +116,7 @@ import PurchaseRequestDetail from "./pages/PurchaseRequests/PurchaseRequestDetai
 import CutterPortalPage from './pages/Portals/Cutter/CutterPortalPage';
 import PrinterPortalPage from './pages/Portals/Printer/PrinterPortalPage';
 import SewerPortalPage from './pages/Portals/Sewer/SewerPortalPage';
+import ScreenMakerPortalPage from './pages/Portals/ScreenMaker/ScreenMakerPortalPage';
 
 function App() {
   const { loading } = useAuth();
@@ -1004,6 +1005,15 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/portal/screen-maker"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.screen-maker"]}>
+              <ScreenMakerPortalPage />
+            </ProtectedRoute>
+          }
+        />
+
       </Routes>
     </BrowserRouter>
   );
