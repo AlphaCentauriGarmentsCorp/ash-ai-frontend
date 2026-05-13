@@ -114,6 +114,8 @@ import PurchaseRequestsList from "./pages/PurchaseRequests/PurchaseRequestsList"
 import PurchaseRequestDetail from "./pages/PurchaseRequests/PurchaseRequestDetail";
 
 import CutterPortalPage from './pages/Portals/Cutter/CutterPortalPage';
+import PrinterPortalPage from './pages/Portals/Printer/PrinterPortalPage';
+
 
 function App() {
   const { loading } = useAuth();
@@ -983,6 +985,14 @@ function App() {
           element={
             <ProtectedRoute requiredPermissions={["portal.cutter"]}>
               <CutterPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/printer"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.printer"]}>
+              <PrinterPortalPage />
             </ProtectedRoute>
           }
         />
