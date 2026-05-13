@@ -115,7 +115,7 @@ import PurchaseRequestDetail from "./pages/PurchaseRequests/PurchaseRequestDetai
 
 import CutterPortalPage from './pages/Portals/Cutter/CutterPortalPage';
 import PrinterPortalPage from './pages/Portals/Printer/PrinterPortalPage';
-
+import SewerPortalPage from './pages/Portals/Sewer/SewerPortalPage';
 
 function App() {
   const { loading } = useAuth();
@@ -993,6 +993,14 @@ function App() {
           element={
             <ProtectedRoute requiredPermissions={["portal.printer"]}>
               <PrinterPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/sewer"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.sewer"]}>
+              <SewerPortalPage />
             </ProtectedRoute>
           }
         />

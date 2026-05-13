@@ -304,8 +304,14 @@ export const getMenuByPermissions = (user = null) => {
           path: "/portal/printer",
           requiredPermissions: ["portal.printer"],
         },
-        // Future portals (5-D onwards) get appended here:
-        // Sewer, Screen Maker, Material Prep, Graphic Artist, Logistics.
+        {
+          name: "Sewer Portal",
+          icon: "fa-solid fa-shirt",
+          path: "/portal/sewer",
+          requiredPermissions: ["portal.sewer"],
+        },
+        // Future portals (5-F onwards) get appended here:
+        // Screen Maker, Material Prep, Graphic Artist, Logistics.
       ],
     },
     {

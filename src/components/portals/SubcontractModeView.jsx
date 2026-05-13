@@ -101,6 +101,17 @@ const SubcontractModeView = ({ subcontract }) => {
 
         <div>
           <p className="text-[10px] uppercase tracking-wide text-gray-400">
+            Expected Return
+          </p>
+          <p className="font-medium text-gray-800 text-xs">
+            {subcontract.expected_return_at
+              ? new Date(subcontract.expected_return_at).toLocaleString()
+              : "—"}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-[10px] uppercase tracking-wide text-gray-400">
             Returned
           </p>
           <p className="font-medium text-gray-800 text-xs">
@@ -109,6 +120,17 @@ const SubcontractModeView = ({ subcontract }) => {
               : "—"}
           </p>
         </div>
+
+        {subcontract.turnover_method && (
+          <div>
+            <p className="text-[10px] uppercase tracking-wide text-gray-400">
+              Turnover Method
+            </p>
+            <p className="font-medium text-gray-800 text-xs">
+              {subcontract.turnover_method}
+            </p>
+          </div>
+        )}
 
         {subcontract.payment_terms && (
           <div>
