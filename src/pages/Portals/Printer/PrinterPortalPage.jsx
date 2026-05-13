@@ -28,11 +28,11 @@ import PrinterSampleUploadSection from "./sections/PrinterSampleUploadSection";
 
 const STATUS_FLOW = [
   { key: "payment_verification_sample", label: "Payment Verified", icon: "fa-credit-card" },
-  { key: "graphic_artwork",             label: "Graphic Artwork", icon: "fa-pen-ruler" },
-  { key: "screen_making",               label: "Screen Making",   icon: "fa-stamp" },
-  { key: "sample_creation",             label: "Sample Creation", icon: "fa-shirt" },
-  { key: "sample_approval",             label: "Sample Approval", icon: "fa-circle-check" },
-  { key: "mass_production",             label: "Mass Production", icon: "fa-industry" },
+  { key: "graphic_artwork", label: "Graphic Artwork", icon: "fa-pen-ruler" },
+  { key: "screen_making", label: "Screen Making", icon: "fa-stamp" },
+  { key: "sample_creation", label: "Sample Creation", icon: "fa-shirt" },
+  { key: "sample_approval", label: "Sample Approval", icon: "fa-circle-check" },
+  { key: "mass_production", label: "Mass Production", icon: "fa-industry" },
 ];
 
 const PrinterPortalPage = () => {
@@ -67,7 +67,7 @@ const PrinterPortalPage = () => {
         if (cancelled) return;
         setResolveError(
           err?.response?.data?.message ||
-            "Hindi ma-load ang assignment mo. Try refreshing.",
+          "Hindi ma-load ang assignment mo. Try refreshing.",
         );
       } finally {
         if (!cancelled) setResolving(false);
@@ -90,7 +90,7 @@ const PrinterPortalPage = () => {
         if (cancelled) return;
         setContextError(
           err?.response?.data?.message ||
-            "Hindi ma-load ang order details. Refresh para subukan ulit.",
+          "Hindi ma-load ang order details. Refresh para subukan ulit.",
         );
       } finally {
         if (!cancelled) setContextLoading(false);
@@ -103,11 +103,7 @@ const PrinterPortalPage = () => {
 
   if (resolving) {
     return (
-      <RolePortalLayout
-        roleSlug="printer"
-        roleTitle="Sample Creation – Printer"
-        roleBadgeIcon="fa-print"
-      >
+      <RolePortalLayout roleTitle="Sample Creation – Printer">
         <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
           <i className="fa-solid fa-spinner fa-spin mr-2" />
           Hinahanap ang assignment mo…
@@ -118,11 +114,7 @@ const PrinterPortalPage = () => {
 
   if (resolveError) {
     return (
-      <RolePortalLayout
-        roleSlug="printer"
-        roleTitle="Sample Creation – Printer"
-        roleBadgeIcon="fa-print"
-      >
+      <RolePortalLayout roleTitle="Sample Creation – Printer">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
           <i className="fa-solid fa-triangle-exclamation mr-2" />
           {resolveError}
@@ -133,11 +125,7 @@ const PrinterPortalPage = () => {
 
   if (activeStatus === "none") {
     return (
-      <RolePortalLayout
-        roleSlug="printer"
-        roleTitle="Sample Creation – Printer"
-        roleBadgeIcon="fa-print"
-      >
+      <RolePortalLayout roleTitle="Sample Creation – Printer">
         <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
           <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
             <i className="fa-solid fa-inbox text-2xl text-gray-400" />
@@ -151,7 +139,7 @@ const PrinterPortalPage = () => {
           </p>
           <button
             type="button"
-            onClick={() => navigate("/dashboard")}
+            onClick={() => navigate("/")}
             className="text-xs text-primary hover:underline"
           >
             ← Bumalik sa Dashboard
@@ -163,11 +151,7 @@ const PrinterPortalPage = () => {
 
   if (activeStatus === "multiple" && !currentStageId) {
     return (
-      <RolePortalLayout
-        roleSlug="printer"
-        roleTitle="Sample Creation – Printer"
-        roleBadgeIcon="fa-print"
-      >
+      <RolePortalLayout roleTitle="Sample Creation – Printer">
         <div className="bg-white border border-gray-200 rounded-lg p-5">
           <h3 className="text-sm font-semibold text-gray-900 mb-1">
             Pumili ng assignment
@@ -208,13 +192,12 @@ const PrinterPortalPage = () => {
 
   return (
     <RolePortalLayout
-      roleSlug="printer"
       roleTitle={
         context?.stage?.phase === "mass"
           ? "Mass Production – Printer"
           : "Sample Creation – Printer"
       }
-      roleBadgeIcon="fa-print"
+      breadcrumbLinks={[{ name: "Printer Portal", path: "/portal/printer" }]}
       statusFlowStages={STATUS_FLOW}
       currentStageSlug={currentStageSlug}
       tipText="Gawin ang sample nang maayos para iwas reprint at dagdag gastos. Salamat!"

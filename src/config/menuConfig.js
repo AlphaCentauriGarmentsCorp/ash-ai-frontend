@@ -290,6 +290,25 @@ export const getMenuByPermissions = (user = null) => {
       ],
     },
     {
+      section: "Production Portals",
+      items: [
+        {
+          name: "Cutter Portal",
+          icon: "fa-solid fa-scissors",
+          path: "/portal/cutter",
+          requiredPermissions: ["portal.cutter"],
+        },
+        {
+          name: "Printer Portal",
+          icon: "fa-solid fa-print",
+          path: "/portal/printer",
+          requiredPermissions: ["portal.printer"],
+        },
+        // Future portals (5-D onwards) get appended here:
+        // Sewer, Screen Maker, Material Prep, Graphic Artist, Logistics.
+      ],
+    },
+    {
       section: "Inventory",
       items: [
         {
