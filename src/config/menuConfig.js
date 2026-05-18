@@ -316,8 +316,14 @@ export const getMenuByPermissions = (user = null) => {
           path: "/portal/screen-maker",
           requiredPermissions: ["portal.screen-maker"],
         },
-        // Future portals (5-G onwards) get appended here:
-        // Material Prep, Graphic Artist, Logistics.
+        {
+          name: "Material Prep Portal",
+          icon: "fa-solid fa-cart-shopping",
+          path: "/portal/material-prep",
+          requiredPermissions: ["portal.material-prep"],
+        },
+        // Future portals (5-H onwards) get appended here:
+        // Graphic Artist, Logistics.
       ],
     },
     {
