@@ -322,8 +322,14 @@ export const getMenuByPermissions = (user = null) => {
           path: "/portal/material-prep",
           requiredPermissions: ["portal.material-prep"],
         },
-        // Future portals (5-H onwards) get appended here:
-        // Graphic Artist, Logistics.
+        {
+          name: "Graphic Artist Portal",
+          icon: "fa-solid fa-pen-ruler",
+          path: "/portal/graphic-artist",
+          requiredPermissions: ["portal.graphic-artist"],
+        },
+        // Future portals (5-I onwards) get appended here:
+        // Logistics.
       ],
     },
     {

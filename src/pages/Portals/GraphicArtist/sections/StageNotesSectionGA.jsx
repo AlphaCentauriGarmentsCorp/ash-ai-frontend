@@ -2,12 +2,13 @@ import React, { useState, useEffect } from "react";
 import { orderStagesApi } from "../../../../api/orderStagesApi";
 
 /**
- * Phase 5-F — Notes section for Screen Maker.
+ * Phase 5-H — Notes section for Graphic Artist Portal.
+ * (Copy of StageNotesSection with section number 9 for GA layout.)
  *
  * Wraps the existing orderStagesApi.setNotes endpoint (Phase 4).
  * Pre-populates with current stage notes; saves overwrite the field.
  */
-const StageNotesSection = ({ stageId, initialNotes, onChanged }) => {
+const StageNotesSectionGA = ({ stageId, initialNotes, onChanged }) => {
   const [notes, setNotes] = useState(initialNotes || "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -41,7 +42,7 @@ const StageNotesSection = ({ stageId, initialNotes, onChanged }) => {
     <section className="bg-white rounded-lg border border-gray-200 p-5">
       <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
         <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">
-          4
+          9
         </span>
         Notes <span className="text-[10px] text-gray-400 font-normal">(Optional)</span>
       </h2>
@@ -95,4 +96,4 @@ const StageNotesSection = ({ stageId, initialNotes, onChanged }) => {
   );
 };
 
-export default StageNotesSection;
+export default StageNotesSectionGA;

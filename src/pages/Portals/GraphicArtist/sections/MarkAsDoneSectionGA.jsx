@@ -2,14 +2,15 @@ import React, { useState } from "react";
 import { orderStagesApi } from "../../../../api/orderStagesApi";
 
 /**
- * Phase 5-F — Mark as Done quick action.
+ * Phase 5-H — Mark as Done quick action (Graphic Artist).
+ * (Copy of MarkAsDoneSection with section number 10 for GA layout.)
  *
  * Hits orderStagesApi.markForApproval (the Phase 4 endpoint that
  * transitions stage status → 'for_approval'). After Screen Maker marks
  * done, the screens are ready and the next stage (Sample Creation)
  * can begin.
  */
-const MarkAsDoneSection = ({ stageId, currentStatus, onChanged }) => {
+const MarkAsDoneSectionGA = ({ stageId, currentStatus, onChanged }) => {
   const [confirming, setConfirming] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
@@ -28,7 +29,7 @@ const MarkAsDoneSection = ({ stageId, currentStatus, onChanged }) => {
     } catch (err) {
       setError(
         err?.response?.data?.message ||
-        "Hindi nakapag-mark. Tanungin ang manager.",
+          "Hindi nakapag-mark. Tanungin ang manager.",
       );
     } finally {
       setSaving(false);
@@ -39,7 +40,7 @@ const MarkAsDoneSection = ({ stageId, currentStatus, onChanged }) => {
     <section className="bg-white rounded-lg border border-gray-200 p-5">
       <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
         <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">
-          5
+          10
         </span>
         Quick Actions
       </h2>
@@ -95,4 +96,4 @@ const MarkAsDoneSection = ({ stageId, currentStatus, onChanged }) => {
   );
 };
 
-export default MarkAsDoneSection;
+export default MarkAsDoneSectionGA;

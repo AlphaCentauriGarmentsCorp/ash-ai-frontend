@@ -118,6 +118,7 @@ import PrinterPortalPage from './pages/Portals/Printer/PrinterPortalPage';
 import SewerPortalPage from './pages/Portals/Sewer/SewerPortalPage';
 import ScreenMakerPortalPage from './pages/Portals/ScreenMaker/ScreenMakerPortalPage';
 import MaterialPrepPortalPage from './pages/Portals/MaterialPrep/MaterialPrepPortalPage';
+import GraphicArtistPortalPage from './pages/Portals/GraphicArtist/GraphicArtistPortalPage';
 
 function App() {
   const { loading } = useAuth();
@@ -1019,6 +1020,14 @@ function App() {
           element={
             <ProtectedRoute requiredPermissions={["portal.material-prep"]}>
               <MaterialPrepPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/graphic-artist"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.graphic-artist"]}>
+              <GraphicArtistPortalPage />
             </ProtectedRoute>
           }
         />
