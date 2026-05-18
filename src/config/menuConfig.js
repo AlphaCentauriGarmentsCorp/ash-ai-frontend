@@ -328,8 +328,12 @@ export const getMenuByPermissions = (user = null) => {
           path: "/portal/graphic-artist",
           requiredPermissions: ["portal.graphic-artist"],
         },
-        // Future portals (5-I onwards) get appended here:
-        // Logistics.
+        {
+          name: "Logistics Portal",
+          icon: "fa-solid fa-truck-fast",
+          path: "/portal/logistics",
+          requiredPermissions: ["portal.logistics"],
+        },
       ],
     },
     {

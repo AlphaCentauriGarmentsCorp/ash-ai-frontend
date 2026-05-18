@@ -119,6 +119,7 @@ import SewerPortalPage from './pages/Portals/Sewer/SewerPortalPage';
 import ScreenMakerPortalPage from './pages/Portals/ScreenMaker/ScreenMakerPortalPage';
 import MaterialPrepPortalPage from './pages/Portals/MaterialPrep/MaterialPrepPortalPage';
 import GraphicArtistPortalPage from './pages/Portals/GraphicArtist/GraphicArtistPortalPage';
+import LogisticsPortalPage from './pages/Portals/Logistics/LogisticsPortalPage';
 
 function App() {
   const { loading } = useAuth();
@@ -1031,7 +1032,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-
+        <Route
+          path="/portal/logistics"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.logistics"]}>
+              <LogisticsPortalPage />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );
