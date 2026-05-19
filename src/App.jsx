@@ -121,6 +121,7 @@ import MaterialPrepPortalPage from './pages/Portals/MaterialPrep/MaterialPrepPor
 import GraphicArtistPortalPage from './pages/Portals/GraphicArtist/GraphicArtistPortalPage';
 import LogisticsPortalPage from './pages/Portals/Logistics/LogisticsPortalPage';
 import CsrPortalPage from './pages/Portals/CSR/CsrPortalPage';
+import QaPackerPortalPage from './pages/Portals/QaPacker/QaPackerPortalPage';
 
 function App() {
   const { loading } = useAuth();
@@ -990,6 +991,14 @@ function App() {
           element={
             <ProtectedRoute requiredPermissions={["portal.cutter"]}>
               <CutterPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/qa-packer"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.qa-packer"]}>
+              <QaPackerPortalPage />
             </ProtectedRoute>
           }
         />

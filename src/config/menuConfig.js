@@ -334,6 +334,13 @@ export const getMenuByPermissions = (user = null) => {
           path: "/portal/logistics",
           requiredPermissions: ["portal.logistics"],
         },
+        // ── Phase 7-B: QA / Packer Portal ─────────────────────────────
+        {
+          name: "QA / Packer Portal",
+          icon: "fa-solid fa-clipboard-check",
+          path: "/portal/qa-packer",
+          requiredPermissions: ["portal.qa-packer"],
+        },
         // ── Phase 6-A: CSR Hub ────────────────────────────────────────
         {
           name: "CSR Hub",
