@@ -1,36 +1,35 @@
 import React, { useState } from "react";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
 import DashboardTab from "./DashboardTab";
+import InquiriesTab from "./tabs/InquiriesTab";
+import PaymentsTab from "./tabs/PaymentsTab";
+import ApprovalsTab from "./tabs/ApprovalsTab";
 
 /**
  * Phase 6-A — CSR Hub portal landing.
  *
- * Bundle 1 ships ONLY the Dashboard tab; the other tabs render
- * placeholder messages and link the user back to Dashboard. Bundle 2
- * will replace those placeholders with real tab content for:
- *
- *   - Inquiries     (list + create + edit + Convert-to-Quotation action)
- *   - Payments      (list + upload proof + Finance verify modal)
- *   - Approvals     (list + record + respond modals)
- *   - Fabric Swatches (catalog browser — Phase 6-B reads only for Bundle 2)
+ * Bundle 2 update: replaces Inquiries/Payments/Approvals placeholders
+ * with real tab content. Fabric Swatches stays as a placeholder for
+ * Bundle 3 (Phase 6-B).
  */
 const TABS = [
-  { key: "dashboard", label: "Dashboard",      icon: "fa-chart-line" },
-  { key: "inquiries", label: "Inquiries",      icon: "fa-envelope" },
-  { key: "payments",  label: "Payments",       icon: "fa-money-check-dollar" },
-  { key: "approvals", label: "Approvals",      icon: "fa-hand" },
-  { key: "swatches",  label: "Fabric Swatches", icon: "fa-palette" },
+  { key: "dashboard", label: "Dashboard", icon: "fa-chart-line" },
+  { key: "inquiries", label: "Inquiries", icon: "fa-envelope" },
+  { key: "payments", label: "Payments", icon: "fa-money-check-dollar" },
+  { key: "approvals", label: "Approvals", icon: "fa-hand" },
+  { key: "swatches", label: "Fabric Swatches", icon: "fa-palette" },
 ];
 
-const Placeholder = ({ label, onBack }) => (
+const SwatchPlaceholder = ({ onBack }) => (
   <div className="bg-white rounded-lg border border-dashed border-gray-300 p-10 text-center">
     <i className="fa-regular fa-clock text-gray-300 text-4xl mb-3" />
     <h3 className="text-sm font-semibold text-gray-700">
-      {label} — coming in Bundle 2
+      Fabric Swatches — coming in Bundle 3
     </h3>
     <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
-      The {label.toLowerCase()} tab will be available in the next frontend bundle.
-      For now, the backend endpoints are live and you can test them via Postman.
+      The fabric swatch catalog will be available in Bundle 3 (Phase 6-B). The
+      backend endpoint is live and the 162-swatch dataset is already seeded —
+      you can browse them via GET /csr/fabric-swatches in Postman.
     </p>
     <button
       type="button"
@@ -75,10 +74,12 @@ const CsrPortalPage = () => {
       </div>
 
       {activeTab === "dashboard" && <DashboardTab />}
-      {activeTab === "inquiries" && <Placeholder label="Inquiries" onBack={() => setActiveTab("dashboard")} />}
-      {activeTab === "payments"  && <Placeholder label="Payments"  onBack={() => setActiveTab("dashboard")} />}
-      {activeTab === "approvals" && <Placeholder label="Approvals" onBack={() => setActiveTab("dashboard")} />}
-      {activeTab === "swatches"  && <Placeholder label="Fabric Swatches" onBack={() => setActiveTab("dashboard")} />}
+      {activeTab === "inquiries" && <InquiriesTab />}
+      {activeTab === "payments" && <PaymentsTab />}
+      {activeTab === "approvals" && <ApprovalsTab />}
+      {activeTab === "swatches" && (
+        <SwatchPlaceholder onBack={() => setActiveTab("dashboard")} />
+      )}
     </RolePortalLayout>
   );
 };
