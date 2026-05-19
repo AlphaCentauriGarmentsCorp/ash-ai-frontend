@@ -120,6 +120,7 @@ import ScreenMakerPortalPage from './pages/Portals/ScreenMaker/ScreenMakerPortal
 import MaterialPrepPortalPage from './pages/Portals/MaterialPrep/MaterialPrepPortalPage';
 import GraphicArtistPortalPage from './pages/Portals/GraphicArtist/GraphicArtistPortalPage';
 import LogisticsPortalPage from './pages/Portals/Logistics/LogisticsPortalPage';
+import CsrPortalPage from './pages/Portals/CSR/CsrPortalPage';
 
 function App() {
   const { loading } = useAuth();
@@ -1037,6 +1038,15 @@ function App() {
           element={
             <ProtectedRoute requiredPermissions={["portal.logistics"]}>
               <LogisticsPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* Phase 6-A — CSR Hub */}
+        <Route
+          path="/portal/csr"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.csr"]}>
+              <CsrPortalPage />
             </ProtectedRoute>
           }
         />

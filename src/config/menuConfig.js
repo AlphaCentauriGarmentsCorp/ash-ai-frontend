@@ -334,6 +334,13 @@ export const getMenuByPermissions = (user = null) => {
           path: "/portal/logistics",
           requiredPermissions: ["portal.logistics"],
         },
+        // ── Phase 6-A: CSR Hub ────────────────────────────────────────
+        {
+          name: "CSR Hub",
+          icon: "fa-solid fa-headset",
+          path: "/portal/csr",
+          requiredPermissions: ["portal.csr"],
+        },
       ],
     },
     {
