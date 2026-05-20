@@ -8,8 +8,11 @@ import TaskOverviewSection from "./sections/TaskOverviewSection";
 import ReferenceImagesSection from "./sections/ReferenceImagesSection";
 import QaChecklistSection from "./sections/QaChecklistSection";
 import RejectRepairLogSection from "./sections/RejectRepairLogSection";
+import PackingChecklistSection from "./sections/PackingChecklistSection";
+import PackingBoxesSection from "./sections/PackingBoxesSection";
+import FinalPhotosSection from "./sections/FinalPhotosSection";
+import SubmitCompletedSection from "./sections/SubmitCompletedSection";
 import ActivityLogSection from "./sections/ActivityLogSection";
-import PlaceholderSection from "./sections/PlaceholderSection";
 
 /**
  * Phase 7-B Bundle 2 — QA/Packer Portal landing page.
@@ -58,6 +61,7 @@ const QaPackerPortalPage = () => {
   const [contextLoading, setContextLoading] = useState(false);
   const [contextError, setContextError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [finalPhotos, setFinalPhotos] = useState({});
 
   // Step 1 — resolve active assignment(s)
   useEffect(() => {
@@ -295,31 +299,50 @@ const QaPackerPortalPage = () => {
             sectionNumber={4}
           />
 
-          {/* Section 5 (Bundle 4): Packing Checklist */}
-          <PlaceholderSection
-            sectionNumber={5}
-            title="Packing Checklist"
-            bundle="Bundle 4"
-            icon="fa-box"
-            description="7-item packing checklist (fold and pack, hangtag, size sticker, OPP plastic, freebie, QR label, box label)."
-          />
+          {/* Section 5: Packing Checklist — only when on packing stage */}
+          {context.task.stage === "packing" && (
+            <PackingChecklistSection
+              packingChecklist={context.packing_checklist}
+              orderStageId={context.task.order_stage_id}
+              userId={user?.id}
+              sectionNumber={5}
+            />
+          )}
 
-          {/* Section 6 (Bundle 4): Packing Boxes & QR */}
-          <PlaceholderSection
-            sectionNumber={6}
-            title="Packing Boxes & QR"
-            bundle="Bundle 4"
-            icon="fa-qrcode"
-            description="Create box entries with size/SKU/quantity breakdown. Print QR labels for each sealed box."
-          />
+          {/* Section 6: Packing Boxes & QR — only when on packing stage */}
+          {context.task.stage === "packing" && (
+            <PackingBoxesSection
+              packingBoxes={context.packing_boxes}
+              orderId={context.task.order_id}
+              onChanged={handleRefresh}
+              sectionNumber={6}
+            />
+          )}
 
-          {/* Section 7 (Bundle 4): Final Photos + Submit */}
-          <PlaceholderSection
-            sectionNumber={7}
-            title="Final Photos & Submit Completed"
-            bundle="Bundle 4"
-            icon="fa-circle-check"
-            description="Upload completed-product, packed-box, and QR-label photos. Atomic SUBMIT advances stage."
+          {/* Section 7: Final Photos — only when on packing stage */}
+          {context.task.stage === "packing" && (
+            <FinalPhotosSection
+              orderId={context.task.order_id}
+              orderStageId={context.task.order_stage_id}
+              finalPhotos={finalPhotos}
+              onPhotosChanged={setFinalPhotos}
+              sectionNumber={7}
+            />
+          )}
+
+          {/* SUBMIT COMPLETED — shown on both QA and Packing stages */}
+          <SubmitCompletedSection
+            task={context.task}
+            qaChecklist={context.qa_checklist}
+            packingChecklist={context.packing_checklist}
+            rejectsRepairs={context.rejects_repairs}
+            userId={user?.id}
+            finalPhotos={finalPhotos}
+            onSubmitted={() => {
+              // Success card handles its own navigation, but we clear
+              // the parent's finalPhotos so a follow-up task starts clean.
+              setFinalPhotos({});
+            }}
           />
 
           {/* Section 8: Activity Log */}

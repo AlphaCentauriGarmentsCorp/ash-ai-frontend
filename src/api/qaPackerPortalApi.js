@@ -81,6 +81,98 @@ export const qaPackerPortalApi = {
     );
     return data;
   },
+  // ── Bundle 4a — Packing boxes & QR ────────────────────────────
+
+  /**
+   * Auto-create or fetch box #1 for an order.
+   * Idempotent — safe to call repeatedly.
+   */
+  ensureFirstBox: async (orderId) => {
+    const { data } = await api.post(
+      `/portal/qa-packer/boxes/ensure-for-order/${orderId}`,
+    );
+    return data;
+  },
+
+  /**
+   * Update a box's contents + optional weight.
+   * @param {number} boxId
+   * @param {object} payload  - { contents_json: [...], weight_kg?: number }
+   */
+  updateBoxContents: async (boxId, payload) => {
+    const { data } = await api.patch(
+      `/portal/qa-packer/boxes/${boxId}`,
+      payload,
+    );
+    return data;
+  },
+
+  /**
+   * Seal a box (locks contents, marks ready for QR print).
+   */
+  sealBox: async (boxId) => {
+    const { data } = await api.post(
+      `/portal/qa-packer/boxes/${boxId}/seal`,
+    );
+    return data;
+  },
+
+  /**
+   * Unseal a box so its contents can be edited again.
+   * Only works before the packing stage is submitted (backend-enforced).
+   */
+  unsealBox: async (boxId) => {
+    const { data } = await api.post(
+      `/portal/qa-packer/boxes/${boxId}/unseal`,
+    );
+    return data;
+  },
+
+  /**
+   * Download the box's QR label PDF as a blob, returning a local
+   * object URL that can be opened in a new tab.
+   *
+   * We fetch via axios (which carries the Sanctum auth headers) and
+   * then mint a blob URL because window.open() against the raw API
+   * endpoint loses the auth context — Laravel sees an unauthenticated
+   * request and tries to redirect to a login route that doesn't exist
+   * in this SPA. Going via blob sidesteps the entire problem.
+   *
+   * Caller is responsible for revoking the URL when done, e.g.:
+   *   const url = await qaPackerPortalApi.boxLabelBlobUrl(123);
+   *   window.open(url, '_blank');
+   *   setTimeout(() => URL.revokeObjectURL(url), 60_000);
+   */
+  boxLabelBlobUrl: async (boxId) => {
+    const response = await api.get(
+      `/portal/qa-packer/boxes/${boxId}/qr-label.pdf`,
+      { responseType: "blob" },
+    );
+    return URL.createObjectURL(response.data);
+  },
+
+  // ── Bundle 4a — Final photos ──────────────────────────────────
+
+  /**
+   * Upload one of the three final-photo slots.
+   * @param {object} fields - { order_id, order_stage_id, kind }
+   * @param {File}   photo  - required image file
+   *
+   * Returns { data: { kind, path } }. The frontend keeps the path in
+   * client state and passes it to submit() as final_photos[kind].
+   */
+  uploadFinalPhoto: async (fields, photo) => {
+    const fd = new FormData();
+    Object.entries(fields).forEach(([k, v]) => {
+      if (v !== undefined && v !== null) fd.append(k, v);
+    });
+    fd.append("photo", photo);
+
+    const { data } = await api.post("/portal/qa-packer/final-photos", fd, {
+      headers: { "Content-Type": undefined },
+    });
+    return data;
+  },
 };
 
 export default qaPackerPortalApi;
