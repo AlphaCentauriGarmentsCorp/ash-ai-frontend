@@ -2,9 +2,12 @@ import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { portalApi } from "../../../api/portalApi";
 import { qaPackerPortalApi } from "../../../api/qaPackerPortalApi";
+import { useAuth } from "../../../hooks/useAuth";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
 import TaskOverviewSection from "./sections/TaskOverviewSection";
 import ReferenceImagesSection from "./sections/ReferenceImagesSection";
+import QaChecklistSection from "./sections/QaChecklistSection";
+import RejectRepairLogSection from "./sections/RejectRepairLogSection";
 import ActivityLogSection from "./sections/ActivityLogSection";
 import PlaceholderSection from "./sections/PlaceholderSection";
 
@@ -32,15 +35,16 @@ import PlaceholderSection from "./sections/PlaceholderSection";
  */
 
 const STATUS_FLOW = [
-  { key: "mass_production",  label: "Mass Production",  icon: "fa-industry" },
-  { key: "quality_control",  label: "Quality Control",  icon: "fa-clipboard-check" },
-  { key: "packing",          label: "Packing",          icon: "fa-box" },
-  { key: "delivery",         label: "Delivery",         icon: "fa-truck" },
-  { key: "order_completed",  label: "Order Completed",  icon: "fa-flag-checkered" },
+  { key: "mass_production", label: "Mass Production", icon: "fa-industry" },
+  { key: "quality_control", label: "Quality Control", icon: "fa-clipboard-check" },
+  { key: "packing", label: "Packing", icon: "fa-box" },
+  { key: "delivery", label: "Delivery", icon: "fa-truck" },
+  { key: "order_completed", label: "Order Completed", icon: "fa-flag-checkered" },
 ];
 
 const QaPackerPortalPage = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Resolution state
   const [resolving, setResolving] = useState(true);
@@ -75,7 +79,7 @@ const QaPackerPortalPage = () => {
         if (cancelled) return;
         setResolveError(
           err?.response?.data?.message ||
-            "Hindi ma-load ang assignment mo. Try refreshing.",
+          "Hindi ma-load ang assignment mo. Try refreshing.",
         );
       } finally {
         if (!cancelled) setResolving(false);
@@ -102,7 +106,7 @@ const QaPackerPortalPage = () => {
         if (cancelled) return;
         setContextError(
           err?.response?.data?.message ||
-            "Hindi ma-load ang task details. Refresh para subukan ulit.",
+          "Hindi ma-load ang task details. Refresh para subukan ulit.",
         );
       } finally {
         if (!cancelled) setContextLoading(false);
@@ -271,22 +275,24 @@ const QaPackerPortalPage = () => {
           {/* Section 2: Reference Images */}
           <ReferenceImagesSection referenceImages={context.reference_images} />
 
-          {/* Section 3 (Bundle 3): QA Checklist */}
-          <PlaceholderSection
+          {/* Section 3: QA Checklist */}
+          <QaChecklistSection
+            qaChecklist={context.qa_checklist}
+            orderStageId={context.task.order_stage_id}
+            userId={user?.id}
             sectionNumber={3}
-            title="QA Checklist"
-            bundle="Bundle 3"
-            icon="fa-clipboard-check"
-            description="7-item visual inspection checklist (correct print, size, color, no stains, no damage, correct label, correct quantity)."
           />
 
-          {/* Section 4 (Bundle 3): Reject / Repair Log */}
-          <PlaceholderSection
+          {/* Section 4: Reject / Repair Log */}
+          <RejectRepairLogSection
+            rejectsRepairs={context.rejects_repairs}
+            rejectReasons={context.reject_reasons}
+            orderId={context.task.order_id}
+            orderStageId={context.task.order_stage_id}
+            orderTotalPcs={context.task.total_pcs}
+            currentUserId={user?.id}
+            onChanged={handleRefresh}
             sectionNumber={4}
-            title="Reject / Repair Log"
-            bundle="Bundle 3"
-            icon="fa-triangle-exclamation"
-            description="Add Reject and Add Repair forms with photo capture. Shows tally of logged items so far."
           />
 
           {/* Section 5 (Bundle 4): Packing Checklist */}
