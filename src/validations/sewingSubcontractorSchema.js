@@ -7,7 +7,7 @@ export const sewingSubcontractorSchema = {
     required: true,
     message: "Address is required.",
   },
-  rate_per_piece: {
+  rate_per_pcs: {
     required: true,
     message: "Rate per piece is required.",
   },

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Select from "../../components/form/Select";
+import { onImageError } from "../../utils/placeholderImage";
 
 const SamplePrinting = ({ order, onSuccess }) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
@@ -121,15 +122,15 @@ const SamplePrinting = ({ order, onSuccess }) => {
       placements: prev.placements.map((placement) =>
         placement.id === placementId
           ? {
-              ...placement,
-              colors: {
-                ...placement.colors,
-                [`color_${colorIndex + 1}`]: {
-                  ...placement.colors[`color_${colorIndex + 1}`],
-                  [field]: value,
-                },
+            ...placement,
+            colors: {
+              ...placement.colors,
+              [`color_${colorIndex + 1}`]: {
+                ...placement.colors[`color_${colorIndex + 1}`],
+                [field]: value,
               },
-            }
+            },
+          }
           : placement,
       ),
     }));
@@ -236,8 +237,8 @@ const SamplePrinting = ({ order, onSuccess }) => {
       console.error("Error saving paint data:", err);
       setSubmitError(
         err.response?.data?.message ||
-          err.message ||
-          "Failed to save paint data. Please try again.",
+        err.message ||
+        "Failed to save paint data. Please try again.",
       );
     } finally {
       setSubmitting(false);
@@ -450,10 +451,7 @@ const SamplePrinting = ({ order, onSuccess }) => {
                                 src={getImageUrl(placement.mockupImage)}
                                 alt={`${getPlacementLabel(placement.type)} mockup`}
                                 className="w-20 h-20 sm:w-32 sm:h-32 object-cover"
-                                onError={(e) => {
-                                  e.target.src =
-                                    "https://via.placeholder.com/150?text=No+Image";
-                                }}
+                                onError={onImageError}
                               />
                             </div>
                           ) : (
@@ -808,11 +806,10 @@ const SamplePrinting = ({ order, onSuccess }) => {
           Reset
         </button>
         <button
-          className={`px-4 py-2 rounded-md transition-colors text-sm flex items-center gap-2 ${
-            !submitting
+          className={`px-4 py-2 rounded-md transition-colors text-sm flex items-center gap-2 ${!submitting
               ? "bg-primary text-white hover:bg-secondary cursor-pointer"
               : "bg-gray-300 text-gray-500 cursor-not-allowed"
-          }`}
+            }`}
           disabled={submitting}
           onClick={handleSubmit}
         >

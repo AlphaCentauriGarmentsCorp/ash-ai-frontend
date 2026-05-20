@@ -1,6 +1,24 @@
 const RULES = [
   { test: /^\/$/, permissions: [] },
 
+  // -------------------------------------------------------------------
+  // Role-specific portals (Phase 5 will add the pages themselves)
+  // -------------------------------------------------------------------
+  { test: /^\/portal\/csr(\/|$)/, permissions: ["portal.csr"] },
+  { test: /^\/portal\/graphic-artist(\/|$)/, permissions: ["portal.graphic-artist"] },
+  { test: /^\/portal\/screen-maker(\/|$)/, permissions: ["portal.screen-maker"] },
+  { test: /^\/portal\/material-prep(\/|$)/, permissions: ["portal.material-prep"] },
+  { test: /^\/portal\/cutter(\/|$)/, permissions: ["portal.cutter"] },
+  { test: /^\/portal\/printer(\/|$)/, permissions: ["portal.printer"] },
+  { test: /^\/portal\/sewer(\/|$)/, permissions: ["portal.sewer"] },
+  { test: /^\/portal\/qa(\/|$)/, permissions: ["portal.qa"] },
+  { test: /^\/portal\/packer(\/|$)/, permissions: ["portal.packer"] },
+  { test: /^\/portal\/logistics(\/|$)/, permissions: ["portal.logistics"] },
+  { test: /^\/portal\/finance(\/|$)/, permissions: ["portal.finance"] },
+  { test: /^\/portal\/warehouse(\/|$)/, permissions: ["portal.warehouse"] },
+  { test: /^\/portal\/driver(\/|$)/, permissions: ["portal.driver"] },
+  { test: /^\/portal\/subcontract(\/|$)/, permissions: ["portal.subcontract"] },
+
   // Order routes
   { test: /^\/orders(\/|$)/, permissions: ["access.orders"] },
   { test: /^\/order\//, permissions: ["access.orders"] },
@@ -22,6 +40,10 @@ const RULES = [
   { test: /^\/supplier(\/|$)/, permissions: ["access.suppliers"] },
 
   { test: /^\/screen-inventory(\/|$)/, permissions: ["access.screens"] },
+
+  // Phase 3: MR + PR
+  { test: /^\/material-requests(\/|$)/, permissions: ["access.material-requests"] },
+  { test: /^\/purchase-requests(\/|$)/, permissions: ["access.purchase-requests"] },
 
   // Quotation routes
   { test: /^\/quotations(\/|$)/, permissions: ["access.quotations"] },

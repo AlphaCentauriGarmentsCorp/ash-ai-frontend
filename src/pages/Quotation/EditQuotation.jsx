@@ -1062,6 +1062,7 @@ const EditQuotation = () => {
 
       printParts.forEach((part, index) => {
         if (part.image) {
+          // Single file per print part. Matches `print_parts_files.*` => file rule.
           formDataToSend.append(`print_parts_files[${index}]`, part.image);
         }
       });

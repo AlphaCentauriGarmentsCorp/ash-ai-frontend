@@ -106,6 +106,22 @@ import PermissionsPage from "./pages/RBAC/Permissions/PermissionsPage";
 import AddPermission from "./pages/RBAC/Permissions/AddPermission";
 import EditPermission from "./pages/RBAC/Permissions/EditPermission";
 import RolePermissionMatrix from "./pages/RBAC/RolePermissionMatrix";
+import NotificationsInbox from "./pages/Notifications/NotificationsInbox";
+import MaterialRequestsList from "./pages/MaterialRequests/MaterialRequestsList";
+import CreateMaterialRequest from "./pages/MaterialRequests/CreateMaterialRequest";
+import MaterialRequestDetail from "./pages/MaterialRequests/MaterialRequestDetail";
+import PurchaseRequestsList from "./pages/PurchaseRequests/PurchaseRequestsList";
+import PurchaseRequestDetail from "./pages/PurchaseRequests/PurchaseRequestDetail";
+
+import CutterPortalPage from './pages/Portals/Cutter/CutterPortalPage';
+import PrinterPortalPage from './pages/Portals/Printer/PrinterPortalPage';
+import SewerPortalPage from './pages/Portals/Sewer/SewerPortalPage';
+import ScreenMakerPortalPage from './pages/Portals/ScreenMaker/ScreenMakerPortalPage';
+import MaterialPrepPortalPage from './pages/Portals/MaterialPrep/MaterialPrepPortalPage';
+import GraphicArtistPortalPage from './pages/Portals/GraphicArtist/GraphicArtistPortalPage';
+import LogisticsPortalPage from './pages/Portals/Logistics/LogisticsPortalPage';
+import CsrPortalPage from './pages/Portals/CSR/CsrPortalPage';
+import QaPackerPortalPage from './pages/Portals/QaPacker/QaPackerPortalPage';
 
 function App() {
   const { loading } = useAuth();
@@ -685,7 +701,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-         <Route
+        <Route
           path="/quotations"
           element={
             <ProtectedRoute>
@@ -693,7 +709,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-         <Route
+        <Route
           path="/quotations/view/:id"
           element={
             <ProtectedRoute>
@@ -701,7 +717,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-         <Route
+        <Route
           path="/quotations/edit/:id"
           element={
             <ProtectedRoute>
@@ -839,7 +855,7 @@ function App() {
             </ProtectedRoute>
           }
         />
-        
+
         <Route
           path="/tickets/:id"
           element={
@@ -915,6 +931,131 @@ function App() {
               requiredPermissions={["access.rbac"]}
             >
               <RolePermissionMatrix />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <NotificationsInbox />
+            </ProtectedRoute>
+          }
+        />
+        {/* Phase 3 — Material Requests + Purchase Requests.
+            Note on route ordering: /material-requests/new must come
+            BEFORE /material-requests/:id, otherwise React Router would
+            interpret "new" as an id parameter. */}
+        <Route
+          path="/material-requests"
+          element={
+            <ProtectedRoute>
+              <MaterialRequestsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/material-requests/new"
+          element={
+            <ProtectedRoute>
+              <CreateMaterialRequest />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/material-requests/:id"
+          element={
+            <ProtectedRoute>
+              <MaterialRequestDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/purchase-requests"
+          element={
+            <ProtectedRoute>
+              <PurchaseRequestsList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/purchase-requests/:id"
+          element={
+            <ProtectedRoute>
+              <PurchaseRequestDetail />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/cutter"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.cutter"]}>
+              <CutterPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/qa-packer"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.qa-packer"]}>
+              <QaPackerPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/printer"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.printer"]}>
+              <PrinterPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/sewer"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.sewer"]}>
+              <SewerPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/screen-maker"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.screen-maker"]}>
+              <ScreenMakerPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/material-prep"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.material-prep"]}>
+              <MaterialPrepPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/graphic-artist"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.graphic-artist"]}>
+              <GraphicArtistPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/portal/logistics"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.logistics"]}>
+              <LogisticsPortalPage />
+            </ProtectedRoute>
+          }
+        />
+        {/* Phase 6-A — CSR Hub */}
+        <Route
+          path="/portal/csr"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.csr"]}>
+              <CsrPortalPage />
             </ProtectedRoute>
           }
         />

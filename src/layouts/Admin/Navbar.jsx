@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
+import { useNotifications } from "../../hooks/useNotifications";
 import { authApi } from "../../api/authApi";
 import {
   roleColors,
@@ -12,6 +13,50 @@ import {
 import { getMenuByPermissions } from "../../config/menuConfig";
 
 const AVATAR_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+/**
+ * Derive an icon + colour theme from a backend notification `type`.
+ * Keep this in sync with the `type` strings emitted by NotificationService.
+ */
+const getNotificationVisual = (type) => {
+  const map = {
+    "stage.delayed": { icon: "fa-solid fa-triangle-exclamation", color: "red" },
+    "stage.on_hold": { icon: "fa-solid fa-pause-circle", color: "purple" },
+    "stage.for_approval": { icon: "fa-solid fa-hourglass-half", color: "amber" },
+    "stage.assigned": { icon: "fa-solid fa-user-tag", color: "blue" },
+    "stage.in_progress": { icon: "fa-solid fa-bolt", color: "blue" },
+    "order.created": { icon: "fa-solid fa-cart-shopping", color: "green" },
+    "order.completed": { icon: "fa-solid fa-flag-checkered", color: "green" },
+    "quotation.approved": { icon: "fa-solid fa-thumbs-up", color: "green" },
+    "quotation.rejected": { icon: "fa-solid fa-thumbs-down", color: "red" },
+    "material_request.created": { icon: "fa-solid fa-boxes-packing", color: "amber" },
+  };
+  return map[type] || { icon: "fa-solid fa-bell", color: "gray" };
+};
+
+const COLOR_CLASSES = {
+  blue: "bg-blue-100 text-blue-600",
+  green: "bg-green-100 text-green-600",
+  amber: "bg-amber-100 text-amber-700",
+  red: "bg-red-100 text-red-600",
+  purple: "bg-purple-100 text-purple-600",
+  gray: "bg-gray-100 text-gray-600",
+};
+
+/**
+ * Friendly relative-time, e.g. "5 minutes ago" / "yesterday".
+ * Keeps things lightweight so we don't pull a date library.
+ */
+const formatRelative = (iso) => {
+  if (!iso) return "";
+  const date = new Date(iso);
+  const diff = (Date.now() - date.getTime()) / 1000; // seconds
+  if (diff < 60) return "just now";
+  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
+  if (diff < 172800) return "yesterday";
+  return date.toLocaleDateString();
+};
 
 const Navbar = ({
   toggleSidebar,
@@ -30,41 +75,13 @@ const Navbar = ({
   const notificationRef = useRef(null);
   const navigate = useNavigate();
 
-  // Mock notifications data
-  const [notifications, setNotifications] = useState([
-    {
-      id: 1,
-      type: "order",
-      title: "New Order Received",
-      message: "Order #ORD-2024-001 has been created",
-      time: "5 minutes ago",
-      read: false,
-      icon: "fa-solid fa-cart-shopping",
-      color: "blue",
-    },
-    {
-      id: 2,
-      type: "task",
-      title: "Task Assigned",
-      message: "You have been assigned to Screen Printing task",
-      time: "1 hour ago",
-      read: false,
-      icon: "fa-solid fa-tasks",
-      color: "green",
-    },
-    {
-      id: 4,
-      type: "client",
-      title: "New Client Registered",
-      message: "ABC Company has registered as a new client",
-      time: "1 day ago",
-      read: true,
-      icon: "fa-solid fa-user-plus",
-      color: "purple",
-    },
-  ]);
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  // Phase 2: real notifications via the new hook (polls every 30s).
+  const {
+    items: notifications,
+    unreadCount,
+    markRead,
+    markAllRead,
+  } = useNotifications({ mode: "recent", limit: 10, pollInterval: 30000 });
 
   const getAccessiblePages = () => {
     const filteredMenu = getMenuByPermissions(user);
@@ -176,27 +193,16 @@ const Navbar = ({
     setDropdownOpen(false);
   };
 
-  const markAsRead = (id) => {
-    setNotifications(
-      notifications.map((notif) =>
-        notif.id === id ? { ...notif, read: true } : notif,
-      ),
-    );
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(notifications.map((notif) => ({ ...notif, read: true })));
-  };
-
-  const getNotificationColor = (color) => {
-    const colors = {
-      blue: "bg-blue-100 text-blue-600",
-      green: "bg-green-100 text-green-600",
-      orange: "bg-orange-100 text-orange-600",
-      purple: "bg-purple-100 text-purple-600",
-      gray: "bg-gray-100 text-gray-600",
-    };
-    return colors[color] || colors.blue;
+  const handleNotificationClick = (notification) => {
+    if (!notification.read_at) {
+      markRead(notification.id);
+    }
+    // Optional: deep-link to the related order/stage
+    const link = notification?.data?.link;
+    if (link) {
+      setNotificationOpen(false);
+      navigate(link);
+    }
   };
 
   const getUserInitials = () => {
@@ -224,7 +230,7 @@ const Navbar = ({
           aria-label="Toggle sidebar"
         >
           <div className="absolute inset-0 flex flex-col items-center justify-center space-y-1">
-            {}
+            { }
             {window.innerWidth < 768 ? (
               <>
                 <span
@@ -355,7 +361,7 @@ const Navbar = ({
                 </h3>
                 {unreadCount > 0 && (
                   <button
-                    onClick={markAllAsRead}
+                    onClick={markAllRead}
                     className="text-xs text-primary hover:text-primary/70 transition-colors"
                   >
                     Mark all as read
@@ -365,39 +371,44 @@ const Navbar = ({
 
               <div className="max-h-96 overflow-y-auto">
                 {notifications.length > 0 ? (
-                  notifications.map((notification) => (
-                    <div
-                      key={notification.id}
-                      onClick={() => markAsRead(notification.id)}
-                      className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${
-                        !notification.read ? "bg-blue-50/50" : ""
-                      }`}
-                    >
-                      <div className="flex items-start space-x-3">
-                        <div
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center ${getNotificationColor(notification.color)}`}
-                        >
-                          <i className={`${notification.icon} text-sm`}></i>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-medium text-gray-800">
-                              {notification.title}
-                            </p>
-                            {!notification.read && (
-                              <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                            )}
+                  notifications.map((notification) => {
+                    const visual = getNotificationVisual(notification.type);
+                    const isUnread = !notification.read_at;
+                    return (
+                      <div
+                        key={notification.id}
+                        onClick={() => handleNotificationClick(notification)}
+                        className={`px-4 py-3 hover:bg-gray-50 transition-colors cursor-pointer ${isUnread ? "bg-blue-50/50" : ""
+                          }`}
+                      >
+                        <div className="flex items-start space-x-3">
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center ${COLOR_CLASSES[visual.color] || COLOR_CLASSES.gray}`}
+                          >
+                            <i className={`${visual.icon} text-sm`}></i>
                           </div>
-                          <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
-                            {notification.message}
-                          </p>
-                          <p className="text-xs text-gray-400 mt-1">
-                            {notification.time}
-                          </p>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <p className="text-sm font-medium text-gray-800">
+                                {notification.title}
+                              </p>
+                              {isUnread && (
+                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                              )}
+                            </div>
+                            {notification.body && (
+                              <p className="text-xs text-gray-600 mt-0.5 line-clamp-2">
+                                {notification.body}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-400 mt-1">
+                              {formatRelative(notification.created_at)}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="px-4 py-8 text-center">
                     <i className="fa-regular fa-bell-slash text-3xl text-gray-300 mb-2"></i>
@@ -500,7 +511,7 @@ const Navbar = ({
           {dropdownOpen && (
             <div className="absolute right-0 top-full mt-2 w-48 md:w-56 bg-white rounded-lg shadow-lg border border-gray-200 animate-fadeIn z-50">
               <div className="py-1">
-                {}
+                { }
                 <div className="md:hidden px-3 py-2 border-b border-gray-300">
                   <p className="text-sm font-medium truncate">
                     {user?.name || "Kurt Russel Q, Santos"}

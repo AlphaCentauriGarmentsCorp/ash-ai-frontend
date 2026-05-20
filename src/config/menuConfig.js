@@ -79,6 +79,42 @@ export const getMenuByPermissions = (user = null) => {
             },
           ],
         },
+        // Phase 3 — Material Requests & Purchase Requests.
+        // Visibility resolved by inferPermissionsFromPath:
+        //   /material-requests  → access.material-requests
+        //   /purchase-requests  → access.purchase-requests
+        // So roles without those perms (e.g., csr, packer, driver,
+        // qa, logistics, customer) won't see these entries at all.
+        {
+          name: "Material Requests",
+          icon: "fa-solid fa-boxes-packing",
+          subItems: [
+            {
+              name: "All Material Requests",
+              path: "/material-requests",
+            },
+            {
+              // The sidebar "New" link gets an explicit permission so
+              // view-only roles (e.g., finance, warehouse_manager) see
+              // the section but not the create entry. The page itself
+              // also checks the perm, this just removes the dead-end
+              // link from the sidebar.
+              name: "New Material Request",
+              path: "/material-requests/new",
+              requiredPermissions: ["material_requests.create"],
+            },
+          ],
+        },
+        {
+          name: "Purchase Requests",
+          icon: "fa-solid fa-cart-shopping",
+          subItems: [
+            {
+              name: "All Purchase Requests",
+              path: "/purchase-requests",
+            },
+          ],
+        },
         {
           name: "Clients",
           icon: "fa-solid fa-users",
@@ -166,6 +202,14 @@ export const getMenuByPermissions = (user = null) => {
               name: "Additional Options",
               path: "/admin/settings/additional-options",
             },
+            {
+              // Pre-existing pages that had no sidebar entry; surfaced
+              // here so admin can manage subcontractor vendors used by
+              // sewing/cutting/printing stages. Auto-hidden for roles
+              // without access.sewing-subcontractor.
+              name: "Sewing Subcontractor",
+              path: "/admin/settings/sewing-subcontractor",
+            },
           ],
         },
         {
@@ -242,6 +286,67 @@ export const getMenuByPermissions = (user = null) => {
               requiredPermissions: ["access.materials"],
             },
           ],
+        },
+      ],
+    },
+    {
+      section: "Production Portals",
+      items: [
+        {
+          name: "Cutter Portal",
+          icon: "fa-solid fa-scissors",
+          path: "/portal/cutter",
+          requiredPermissions: ["portal.cutter"],
+        },
+        {
+          name: "Printer Portal",
+          icon: "fa-solid fa-print",
+          path: "/portal/printer",
+          requiredPermissions: ["portal.printer"],
+        },
+        {
+          name: "Sewer Portal",
+          icon: "fa-solid fa-shirt",
+          path: "/portal/sewer",
+          requiredPermissions: ["portal.sewer"],
+        },
+        {
+          name: "Screen Maker Portal",
+          icon: "fa-solid fa-stamp",
+          path: "/portal/screen-maker",
+          requiredPermissions: ["portal.screen-maker"],
+        },
+        {
+          name: "Material Prep Portal",
+          icon: "fa-solid fa-cart-shopping",
+          path: "/portal/material-prep",
+          requiredPermissions: ["portal.material-prep"],
+        },
+        {
+          name: "Graphic Artist Portal",
+          icon: "fa-solid fa-pen-ruler",
+          path: "/portal/graphic-artist",
+          requiredPermissions: ["portal.graphic-artist"],
+        },
+        {
+          name: "Logistics Portal",
+          icon: "fa-solid fa-truck-fast",
+          path: "/portal/logistics",
+          requiredPermissions: ["portal.logistics"],
+        },
+        // ── Phase 7-B: QA / Packer Portal ─────────────────────────────
+        {
+          name: "QA / Packer Portal",
+          icon: "fa-solid fa-clipboard-check",
+          path: "/portal/qa-packer",
+          requiredPermissions: ["portal.qa-packer"],
+        },
+        // ── Phase 6-A: CSR Hub ────────────────────────────────────────
+        {
+          name: "CSR Hub",
+          icon: "fa-solid fa-headset",
+          path: "/portal/csr",
+          requiredPermissions: ["portal.csr"],
         },
       ],
     },

@@ -1,4 +1,5 @@
 export const roleColors = {
+  superadmin: "bg-[#1a1a1a]",
   admin: "bg-[#000000]",
   general_manager: "bg-[#0078d7]",
   csr: "bg-[#008080]",
@@ -14,10 +15,12 @@ export const roleColors = {
   warehouse_manager: "bg-[#113f0e]",
   screen_maker: "bg-[#8368dd]",
   sample_maker: "bg-[#e84c5b]",
+  logistics: "bg-[#2c8a3a]",
   subcontract: "bg-[#9c9c9c]",
 };
 
 export const roleDisplayNames = {
+  superadmin: "Super Admin",
   admin: "Administrator",
   general_manager: "General Manager",
   csr: "Customer Support",
@@ -33,10 +36,12 @@ export const roleDisplayNames = {
   warehouse_manager: "Warehouse Manager",
   screen_maker: "Screen Maker",
   sample_maker: "Sample Maker",
+  logistics: "Logistics",
   subcontract: "Subcontract",
 };
 
 export const allRoles = [
+  "superadmin",
   "admin",
   "general_manager",
   "csr",
@@ -47,11 +52,12 @@ export const allRoles = [
   "driver",
   "printer",
   "sewer",
-  "qa",
+  "quality_assurance",
   "packer",
   "warehouse_manager",
   "screen_maker",
   "sample_maker",
+  "logistics",
   "subcontract",
 ];
 
