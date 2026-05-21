@@ -68,6 +68,22 @@ export const OrderStages = [
     icon: "fa-thumbs-up",
   },
 
+  // ---------- Mass-Production Gate (checkpoints) ----------
+  {
+    group: "Mass Production",
+    value: "payment_verification_mass",
+    label: "Payment Verification (Mass)",
+    role: "finance",
+    icon: "fa-money-check-dollar",
+  },
+  {
+    group: "Mass Production",
+    value: "purchase_materials",
+    label: "Purchase Materials",
+    role: "purchasing",
+    icon: "fa-cart-shopping",
+  },
+
   // ---------- Mass Production ----------
   {
     group: "Mass Production",
