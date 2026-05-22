@@ -144,7 +144,7 @@ const AllOrders = () => {
         console.log("Edit:", rowData);
         break;
       case "delete":
-        if (window.confirm(`Delete order ${rowData.po_code}? This cannot be undone.`)) {
+        if (window.confirm(`Delete order ${rowData.po_code}? It will be removed from the list but can be recovered if needed.`)) {
           try {
             await orderApi.delete?.(rowData.id || rowData.po_code);
             fetchData();
