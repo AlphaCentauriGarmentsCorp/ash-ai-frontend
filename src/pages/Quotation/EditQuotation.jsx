@@ -789,6 +789,38 @@ const EditQuotation = () => {
     );
   };
 
+  // DTF placement dimensions (Addendum 4.2). Mirrors the Add page; read by the
+  // backend calculateDtfTotal() via the print_parts_json width/height/pieces.
+  const updateWidth = (colorId, value) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, width: Math.max(0, parseFloat(value) || 0) }
+          : c,
+      ),
+    );
+  };
+
+  const updateHeight = (colorId, value) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, height: Math.max(0, parseFloat(value) || 0) }
+          : c,
+      ),
+    );
+  };
+
+  const updatePieces = (colorId, value) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, pieces: Math.max(0, parseInt(value, 10) || 0) }
+          : c,
+      ),
+    );
+  };
+
   const handlePartSearchChange = (value) => {
     setPartSearchTerm(value);
   };
@@ -1668,27 +1700,33 @@ const EditQuotation = () => {
                           </div>
 
                           <div className="lg:pt-9 space-y-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.colorLabel}</label>
-                            <input
-                              type="number"
-                              min="1"
-                              max="10"
-                              value={part.colorCount || 1}
-                              onChange={(e) => updateColorCount(part.colorId, e.target.value)}
-                              className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                            />
+                            {/* Generic color inputs. Hidden for DTF, which uses
+                                the dedicated Width/Height/Pieces block below. */}
+                            {selectedMethodKey !== "dtf" && (
+                              <>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.colorLabel}</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="10"
+                                  value={part.colorCount || 1}
+                                  onChange={(e) => updateColorCount(part.colorId, e.target.value)}
+                                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                />
 
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.priceLabel}</label>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={part.pricePerColor ?? 0}
-                                onChange={(e) => updateColorPrice(part.colorId, e.target.value)}
-                                className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                              />
-                            </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.priceLabel}</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={part.pricePerColor ?? 0}
+                                    onChange={(e) => updateColorPrice(part.colorId, e.target.value)}
+                                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                  />
+                                </div>
+                              </>
+                            )}
 
                             {selectedPrintMethodId === silkscreenMethodId && selectedPrintArea === "Full" && (
                               <>
@@ -1716,6 +1754,52 @@ const EditQuotation = () => {
                                   />
                                 </div>
                               </>
+                            )}
+
+                            {/* DTF placement dimensions (Addendum 4.2). Per
+                                placement: design width × height (inches) and
+                                piece count. Charge = (w × h) × rate × pieces. */}
+                            {selectedMethodKey === "dtf" && (
+                              <div className="pt-2 space-y-2 border-t border-dashed border-gray-200 mt-2">
+                                <p className="text-[11px] font-semibold text-gray-500">DTF Design Size (inches)</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Width</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.1"
+                                      value={part.width ?? 0}
+                                      onChange={(e) => updateWidth(part.colorId, e.target.value)}
+                                      placeholder="in"
+                                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Height</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.1"
+                                      value={part.height ?? 0}
+                                      onChange={(e) => updateHeight(part.colorId, e.target.value)}
+                                      placeholder="in"
+                                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">Pieces (for this placement)</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={part.pieces ?? 0}
+                                    onChange={(e) => updatePieces(part.colorId, e.target.value)}
+                                    placeholder="qty"
+                                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                  />
+                                </div>
+                              </div>
                             )}
                           </div>
                         </div>
