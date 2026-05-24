@@ -10,6 +10,15 @@ export const quotationApi = {
     return data;
   },
 
+  // Live price preview — computes totals without saving. Send a plain JSON
+  // payload (item_config_json / items_json / print_parts_json as JSON strings,
+  // plus discount fields). Returns { subtotal, grand_total, downpayment,
+  // balance, items_json, addons_json, breakdown_json }.
+  preview: async (payload) => {
+    const { data } = await api.post("/quotations/preview", payload);
+    return data;
+  },
+
   index: async () => {
     try {
       const response = await api.get("/quotations");
