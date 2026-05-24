@@ -161,6 +161,15 @@ const EditQuotation = () => {
   const [selectedPrintArea, setSelectedPrintArea] = useState("Regular");
   const [silkscreenMethodId, setSilkscreenMethodId] = useState(null);
 
+  // Method-specific pricing inputs (Addendum 4.2–4.4) + backend-driven preview.
+  const [methodConfig, setMethodConfig] = useState({
+    embroidery_size: "small",
+    embroidery_manual_price: 0,
+    sublimation_type: "partial",
+    sublimation_manual_price: 0,
+  });
+  const [previewTotals, setPreviewTotals] = useState(null);
+
   const [formData, setOrderInfo] = useState({
     client_name: "",
     client_email: "",
@@ -240,12 +249,22 @@ const EditQuotation = () => {
     ) || null;
   }, [printMethods, selectedPrintMethodId]);
 
+  // Canonical method key, mirroring the backend's resolvePrintMethodKey().
+  const selectedMethodKey = useMemo(() => {
+    const name = (selectedPrintMethod?.name || "").toLowerCase();
+    if (name.includes("dtf") || name.includes("direct-to-film")) return "dtf";
+    if (name.includes("embroid")) return "embroidery";
+    if (name.includes("subli")) return "sublimation";
+    if (name.includes("silk") || name.includes("screen")) return "silkscreen";
+    return name ? name : "silkscreen";
+  }, [selectedPrintMethod]);
+
   const filteredPrintMethods = useMemo(() => {
     return printMethods.filter((method) => {
       const name = method.name?.toLowerCase() || "";
-      // Exclude Silkscreen, Sublimation, and High Density from the dropdown
+      // Silkscreen has its own hardcoded option; "high density" is a special-
+      // print sub-option. Sublimation IS a first-class priced method.
       return !name.includes("silkscreen") &&
-        !name.includes("sublimation") &&
         !name.includes("high density");
     });
   }, [printMethods]);
@@ -655,11 +674,16 @@ const EditQuotation = () => {
   const sampleBreakdownTotal =
     quotationService.toNumber(sampleBreakdown.unit_price) *
     quotationService.toNumber(sampleBreakdown.quantity);
-  const subtotal = totalAmount + totalAddons + sampleBreakdownTotal;
-  const discountAmount = quotationService.applyDiscount(subtotal, discount);
-  const grandTotal = subtotal - discountAmount;
-  const downPayment = grandTotal * 0.6;
-  const balance = grandTotal * 0.4;
+  const localSubtotal = totalAmount + totalAddons + sampleBreakdownTotal;
+  const localDiscountAmount = quotationService.applyDiscount(localSubtotal, discount);
+  const localGrandTotal = localSubtotal - localDiscountAmount;
+
+  // Authoritative totals from the backend preview (same engine as save).
+  const subtotal = previewTotals?.subtotal ?? localSubtotal;
+  const discountAmount = previewTotals?.discount_amount ?? localDiscountAmount;
+  const grandTotal = previewTotals?.grand_total ?? localGrandTotal;
+  const downPayment = previewTotals?.downpayment ?? grandTotal * 0.6;
+  const balance = previewTotals?.balance ?? grandTotal * 0.4;
 
   const toggleColor = (part) => {
     const partId = Number(part.id ?? part.colorId ?? part.partId);
@@ -929,6 +953,22 @@ const EditQuotation = () => {
     apparel_pattern_price_id: toNullableId(selectedApparelPattern?.id),
     apparel_type_id: toNullableId(selectedApparelPattern?.apparelTypeId),
     pattern_type_id: toNullableId(selectedApparelPattern?.patternTypeId),
+
+    print_method_id: toNullableId(selectedPrintMethodId),
+    print_method_name: selectedPrintMethod?.name || null,
+
+    pattern_type_name: selectedApparelPattern?.patternName || null,
+    is_custom_fit:
+      (selectedApparelPattern?.patternName || "").toLowerCase() === "custom",
+
+    embroidery_size: methodConfig.embroidery_size || "small",
+    embroidery_is_large: methodConfig.embroidery_size === "large",
+    embroidery_manual_price:
+      quotationService.toNumber(methodConfig.embroidery_manual_price) || 0,
+
+    sublimation_type: methodConfig.sublimation_type || "partial",
+    sublimation_manual_price:
+      quotationService.toNumber(methodConfig.sublimation_manual_price) || 0,
   };
 
   const compactItemsPayload = items.map((item) => ({
@@ -973,6 +1013,61 @@ const EditQuotation = () => {
     };
   });
 
+  // Pricing-relevant print parts for the live preview. Translates Edit's
+  // colorCount/fullColorCount into the backend's unit_count/full_unit_count.
+  const printPartsPreview = (selectedColors || []).map((part) => ({
+    part: part.part || `Part ${part.colorId}`,
+    unit_count: quotationService.toNumber(part.colorCount || 0),
+    full_unit_count: quotationService.toNumber(part.fullColorCount || 0),
+    print_size: (part.printSize || selectedPrintArea || "Regular").toLowerCase(),
+    is_full_print:
+      (part.printSize || selectedPrintArea || "").toLowerCase() === "full",
+    width: quotationService.toNumber(part.width || 0),
+    height: quotationService.toNumber(part.height || 0),
+    pieces: quotationService.toNumber(part.pieces || 0),
+  }));
+
+  // Debounced live preview from the backend (same engine as save), so editing
+  // a quotation shows correct method-aware totals.
+  useEffect(() => {
+    if (!data || items.length === 0 || !selectedApparelPattern) {
+      setPreviewTotals(null);
+      return;
+    }
+
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      try {
+        const totals = await quotationApi.preview({
+          item_config_json: JSON.stringify(itemConfigPayload),
+          items_json: JSON.stringify(compactItemsPayload),
+          addons_json: JSON.stringify(formattedAddons),
+          print_parts_json: JSON.stringify(printPartsPreview),
+          apparel_neckline_id: formData.apparel_neckline_id || null,
+          discount_type: discount?.type || null,
+          discount_price: discount?.value || 0,
+        });
+        if (!cancelled) setPreviewTotals(totals);
+      } catch (err) {
+        if (!cancelled) setPreviewTotals(null);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    JSON.stringify(itemConfigPayload),
+    JSON.stringify(compactItemsPayload),
+    JSON.stringify(formattedAddons),
+    JSON.stringify(printPartsPreview),
+    formData.apparel_neckline_id,
+    discount?.type,
+    discount?.value,
+  ]);
+
   const handleUpdate = async () => {
     if (!selectedClientId) {
       alert("Please search and select a client first.");
@@ -1015,6 +1110,19 @@ const EditQuotation = () => {
           price_per_color: quotationService.toNumber(part.pricePerColor),
           full_color_count: part.fullColorCount || 0,
           price_per_full_color: quotationService.toNumber(part.pricePerFullColor || 0),
+          // Backend pricing engine field names (translated at this boundary so
+          // the shared backend engine prices Edit correctly without renaming
+          // Edit's internal state). unit_count/full_unit_count drive the
+          // silkscreen split; print_size/is_full_print classify regular/full;
+          // width/height/pieces drive DTF.
+          unit_count: part.colorCount || 0,
+          full_unit_count: part.fullColorCount || 0,
+          print_size: (part.printSize || selectedPrintArea || "Regular").toLowerCase(),
+          is_full_print:
+            (part.printSize || selectedPrintArea || "").toLowerCase() === "full",
+          width: quotationService.toNumber(part.width || 0),
+          height: quotationService.toNumber(part.height || 0),
+          pieces: quotationService.toNumber(part.pieces || 0),
           image_input_type: imageInputType,
           image_link: imageLink,
           image,
@@ -1054,6 +1162,13 @@ const EditQuotation = () => {
             price_per_color: part.price_per_color,
             full_color_count: part.full_color_count,
             price_per_full_color: part.price_per_full_color,
+            unit_count: part.unit_count,
+            full_unit_count: part.full_unit_count,
+            print_size: part.print_size,
+            is_full_print: part.is_full_print,
+            width: part.width,
+            height: part.height,
+            pieces: part.pieces,
             image_input_type: part.image_input_type,
             image_link: part.image_link,
           })),
@@ -1492,8 +1607,8 @@ const EditQuotation = () => {
                                 type="button"
                                 onClick={() => updateColorInputType(part.colorId, "file")}
                                 className={`px-2 py-1 text-[11px] rounded border ${(part.imageInputType || "file") === "file"
-                                    ? "bg-primary text-white border-primary"
-                                    : "bg-white text-gray-600 border-gray-200"
+                                  ? "bg-primary text-white border-primary"
+                                  : "bg-white text-gray-600 border-gray-200"
                                   }`}
                               >
                                 File Upload
@@ -1502,8 +1617,8 @@ const EditQuotation = () => {
                                 type="button"
                                 onClick={() => updateColorInputType(part.colorId, "link")}
                                 className={`px-2 py-1 text-[11px] rounded border ${part.imageInputType === "link"
-                                    ? "bg-primary text-white border-primary"
-                                    : "bg-white text-gray-600 border-gray-200"
+                                  ? "bg-primary text-white border-primary"
+                                  : "bg-white text-gray-600 border-gray-200"
                                   }`}
                               >
                                 Link
