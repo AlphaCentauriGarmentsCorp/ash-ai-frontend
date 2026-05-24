@@ -85,6 +85,8 @@ const Quotation = () => {
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Backend-computed totals for the live preview (source of truth).
+  const [previewTotals, setPreviewTotals] = useState(null);
   const [saving, setSaving] = useState(false);
 
   const [items, setItems] = useState([]);
@@ -108,11 +110,33 @@ const Quotation = () => {
   const [activeApparelFilter, setActiveApparelFilter] = useState("all");
   const [activePatternFilter, setActivePatternFilter] = useState("all");
   const [selectedApparelPatternId, setSelectedApparelPatternId] = useState(null);
+  // Custom-pattern reference (Issue 6): shown only when the chosen fit is
+  // "Custom". File or link, mirroring the print-parts upload.
+  const [customPatternImage, setCustomPatternImage] = useState({
+    inputType: "file", // "file" | "link"
+    file: null,
+    link: "",
+  });
 
   // Print Information State
   const [selectedPrintMethodId, setSelectedPrintMethodId] = useState(null);
   const [selectedSpecialPrint, setSelectedSpecialPrint] = useState("");
   const [selectedPrintArea, setSelectedPrintArea] = useState("Regular");
+
+  // Method-specific pricing inputs (Addendum 4.2–4.4). Only the fields
+  // relevant to the selected print method are shown in the UI; the rest stay
+  // at their defaults and are ignored by the backend dispatcher.
+  //   embroidery_size: "small" | "large"
+  //   embroidery_manual_price: number (large only)
+  //   sublimation_type: "jersey_full" | "mesh_shorts_full" | "partial"
+  //   sublimation_manual_price: number (partial only)
+  //   dtf_rate_per_sq_inch: read-only display of the Superadmin rate
+  const [methodConfig, setMethodConfig] = useState({
+    embroidery_size: "small",
+    embroidery_manual_price: 0,
+    sublimation_type: "partial",
+    sublimation_manual_price: 0,
+  });
   const [silkscreenMethodId, setSilkscreenMethodId] = useState(null);
 
   const [formData, setOrderInfo] = useState({
@@ -233,18 +257,38 @@ const Quotation = () => {
     );
   }, [apparelPatternOptions, selectedApparelPatternId]);
 
+  // True when the chosen fit/pattern is "Custom" — reveals the custom-pattern
+  // reference upload (Issue 6). Same detection used for the ₱500 custom fee.
+  const isCustomFit = useMemo(
+    () => (selectedApparelPattern?.patternName || "").toLowerCase() === "custom",
+    [selectedApparelPattern],
+  );
+
   const selectedPrintMethod = useMemo(() => {
     return printMethods.find(
       (method) => Number(method.id) === Number(selectedPrintMethodId),
     ) || null;
   }, [printMethods, selectedPrintMethodId]);
 
+  // Canonical method key, mirroring the backend's
+  // QuotationService::resolvePrintMethodKey(). Drives which method-specific
+  // input block is shown and which pricing fields are sent.
+  const selectedMethodKey = useMemo(() => {
+    const name = (selectedPrintMethod?.name || "").toLowerCase();
+    if (name.includes("dtf") || name.includes("direct-to-film")) return "dtf";
+    if (name.includes("embroid")) return "embroidery";
+    if (name.includes("subli")) return "sublimation";
+    if (name.includes("silk") || name.includes("screen")) return "silkscreen";
+    return name ? name : "silkscreen";
+  }, [selectedPrintMethod]);
+
   const filteredPrintMethods = useMemo(() => {
     return printMethods.filter((method) => {
       const name = method.name?.toLowerCase() || "";
-      // Exclude Silkscreen, Sublimation, and High Density from the dropdown
+      // Silkscreen has its own hardcoded option above; "high density" is a
+      // special-print sub-option, not a standalone method. Sublimation IS a
+      // first-class priced method (Addendum 4.4), so it stays selectable.
       return !name.includes("silkscreen") &&
-        !name.includes("sublimation") &&
         !name.includes("high density");
     });
   }, [printMethods]);
@@ -399,11 +443,19 @@ const Quotation = () => {
   const sampleBreakdownTotal =
     quotationService.toNumber(sampleBreakdown.unit_price) *
     quotationService.toNumber(sampleBreakdown.quantity);
-  const subtotal = totalAmount + totalAddons + sampleBreakdownTotal;
-  const discountAmount = quotationService.applyDiscount(subtotal, discount);
-  const grandTotal = subtotal - discountAmount;
-  const downPayment = grandTotal * 0.6;
-  const balance = grandTotal * 0.4;
+  const localSubtotal = totalAmount + totalAddons + sampleBreakdownTotal;
+  const localDiscountAmount = quotationService.applyDiscount(localSubtotal, discount);
+  const localGrandTotal = localSubtotal - localDiscountAmount;
+
+  // Authoritative totals come from the backend preview endpoint (same pricing
+  // engine as save), so the headline figures reflect the selected print method
+  // and the Superadmin's rates. Fall back to the local estimate while the
+  // preview is loading or unavailable.
+  const subtotal = previewTotals?.subtotal ?? localSubtotal;
+  const discountAmount = previewTotals?.discount_amount ?? localDiscountAmount;
+  const grandTotal = previewTotals?.grand_total ?? localGrandTotal;
+  const downPayment = previewTotals?.downpayment ?? grandTotal * 0.6;
+  const balance = previewTotals?.balance ?? grandTotal * 0.4;
 
   const toggleColor = (part) => {
     const partId = Number(part.id ?? part.colorId ?? part.partId);
@@ -502,6 +554,39 @@ const Quotation = () => {
       prev.map((c) =>
         Number(c.colorId) === Number(colorId)
           ? { ...c, pricePerFullUnit: Math.max(0, parseFloat(price) || 0) }
+          : c,
+      ),
+    );
+  };
+
+  // DTF placement dimensions (Addendum 4.2): each placement carries its own
+  // design width × height (inches) and piece count. Read by the backend
+  // calculateDtfTotal().
+  const updateWidth = (colorId, value) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, width: Math.max(0, parseFloat(value) || 0) }
+          : c,
+      ),
+    );
+  };
+
+  const updateHeight = (colorId, value) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, height: Math.max(0, parseFloat(value) || 0) }
+          : c,
+      ),
+    );
+  };
+
+  const updatePieces = (colorId, value) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, pieces: Math.max(0, parseInt(value, 10) || 0) }
           : c,
       ),
     );
@@ -611,6 +696,32 @@ const Quotation = () => {
     apparel_pattern_price_id: toNullableId(selectedApparelPattern?.id),
     apparel_type_id: toNullableId(selectedApparelPattern?.apparelTypeId),
     pattern_type_id: toNullableId(selectedApparelPattern?.patternTypeId),
+
+    // --- Print method (required by the backend pricing dispatcher) ---
+    // QuotationService.resolvePrintMethodKey() reads print_method_name to
+    // pick the silkscreen / dtf / embroidery / sublimation calculator.
+    print_method_id: toNullableId(selectedPrintMethodId),
+    print_method_name: selectedPrintMethod?.name || null,
+
+    // --- Custom-fit flag (one-time ₱500 pattern fee, Addendum 3.4) ---
+    // True when the chosen pattern/fit is "Custom".
+    pattern_type_name: selectedApparelPattern?.patternName || null,
+    is_custom_fit:
+      (selectedApparelPattern?.patternName || "").toLowerCase() === "custom",
+
+    // --- Embroidery fields (Addendum 4.3) ---
+    // Small = flat editable rate; Large = manual price entered by CSR.
+    embroidery_size: methodConfig.embroidery_size || "small",
+    embroidery_is_large: methodConfig.embroidery_size === "large",
+    embroidery_manual_price:
+      quotationService.toNumber(methodConfig.embroidery_manual_price) || 0,
+
+    // --- Sublimation fields (Addendum 4.4) ---
+    // jersey_full / mesh_shorts_full use editable flat rates; otherwise
+    // the CSR enters a manual price (partial ~₱200).
+    sublimation_type: methodConfig.sublimation_type || "partial",
+    sublimation_manual_price:
+      quotationService.toNumber(methodConfig.sublimation_manual_price) || 0,
   };
 
   const compactItemsPayload = items.map((item) => ({
@@ -654,6 +765,65 @@ const Quotation = () => {
     };
   });
 
+  // Pricing-relevant print parts for the preview (no images/files needed).
+  // Maps over selectedColors — the same source the submit handler uses to
+  // build print_parts_json.
+  const printPartsPreview = (selectedColors || []).map((part) => ({
+    part: part.part || `Part ${part.colorId}`,
+    unit_count: quotationService.toNumber(part.unitCount || 0),
+    full_unit_count: quotationService.toNumber(part.fullUnitCount || 0),
+    print_size: (part.printSize || selectedPrintArea || "Regular").toLowerCase(),
+    is_full_print:
+      (part.printSize || selectedPrintArea || "").toLowerCase() === "full",
+    width: quotationService.toNumber(part.width || 0),
+    height: quotationService.toNumber(part.height || 0),
+    pieces: quotationService.toNumber(part.pieces || 0),
+  }));
+
+  // Debounced live preview from the backend (single pricing source of truth).
+  // Rebuilds whenever any pricing-relevant input changes; 350ms debounce keeps
+  // it responsive without spamming the endpoint. Stale responses are ignored
+  // via the `cancelled` guard so the last edit always wins.
+  useEffect(() => {
+    if (!data || items.length === 0 || !selectedApparelPattern) {
+      setPreviewTotals(null);
+      return;
+    }
+
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      try {
+        const totals = await quotationApi.preview({
+          item_config_json: JSON.stringify(itemConfigPayload),
+          items_json: JSON.stringify(compactItemsPayload),
+          addons_json: JSON.stringify(formattedAddons),
+          print_parts_json: JSON.stringify(printPartsPreview),
+          apparel_neckline_id: formData.apparel_neckline_id || null,
+          discount_type: discount?.type || null,
+          discount_price: discount?.value || 0,
+        });
+        if (!cancelled) setPreviewTotals(totals);
+      } catch (err) {
+        // On failure, fall back to the local estimate rather than blocking.
+        if (!cancelled) setPreviewTotals(null);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    JSON.stringify(itemConfigPayload),
+    JSON.stringify(compactItemsPayload),
+    JSON.stringify(formattedAddons),
+    JSON.stringify(printPartsPreview),
+    formData.apparel_neckline_id,
+    discount?.type,
+    discount?.value,
+  ]);
+
   const handleSave = async () => {
     if (!selectedClientId) {
       alert("Please search and select a client first.");
@@ -695,6 +865,16 @@ const Quotation = () => {
           price_per_unit: quotationService.toNumber(part.pricePerUnit),
           full_unit_count: part.fullUnitCount || 0,
           price_per_full_unit: quotationService.toNumber(part.pricePerFullUnit || 0),
+          // Per-placement print size flag for the silkscreen Regular/Full
+          // rule (Addendum 4.1). Defaults to the order-level print area.
+          print_size: (part.printSize || selectedPrintArea || "Regular").toLowerCase(),
+          is_full_print:
+            (part.printSize || selectedPrintArea || "").toLowerCase() === "full",
+          // DTF placement dimensions (Addendum 4.2): each placement has its
+          // own design size and piece count. Read by calculateDtfTotal().
+          width: quotationService.toNumber(part.width || 0),
+          height: quotationService.toNumber(part.height || 0),
+          pieces: quotationService.toNumber(part.pieces || 0),
           image_input_type: imageInputType,
           image_link: imageLink,
           image,
@@ -734,6 +914,11 @@ const Quotation = () => {
             price_per_unit: part.price_per_unit,
             full_unit_count: part.full_unit_count,
             price_per_full_unit: part.price_per_full_unit,
+            print_size: part.print_size,
+            is_full_print: part.is_full_print,
+            width: part.width,
+            height: part.height,
+            pieces: part.pieces,
             image_input_type: part.image_input_type,
             image_link: part.image_link,
           })),
@@ -747,6 +932,15 @@ const Quotation = () => {
           formDataToSend.append(`print_parts_files[${index}]`, part.image);
         }
       });
+
+      // Custom-pattern reference (Issue 6). Only sent when the fit is Custom.
+      if (isCustomFit) {
+        if (customPatternImage.inputType === "file" && customPatternImage.file) {
+          formDataToSend.append("custom_pattern_image_file", customPatternImage.file);
+        } else if (customPatternImage.inputType === "link" && customPatternImage.link?.trim()) {
+          formDataToSend.append("custom_pattern_image", customPatternImage.link.trim());
+        }
+      }
 
       await quotationApi.create(formDataToSend);
       navigate("/quotations", { replace: true });
@@ -1040,6 +1234,57 @@ const Quotation = () => {
                 )}
               </div>
 
+              {/* Custom-pattern reference upload (Issue 6). Shown only when the
+                  chosen fit is "Custom" — lets the CSR attach the client's
+                  drawn/reference pattern (file or link) for the GA/production. */}
+              {isCustomFit && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                  <label className="block text-xs font-semibold text-primary">
+                    Custom Pattern Reference
+                  </label>
+                  <p className="text-[11px] text-gray-500">
+                    Attach the client's drawn or reference pattern (a one-time ₱500 custom fee applies).
+                  </p>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCustomPatternImage((p) => ({ ...p, inputType: "file" }))}
+                      className={`px-2 py-1 text-[11px] rounded border ${(customPatternImage.inputType || "file") === "file" ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"}`}
+                    >
+                      File Upload
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomPatternImage((p) => ({ ...p, inputType: "link" }))}
+                      className={`px-2 py-1 text-[11px] rounded border ${customPatternImage.inputType === "link" ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"}`}
+                    >
+                      Link
+                    </button>
+                  </div>
+                  {customPatternImage.inputType === "link" ? (
+                    <input
+                      type="url"
+                      value={customPatternImage.link || ""}
+                      onChange={(e) => setCustomPatternImage((p) => ({ ...p, link: e.target.value }))}
+                      placeholder="https://drive.google.com/... or Canva link"
+                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                    />
+                  ) : (
+                    <FileUpload
+                      label="Upload Pattern Reference"
+                      name="custom-pattern-image"
+                      value={customPatternImage.file ? [customPatternImage.file] : []}
+                      onChange={(e) => setCustomPatternImage((p) => ({ ...p, file: e.target.value?.[0] || null }))}
+                      acceptedTypes="image/*"
+                      multiple={false}
+                      hideUploadWhenHasFiles
+                      hidePreviewWhenEmpty
+                      className="px-0"
+                    />
+                  )}
+                </div>
+              )}
+
               <div className="pt-8 border-t border-gray-100">
                 <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">
                   Print Information
@@ -1097,6 +1342,95 @@ const Quotation = () => {
                         </select>
                       </div>
                     </>
+                  )}
+
+                  {/* Embroidery (Addendum 4.3): Small = flat editable rate;
+                      Large = manual price entered by CSR. */}
+                  {selectedMethodKey === "embroidery" && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Embroidery Size</label>
+                        <select
+                          value={methodConfig.embroidery_size}
+                          onChange={(e) =>
+                            setMethodConfig((prev) => ({ ...prev, embroidery_size: e.target.value }))
+                          }
+                          className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                        >
+                          <option value="small">Small (pocket / left chest) — flat rate</option>
+                          <option value="large">Large — manual price</option>
+                        </select>
+                      </div>
+
+                      {methodConfig.embroidery_size === "large" && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Manual Price / piece (₱)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={methodConfig.embroidery_manual_price || ""}
+                            onChange={(e) =>
+                              setMethodConfig((prev) => ({ ...prev, embroidery_manual_price: e.target.value }))
+                            }
+                            placeholder="Subcontractor quote + markup"
+                            className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* Sublimation (Addendum 4.4): Jersey/Mesh full use editable
+                      flat rates; partial uses a manual price (~₱200). */}
+                  {selectedMethodKey === "sublimation" && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Sublimation Type</label>
+                        <select
+                          value={methodConfig.sublimation_type}
+                          onChange={(e) =>
+                            setMethodConfig((prev) => ({ ...prev, sublimation_type: e.target.value }))
+                          }
+                          className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                        >
+                          <option value="jersey_full">Full Jersey — flat rate</option>
+                          <option value="mesh_shorts_full">Full Mesh Shorts — flat rate</option>
+                          <option value="partial">Partial / Other — manual price</option>
+                        </select>
+                      </div>
+
+                      {methodConfig.sublimation_type === "partial" && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Manual Price / piece (₱)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={methodConfig.sublimation_manual_price || ""}
+                            onChange={(e) =>
+                              setMethodConfig((prev) => ({ ...prev, sublimation_manual_price: e.target.value }))
+                            }
+                            placeholder="e.g. 200"
+                            className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                          />
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {/* DTF (Addendum 4.2): per-square-inch rate set by Superadmin.
+                      Each placement's design size + piece count is entered in the
+                      print parts section below; this note guides the CSR. */}
+                  {selectedMethodKey === "dtf" && (
+                    <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2">
+                      <p className="text-xs text-amber-800">
+                        DTF is priced per square inch. Enter each placement&apos;s
+                        design <strong>width</strong>, <strong>height</strong>, and
+                        <strong> pieces</strong> in the print details below. The rate
+                        is set by the Superadmin in Pricing Settings.
+                      </p>
+                    </div>
                   )}
                 </div>
               </div>
@@ -1187,8 +1521,8 @@ const Quotation = () => {
                                 type="button"
                                 onClick={() => updateColorInputType(part.colorId, "file")}
                                 className={`px-2 py-1 text-[11px] rounded border ${(part.imageInputType || "file") === "file"
-                                    ? "bg-primary text-white border-primary"
-                                    : "bg-white text-gray-600 border-gray-200"
+                                  ? "bg-primary text-white border-primary"
+                                  : "bg-white text-gray-600 border-gray-200"
                                   }`}
                               >
                                 File Upload
@@ -1197,8 +1531,8 @@ const Quotation = () => {
                                 type="button"
                                 onClick={() => updateColorInputType(part.colorId, "link")}
                                 className={`px-2 py-1 text-[11px] rounded border ${part.imageInputType === "link"
-                                    ? "bg-primary text-white border-primary"
-                                    : "bg-white text-gray-600 border-gray-200"
+                                  ? "bg-primary text-white border-primary"
+                                  : "bg-white text-gray-600 border-gray-200"
                                   }`}
                               >
                                 Link
@@ -1234,27 +1568,34 @@ const Quotation = () => {
                           </div>
 
                           <div className="lg:pt-9 space-y-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.unitLabel}</label>
-                            <input
-                              type="number"
-                              min="1"
-                              max="10"
-                              value={part.unitCount || 1}
-                              onChange={(e) => updateUnitCount(part.colorId, e.target.value)}
-                              className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                            />
+                            {/* Generic unit-count / price inputs. Hidden for DTF,
+                                which uses the dedicated Width/Height/Pieces block
+                                below (per-square-inch pricing, Addendum 4.2). */}
+                            {selectedMethodKey !== "dtf" && (
+                              <>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.unitLabel}</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="10"
+                                  value={part.unitCount || 1}
+                                  onChange={(e) => updateUnitCount(part.colorId, e.target.value)}
+                                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                />
 
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.priceLabel}</label>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={part.pricePerUnit ?? 0}
-                                onChange={(e) => updateUnitPrice(part.colorId, e.target.value)}
-                                className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                              />
-                            </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.priceLabel}</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={part.pricePerUnit ?? 0}
+                                    onChange={(e) => updateUnitPrice(part.colorId, e.target.value)}
+                                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                  />
+                                </div>
+                              </>
+                            )}
 
                             {selectedPrintMethodId === silkscreenMethodId && selectedPrintArea === "Full" && (
                               <>
@@ -1282,6 +1623,52 @@ const Quotation = () => {
                                   />
                                 </div>
                               </>
+                            )}
+
+                            {/* DTF placement dimensions (Addendum 4.2). Per
+                                placement: design width × height (inches) and
+                                piece count. Charge = (w × h) × rate × pieces. */}
+                            {selectedMethodKey === "dtf" && (
+                              <div className="pt-2 space-y-2 border-t border-dashed border-gray-200 mt-2">
+                                <p className="text-[11px] font-semibold text-gray-500">DTF Design Size (inches)</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Width</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.1"
+                                      value={part.width ?? 0}
+                                      onChange={(e) => updateWidth(part.colorId, e.target.value)}
+                                      placeholder="in"
+                                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Height</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.1"
+                                      value={part.height ?? 0}
+                                      onChange={(e) => updateHeight(part.colorId, e.target.value)}
+                                      placeholder="in"
+                                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">Pieces (for this placement)</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={part.pieces ?? 0}
+                                    onChange={(e) => updatePieces(part.colorId, e.target.value)}
+                                    placeholder="qty"
+                                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                  />
+                                </div>
+                              </div>
                             )}
                           </div>
                         </div>

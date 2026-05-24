@@ -154,12 +154,27 @@ const EditQuotation = () => {
   const [activeApparelFilter, setActiveApparelFilter] = useState("all");
   const [activePatternFilter, setActivePatternFilter] = useState("all");
   const [selectedApparelPatternId, setSelectedApparelPatternId] = useState(null);
+  // Custom-pattern reference (Issue 6); mirrors the Add page.
+  const [customPatternImage, setCustomPatternImage] = useState({
+    inputType: "file",
+    file: null,
+    link: "",
+  });
 
   // Print Information State
   const [selectedPrintMethodId, setSelectedPrintMethodId] = useState(null);
   const [selectedSpecialPrint, setSelectedSpecialPrint] = useState("");
   const [selectedPrintArea, setSelectedPrintArea] = useState("Regular");
   const [silkscreenMethodId, setSilkscreenMethodId] = useState(null);
+
+  // Method-specific pricing inputs (Addendum 4.2–4.4) + backend-driven preview.
+  const [methodConfig, setMethodConfig] = useState({
+    embroidery_size: "small",
+    embroidery_manual_price: 0,
+    sublimation_type: "partial",
+    sublimation_manual_price: 0,
+  });
+  const [previewTotals, setPreviewTotals] = useState(null);
 
   const [formData, setOrderInfo] = useState({
     client_name: "",
@@ -234,18 +249,33 @@ const EditQuotation = () => {
     );
   }, [apparelPatternOptions, selectedApparelPatternId]);
 
+  const isCustomFit = useMemo(
+    () => (selectedApparelPattern?.patternName || "").toLowerCase() === "custom",
+    [selectedApparelPattern],
+  );
+
   const selectedPrintMethod = useMemo(() => {
     return printMethods.find(
       (method) => Number(method.id) === Number(selectedPrintMethodId),
     ) || null;
   }, [printMethods, selectedPrintMethodId]);
 
+  // Canonical method key, mirroring the backend's resolvePrintMethodKey().
+  const selectedMethodKey = useMemo(() => {
+    const name = (selectedPrintMethod?.name || "").toLowerCase();
+    if (name.includes("dtf") || name.includes("direct-to-film")) return "dtf";
+    if (name.includes("embroid")) return "embroidery";
+    if (name.includes("subli")) return "sublimation";
+    if (name.includes("silk") || name.includes("screen")) return "silkscreen";
+    return name ? name : "silkscreen";
+  }, [selectedPrintMethod]);
+
   const filteredPrintMethods = useMemo(() => {
     return printMethods.filter((method) => {
       const name = method.name?.toLowerCase() || "";
-      // Exclude Silkscreen, Sublimation, and High Density from the dropdown
+      // Silkscreen has its own hardcoded option; "high density" is a special-
+      // print sub-option. Sublimation IS a first-class priced method.
       return !name.includes("silkscreen") &&
-        !name.includes("sublimation") &&
         !name.includes("high density");
     });
   }, [printMethods]);
@@ -449,6 +479,17 @@ const EditQuotation = () => {
       setSelectedPrintMethodId(printMethodId);
       setSelectedSpecialPrint(quotation.special_print || "");
       setSelectedPrintArea(quotation.print_area || "Regular");
+
+      // Restore the custom-pattern reference (Issue 6). Stored as a path/link
+      // string; surface it as a "link" so the CSR can see/replace it. A newly
+      // uploaded file would override it on save.
+      if (quotation.custom_pattern_image) {
+        setCustomPatternImage({
+          inputType: "link",
+          file: null,
+          link: quotation.custom_pattern_image,
+        });
+      }
 
       const parsedItems =
         typeof quotation.items_json === "string"
@@ -655,11 +696,16 @@ const EditQuotation = () => {
   const sampleBreakdownTotal =
     quotationService.toNumber(sampleBreakdown.unit_price) *
     quotationService.toNumber(sampleBreakdown.quantity);
-  const subtotal = totalAmount + totalAddons + sampleBreakdownTotal;
-  const discountAmount = quotationService.applyDiscount(subtotal, discount);
-  const grandTotal = subtotal - discountAmount;
-  const downPayment = grandTotal * 0.6;
-  const balance = grandTotal * 0.4;
+  const localSubtotal = totalAmount + totalAddons + sampleBreakdownTotal;
+  const localDiscountAmount = quotationService.applyDiscount(localSubtotal, discount);
+  const localGrandTotal = localSubtotal - localDiscountAmount;
+
+  // Authoritative totals from the backend preview (same engine as save).
+  const subtotal = previewTotals?.subtotal ?? localSubtotal;
+  const discountAmount = previewTotals?.discount_amount ?? localDiscountAmount;
+  const grandTotal = previewTotals?.grand_total ?? localGrandTotal;
+  const downPayment = previewTotals?.downpayment ?? grandTotal * 0.6;
+  const balance = previewTotals?.balance ?? grandTotal * 0.4;
 
   const toggleColor = (part) => {
     const partId = Number(part.id ?? part.colorId ?? part.partId);
@@ -760,6 +806,38 @@ const EditQuotation = () => {
       prev.map((c) =>
         Number(c.colorId) === Number(colorId)
           ? { ...c, pricePerFullColor: Math.max(0, parseFloat(price) || 0) }
+          : c,
+      ),
+    );
+  };
+
+  // DTF placement dimensions (Addendum 4.2). Mirrors the Add page; read by the
+  // backend calculateDtfTotal() via the print_parts_json width/height/pieces.
+  const updateWidth = (colorId, value) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, width: Math.max(0, parseFloat(value) || 0) }
+          : c,
+      ),
+    );
+  };
+
+  const updateHeight = (colorId, value) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, height: Math.max(0, parseFloat(value) || 0) }
+          : c,
+      ),
+    );
+  };
+
+  const updatePieces = (colorId, value) => {
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId)
+          ? { ...c, pieces: Math.max(0, parseInt(value, 10) || 0) }
           : c,
       ),
     );
@@ -929,6 +1007,22 @@ const EditQuotation = () => {
     apparel_pattern_price_id: toNullableId(selectedApparelPattern?.id),
     apparel_type_id: toNullableId(selectedApparelPattern?.apparelTypeId),
     pattern_type_id: toNullableId(selectedApparelPattern?.patternTypeId),
+
+    print_method_id: toNullableId(selectedPrintMethodId),
+    print_method_name: selectedPrintMethod?.name || null,
+
+    pattern_type_name: selectedApparelPattern?.patternName || null,
+    is_custom_fit:
+      (selectedApparelPattern?.patternName || "").toLowerCase() === "custom",
+
+    embroidery_size: methodConfig.embroidery_size || "small",
+    embroidery_is_large: methodConfig.embroidery_size === "large",
+    embroidery_manual_price:
+      quotationService.toNumber(methodConfig.embroidery_manual_price) || 0,
+
+    sublimation_type: methodConfig.sublimation_type || "partial",
+    sublimation_manual_price:
+      quotationService.toNumber(methodConfig.sublimation_manual_price) || 0,
   };
 
   const compactItemsPayload = items.map((item) => ({
@@ -973,6 +1067,61 @@ const EditQuotation = () => {
     };
   });
 
+  // Pricing-relevant print parts for the live preview. Translates Edit's
+  // colorCount/fullColorCount into the backend's unit_count/full_unit_count.
+  const printPartsPreview = (selectedColors || []).map((part) => ({
+    part: part.part || `Part ${part.colorId}`,
+    unit_count: quotationService.toNumber(part.colorCount || 0),
+    full_unit_count: quotationService.toNumber(part.fullColorCount || 0),
+    print_size: (part.printSize || selectedPrintArea || "Regular").toLowerCase(),
+    is_full_print:
+      (part.printSize || selectedPrintArea || "").toLowerCase() === "full",
+    width: quotationService.toNumber(part.width || 0),
+    height: quotationService.toNumber(part.height || 0),
+    pieces: quotationService.toNumber(part.pieces || 0),
+  }));
+
+  // Debounced live preview from the backend (same engine as save), so editing
+  // a quotation shows correct method-aware totals.
+  useEffect(() => {
+    if (!data || items.length === 0 || !selectedApparelPattern) {
+      setPreviewTotals(null);
+      return;
+    }
+
+    let cancelled = false;
+    const handle = setTimeout(async () => {
+      try {
+        const totals = await quotationApi.preview({
+          item_config_json: JSON.stringify(itemConfigPayload),
+          items_json: JSON.stringify(compactItemsPayload),
+          addons_json: JSON.stringify(formattedAddons),
+          print_parts_json: JSON.stringify(printPartsPreview),
+          apparel_neckline_id: formData.apparel_neckline_id || null,
+          discount_type: discount?.type || null,
+          discount_price: discount?.value || 0,
+        });
+        if (!cancelled) setPreviewTotals(totals);
+      } catch (err) {
+        if (!cancelled) setPreviewTotals(null);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(handle);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    JSON.stringify(itemConfigPayload),
+    JSON.stringify(compactItemsPayload),
+    JSON.stringify(formattedAddons),
+    JSON.stringify(printPartsPreview),
+    formData.apparel_neckline_id,
+    discount?.type,
+    discount?.value,
+  ]);
+
   const handleUpdate = async () => {
     if (!selectedClientId) {
       alert("Please search and select a client first.");
@@ -1015,6 +1164,19 @@ const EditQuotation = () => {
           price_per_color: quotationService.toNumber(part.pricePerColor),
           full_color_count: part.fullColorCount || 0,
           price_per_full_color: quotationService.toNumber(part.pricePerFullColor || 0),
+          // Backend pricing engine field names (translated at this boundary so
+          // the shared backend engine prices Edit correctly without renaming
+          // Edit's internal state). unit_count/full_unit_count drive the
+          // silkscreen split; print_size/is_full_print classify regular/full;
+          // width/height/pieces drive DTF.
+          unit_count: part.colorCount || 0,
+          full_unit_count: part.fullColorCount || 0,
+          print_size: (part.printSize || selectedPrintArea || "Regular").toLowerCase(),
+          is_full_print:
+            (part.printSize || selectedPrintArea || "").toLowerCase() === "full",
+          width: quotationService.toNumber(part.width || 0),
+          height: quotationService.toNumber(part.height || 0),
+          pieces: quotationService.toNumber(part.pieces || 0),
           image_input_type: imageInputType,
           image_link: imageLink,
           image,
@@ -1054,6 +1216,13 @@ const EditQuotation = () => {
             price_per_color: part.price_per_color,
             full_color_count: part.full_color_count,
             price_per_full_color: part.price_per_full_color,
+            unit_count: part.unit_count,
+            full_unit_count: part.full_unit_count,
+            print_size: part.print_size,
+            is_full_print: part.is_full_print,
+            width: part.width,
+            height: part.height,
+            pieces: part.pieces,
             image_input_type: part.image_input_type,
             image_link: part.image_link,
           })),
@@ -1066,6 +1235,16 @@ const EditQuotation = () => {
           formDataToSend.append(`print_parts_files[${index}]`, part.image);
         }
       });
+
+      // Custom-pattern reference (Issue 6). A new file overrides; otherwise send
+      // the link (which on hydration holds the existing saved path/link).
+      if (isCustomFit) {
+        if (customPatternImage.inputType === "file" && customPatternImage.file) {
+          formDataToSend.append("custom_pattern_image_file", customPatternImage.file);
+        } else if (customPatternImage.inputType === "link" && customPatternImage.link?.trim()) {
+          formDataToSend.append("custom_pattern_image", customPatternImage.link.trim());
+        }
+      }
 
       await quotationApi.update(id, formDataToSend);
 
@@ -1345,6 +1524,55 @@ const EditQuotation = () => {
                 )}
               </div>
 
+              {/* Custom-pattern reference upload (Issue 6); mirrors the Add page. */}
+              {isCustomFit && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                  <label className="block text-xs font-semibold text-primary">
+                    Custom Pattern Reference
+                  </label>
+                  <p className="text-[11px] text-gray-500">
+                    Attach the client's drawn or reference pattern (a one-time ₱500 custom fee applies).
+                  </p>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCustomPatternImage((p) => ({ ...p, inputType: "file" }))}
+                      className={`px-2 py-1 text-[11px] rounded border ${(customPatternImage.inputType || "file") === "file" ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"}`}
+                    >
+                      File Upload
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomPatternImage((p) => ({ ...p, inputType: "link" }))}
+                      className={`px-2 py-1 text-[11px] rounded border ${customPatternImage.inputType === "link" ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"}`}
+                    >
+                      Link
+                    </button>
+                  </div>
+                  {customPatternImage.inputType === "link" ? (
+                    <input
+                      type="url"
+                      value={customPatternImage.link || ""}
+                      onChange={(e) => setCustomPatternImage((p) => ({ ...p, link: e.target.value }))}
+                      placeholder="https://drive.google.com/... or Canva link"
+                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                    />
+                  ) : (
+                    <FileUpload
+                      label="Upload Pattern Reference"
+                      name="custom-pattern-image"
+                      value={customPatternImage.file ? [customPatternImage.file] : []}
+                      onChange={(e) => setCustomPatternImage((p) => ({ ...p, file: e.target.value?.[0] || null }))}
+                      acceptedTypes="image/*"
+                      multiple={false}
+                      hideUploadWhenHasFiles
+                      hidePreviewWhenEmpty
+                      className="px-0"
+                    />
+                  )}
+                </div>
+              )}
+
               <div className="pt-8 border-t border-gray-100">
                 <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">
                   Print Information
@@ -1492,8 +1720,8 @@ const EditQuotation = () => {
                                 type="button"
                                 onClick={() => updateColorInputType(part.colorId, "file")}
                                 className={`px-2 py-1 text-[11px] rounded border ${(part.imageInputType || "file") === "file"
-                                    ? "bg-primary text-white border-primary"
-                                    : "bg-white text-gray-600 border-gray-200"
+                                  ? "bg-primary text-white border-primary"
+                                  : "bg-white text-gray-600 border-gray-200"
                                   }`}
                               >
                                 File Upload
@@ -1502,8 +1730,8 @@ const EditQuotation = () => {
                                 type="button"
                                 onClick={() => updateColorInputType(part.colorId, "link")}
                                 className={`px-2 py-1 text-[11px] rounded border ${part.imageInputType === "link"
-                                    ? "bg-primary text-white border-primary"
-                                    : "bg-white text-gray-600 border-gray-200"
+                                  ? "bg-primary text-white border-primary"
+                                  : "bg-white text-gray-600 border-gray-200"
                                   }`}
                               >
                                 Link
@@ -1553,27 +1781,33 @@ const EditQuotation = () => {
                           </div>
 
                           <div className="lg:pt-9 space-y-2">
-                            <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.colorLabel}</label>
-                            <input
-                              type="number"
-                              min="1"
-                              max="10"
-                              value={part.colorCount || 1}
-                              onChange={(e) => updateColorCount(part.colorId, e.target.value)}
-                              className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                            />
+                            {/* Generic color inputs. Hidden for DTF, which uses
+                                the dedicated Width/Height/Pieces block below. */}
+                            {selectedMethodKey !== "dtf" && (
+                              <>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.colorLabel}</label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max="10"
+                                  value={part.colorCount || 1}
+                                  onChange={(e) => updateColorCount(part.colorId, e.target.value)}
+                                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                />
 
-                            <div>
-                              <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.priceLabel}</label>
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                value={part.pricePerColor ?? 0}
-                                onChange={(e) => updateColorPrice(part.colorId, e.target.value)}
-                                className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                              />
-                            </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.priceLabel}</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={part.pricePerColor ?? 0}
+                                    onChange={(e) => updateColorPrice(part.colorId, e.target.value)}
+                                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                  />
+                                </div>
+                              </>
+                            )}
 
                             {selectedPrintMethodId === silkscreenMethodId && selectedPrintArea === "Full" && (
                               <>
@@ -1601,6 +1835,52 @@ const EditQuotation = () => {
                                   />
                                 </div>
                               </>
+                            )}
+
+                            {/* DTF placement dimensions (Addendum 4.2). Per
+                                placement: design width × height (inches) and
+                                piece count. Charge = (w × h) × rate × pieces. */}
+                            {selectedMethodKey === "dtf" && (
+                              <div className="pt-2 space-y-2 border-t border-dashed border-gray-200 mt-2">
+                                <p className="text-[11px] font-semibold text-gray-500">DTF Design Size (inches)</p>
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Width</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.1"
+                                      value={part.width ?? 0}
+                                      onChange={(e) => updateWidth(part.colorId, e.target.value)}
+                                      placeholder="in"
+                                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Height</label>
+                                    <input
+                                      type="number"
+                                      min="0"
+                                      step="0.1"
+                                      value={part.height ?? 0}
+                                      onChange={(e) => updateHeight(part.colorId, e.target.value)}
+                                      placeholder="in"
+                                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">Pieces (for this placement)</label>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={part.pieces ?? 0}
+                                    onChange={(e) => updatePieces(part.colorId, e.target.value)}
+                                    placeholder="qty"
+                                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                                  />
+                                </div>
+                              </div>
                             )}
                           </div>
                         </div>
