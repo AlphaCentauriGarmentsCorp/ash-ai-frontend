@@ -154,6 +154,12 @@ const EditQuotation = () => {
   const [activeApparelFilter, setActiveApparelFilter] = useState("all");
   const [activePatternFilter, setActivePatternFilter] = useState("all");
   const [selectedApparelPatternId, setSelectedApparelPatternId] = useState(null);
+  // Custom-pattern reference (Issue 6); mirrors the Add page.
+  const [customPatternImage, setCustomPatternImage] = useState({
+    inputType: "file",
+    file: null,
+    link: "",
+  });
 
   // Print Information State
   const [selectedPrintMethodId, setSelectedPrintMethodId] = useState(null);
@@ -242,6 +248,11 @@ const EditQuotation = () => {
       ) || null
     );
   }, [apparelPatternOptions, selectedApparelPatternId]);
+
+  const isCustomFit = useMemo(
+    () => (selectedApparelPattern?.patternName || "").toLowerCase() === "custom",
+    [selectedApparelPattern],
+  );
 
   const selectedPrintMethod = useMemo(() => {
     return printMethods.find(
@@ -468,6 +479,17 @@ const EditQuotation = () => {
       setSelectedPrintMethodId(printMethodId);
       setSelectedSpecialPrint(quotation.special_print || "");
       setSelectedPrintArea(quotation.print_area || "Regular");
+
+      // Restore the custom-pattern reference (Issue 6). Stored as a path/link
+      // string; surface it as a "link" so the CSR can see/replace it. A newly
+      // uploaded file would override it on save.
+      if (quotation.custom_pattern_image) {
+        setCustomPatternImage({
+          inputType: "link",
+          file: null,
+          link: quotation.custom_pattern_image,
+        });
+      }
 
       const parsedItems =
         typeof quotation.items_json === "string"
@@ -1214,6 +1236,16 @@ const EditQuotation = () => {
         }
       });
 
+      // Custom-pattern reference (Issue 6). A new file overrides; otherwise send
+      // the link (which on hydration holds the existing saved path/link).
+      if (isCustomFit) {
+        if (customPatternImage.inputType === "file" && customPatternImage.file) {
+          formDataToSend.append("custom_pattern_image_file", customPatternImage.file);
+        } else if (customPatternImage.inputType === "link" && customPatternImage.link?.trim()) {
+          formDataToSend.append("custom_pattern_image", customPatternImage.link.trim());
+        }
+      }
+
       await quotationApi.update(id, formDataToSend);
 
       navigate("/quotations");
@@ -1491,6 +1523,55 @@ const EditQuotation = () => {
                   <p className="text-xs text-gray-500 mt-2">No Apparel/Pattern combinations found.</p>
                 )}
               </div>
+
+              {/* Custom-pattern reference upload (Issue 6); mirrors the Add page. */}
+              {isCustomFit && (
+                <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2">
+                  <label className="block text-xs font-semibold text-primary">
+                    Custom Pattern Reference
+                  </label>
+                  <p className="text-[11px] text-gray-500">
+                    Attach the client's drawn or reference pattern (a one-time ₱500 custom fee applies).
+                  </p>
+                  <div className="flex gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setCustomPatternImage((p) => ({ ...p, inputType: "file" }))}
+                      className={`px-2 py-1 text-[11px] rounded border ${(customPatternImage.inputType || "file") === "file" ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"}`}
+                    >
+                      File Upload
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCustomPatternImage((p) => ({ ...p, inputType: "link" }))}
+                      className={`px-2 py-1 text-[11px] rounded border ${customPatternImage.inputType === "link" ? "bg-primary text-white border-primary" : "bg-white text-gray-600 border-gray-200"}`}
+                    >
+                      Link
+                    </button>
+                  </div>
+                  {customPatternImage.inputType === "link" ? (
+                    <input
+                      type="url"
+                      value={customPatternImage.link || ""}
+                      onChange={(e) => setCustomPatternImage((p) => ({ ...p, link: e.target.value }))}
+                      placeholder="https://drive.google.com/... or Canva link"
+                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                    />
+                  ) : (
+                    <FileUpload
+                      label="Upload Pattern Reference"
+                      name="custom-pattern-image"
+                      value={customPatternImage.file ? [customPatternImage.file] : []}
+                      onChange={(e) => setCustomPatternImage((p) => ({ ...p, file: e.target.value?.[0] || null }))}
+                      acceptedTypes="image/*"
+                      multiple={false}
+                      hideUploadWhenHasFiles
+                      hidePreviewWhenEmpty
+                      className="px-0"
+                    />
+                  )}
+                </div>
+              )}
 
               <div className="pt-8 border-t border-gray-100">
                 <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">
