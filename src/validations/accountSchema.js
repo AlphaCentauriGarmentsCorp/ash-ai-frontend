@@ -1,3 +1,5 @@
+import { RoleAccess } from "../constants/formOptions/accountOptions";
+
 export const accountSchema = {
   first_name: {
     required: true,
@@ -52,9 +54,6 @@ export const accountSchema = {
 
   profile: {
     required: false,
-    validate: (value) => {
-      return !!value || !!selectedImage;
-    },
   },
 
   currentStreet: {

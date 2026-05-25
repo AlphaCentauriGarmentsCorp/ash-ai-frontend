@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Table from "../../components/table/Table";
 import { accountApi } from "../../api/accountApi";
+import { accountService } from "../../services/accountService";
 
 const AccountsPage = () => {
+  const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
+  const [actionError, setActionError] = useState("");
 
   const columns = [
     {
@@ -121,20 +125,36 @@ const AccountsPage = () => {
     setPageSize(newPageSize);
   };
 
-  const handleAction = (action, rowData) => {
+  const handleAction = async (action, rowData) => {
+    setActionError("");
     switch (action) {
       case "view":
-        console.log("View:", rowData);
+        navigate(`/account/employee/${rowData.id}`);
         break;
       case "edit":
-        console.log("Edit:", rowData);
+        navigate(`/account/employee/${rowData.id}/edit`);
         break;
       case "delete":
         if (
-          window.confirm(`Are you sure you want to delete ${rowData.name}?`)
+          window.confirm(
+            `Deactivate ${rowData.name}? Their account will be disabled but can be restored later.`,
+          )
         ) {
-          console.log("Delete:", rowData);
+          try {
+            await accountService.deleteAccount(rowData.id);
+            // Remove from the current view immediately, then refresh from server.
+            setData((prev) => prev.filter((u) => u.id !== rowData.id));
+            fetchData(pageSize);
+          } catch (error) {
+            console.error("Error deleting account:", error);
+            setActionError(
+              error.response?.data?.message ||
+                "Failed to deactivate account. Please try again.",
+            );
+          }
         }
+        break;
+      default:
         break;
     }
   };
@@ -162,6 +182,12 @@ const AccountsPage = () => {
         { label: "Accounts", href: "/admin/accounts" },
       ]}
     >
+      {actionError && (
+        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-md flex items-center">
+          <i className="fa-solid fa-exclamation-circle text-red-500 mr-2"></i>
+          <p className="text-red-700 text-sm">{actionError}</p>
+        </div>
+      )}
       <Table
         data={data}
         columns={columns}
