@@ -5,6 +5,8 @@ import Login from "./pages/Auth/Login";
 import Dashboard from "./pages/Dashboard/Dashboard";
 import AddEmployeeAccount from "./pages/Accounts/AddNewAccount";
 import AllEmployeeAccount from "./pages/Accounts/AllAccount";
+import ViewEmployeeAccount from "./pages/Accounts/ViewAccount";
+import EditEmployeeAccount from "./pages/Accounts/EditAccount";
 import AddNewClient from "./pages/Clients/AddNewClient";
 import AllClients from "./pages/Clients/AllClient";
 import ViewClient from "./pages/Clients/ViewClient";
@@ -258,6 +260,22 @@ function App() {
           element={
             <ProtectedRoute>
               <AddEmployeeAccount />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/account/employee/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditEmployeeAccount />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/account/employee/:id"
+          element={
+            <ProtectedRoute>
+              <ViewEmployeeAccount />
             </ProtectedRoute>
           }
         />
