@@ -39,6 +39,15 @@ export const clientApi = {
     }
   },
 
+  // Issue 1 — add a brand to a client on the fly. Returns the refreshed client
+  // (with its full brand list) so the caller can repopulate the Brand dropdown.
+  addBrand: async (clientId, brandName) => {
+    const { data } = await api.post(`/clients/${clientId}/brands`, {
+      brand_name: brandName,
+    });
+    return data;
+  },
+
   delete: async (id) => {
     try {
       const response = await api.delete(`/clients/${id}`);
