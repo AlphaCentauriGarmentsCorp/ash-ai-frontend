@@ -66,14 +66,18 @@ const AllQuotation = () => {
       sortable: true,
       filterable: true,
       render: (item) => {
+        // Issue 12 — keyed by lowercase status so it matches regardless of the
+        // stored casing (DB values are capitalized: Draft, Sent, Approved...).
         const statusColors = {
-          draft: "bg-gray-100 text-gray-700",
-          Pending: "bg-yellow-100 text-yellow-700",
+          draft: "bg-yellow-100 text-yellow-700",
+          pending: "bg-yellow-100 text-yellow-700",
+          sent: "bg-blue-100 text-blue-700",
           approved: "bg-green-100 text-green-700",
+          converted: "bg-purple-100 text-purple-700",
           rejected: "bg-red-100 text-red-700",
-          converted: "bg-blue-100 text-blue-700",
+          expired: "bg-gray-200 text-gray-700",
         };
-        const statusColor = statusColors[item.status] || "bg-gray-100 text-gray-700";
+        const statusColor = statusColors[item.status?.toLowerCase()] || "bg-gray-100 text-gray-700";
         return (
           <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>
             {item.status || "Draft"}
@@ -205,4 +209,4 @@ const AllQuotation = () => {
   );
 };
 
-export default AllQuotation;
+export default AllQuotation;

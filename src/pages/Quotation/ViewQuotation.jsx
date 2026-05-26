@@ -6,6 +6,7 @@ import { patternTypeApi } from "../../api/patternTypeApi";
 import { apparelNecklineApi } from "../../api/apparelNecklineApi";
 import { useParams, useNavigate } from "react-router-dom";
 import TicketComposer from "../../components/tickets/TicketComposer";
+import QuotationStatusActions from "../../components/quotation/QuotationStatusActions";
 
 const ViewQuotation = () => {
   const { id } = useParams();
@@ -105,6 +106,13 @@ const ViewQuotation = () => {
    * Confirm the quotation → marks it as "Converted" on the backend,
    * then navigates to /orders/new with the pre-filled payload in route state.
    */
+  // Issue 12 — refresh local quotation after a lifecycle status change so the
+  // badge + available action buttons update without a full reload.
+  const handleStatusChanged = (updated) => {
+    if (!updated) return;
+    setQuotation((prev) => ({ ...(prev || {}), ...updated }));
+  };
+
   const handleConvertToOrder = async () => {
     if (quotation?.status === "Converted") return;
     if (!window.confirm("Convert this quotation to an Order? This action cannot be undone.")) return;
@@ -133,9 +141,12 @@ const ViewQuotation = () => {
 
   const getStatusBadge = (status) => {
     const statusConfig = {
+      draft: { color: "bg-yellow-100 text-yellow-800", icon: "fa-pen" },
       pending: { color: "bg-yellow-100 text-yellow-800", icon: "fa-clock" },
+      sent: { color: "bg-blue-100 text-blue-800", icon: "fa-paper-plane" },
       approved: { color: "bg-green-100 text-green-800", icon: "fa-check-circle" },
       rejected: { color: "bg-red-100 text-red-800", icon: "fa-times-circle" },
+      expired: { color: "bg-gray-200 text-gray-700", icon: "fa-hourglass-end" },
       completed: { color: "bg-blue-100 text-blue-800", icon: "fa-check-double" },
       converted: { color: "bg-purple-100 text-purple-800", icon: "fa-exchange-alt" },
     };
@@ -629,6 +640,16 @@ const ViewQuotation = () => {
           )}
         </button>
       </div>
+      {/* Issue 12 — lifecycle status actions + audit timeline */}
+      {quotation && (
+        <QuotationStatusActions
+          quotationId={quotation.id}
+          currentStatus={quotation.status}
+          allowedTransitions={quotation.allowed_transitions || []}
+          onStatusChanged={handleStatusChanged}
+        />
+      )}
+
       {/* Ticket composer (hidden trigger) */}
       {quotation && (
         <TicketComposer

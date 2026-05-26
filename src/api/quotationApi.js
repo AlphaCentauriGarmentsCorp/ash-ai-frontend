@@ -77,6 +77,20 @@ export const quotationApi = {
     }
   },
 
+  // Issue 12 — change lifecycle status through the backend state machine.
+  // payload = { status, notes? }. The 'Sent' transition also emails the PDF
+  // (best-effort). Returns { message, quotation, email_sent, email_error }.
+  changeStatus: async (id, payload) => {
+    const { data } = await api.patch(`/quotations/${id}/status`, payload);
+    return data;
+  },
+
+  // Issue 12 — immutable status-transition history (newest first).
+  statusLog: async (id) => {
+    const { data } = await api.get(`/quotations/${id}/status-log`);
+    return data;
+  },
+
   delete: async (id) => {
     try {
       const response = await api.delete(
@@ -87,4 +101,4 @@ export const quotationApi = {
       throw error;
     }
   },
-};
+};
