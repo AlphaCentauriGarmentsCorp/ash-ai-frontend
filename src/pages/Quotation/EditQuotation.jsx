@@ -9,6 +9,11 @@ import { apparelPartsApi } from "../../api/apparelPartsApi";
 import { apparelNecklineApi } from "../../api/apparelNecklineApi";
 import { printMethodApi } from "../../api/printMethodApi";
 import FileUpload from "../../components/form/FileUpload";
+import LabelSpecSection, {
+  EMPTY_LABEL,
+  EMPTY_LABEL_DESIGN,
+} from "../../components/quotation/LabelSpecSection";
+import OrderInfoSection from "../../components/quotation/OrderInfoSection";
 
 const DEFAULT_SIZE_OPTIONS = [
   { id: 1, name: "XS" },
@@ -160,6 +165,12 @@ const EditQuotation = () => {
     file: null,
     link: "",
   });
+
+  // ── Issue 7: Brand Label + Care/Size Label spec + one shared design upload.
+  // Mirrors the Add page; hydrated from the loaded quotation in loadData().
+  const [brandLabel, setBrandLabel] = useState(EMPTY_LABEL);
+  const [careLabel, setCareLabel] = useState(EMPTY_LABEL);
+  const [labelDesign, setLabelDesign] = useState(EMPTY_LABEL_DESIGN);
 
   // Print Information State
   const [selectedPrintMethodId, setSelectedPrintMethodId] = useState(null);
@@ -488,6 +499,24 @@ const EditQuotation = () => {
           inputType: "link",
           file: null,
           link: quotation.custom_pattern_image,
+        });
+      }
+
+      // Restore the Issue 7 label spec. brand_label / care_label come back as
+      // objects (JSON-cast on the backend); merge onto the empty defaults so a
+      // partially-filled or missing label still yields a complete shape. The
+      // shared design is surfaced via existingPath (Edit shows the saved value;
+      // a new file/link on save overrides it).
+      if (quotation.brand_label && typeof quotation.brand_label === "object") {
+        setBrandLabel({ ...EMPTY_LABEL, ...quotation.brand_label });
+      }
+      if (quotation.care_label && typeof quotation.care_label === "object") {
+        setCareLabel({ ...EMPTY_LABEL, ...quotation.care_label });
+      }
+      if (quotation.label_design_path) {
+        setLabelDesign({
+          ...EMPTY_LABEL_DESIGN,
+          existingPath: quotation.label_design_path,
         });
       }
 
@@ -1246,6 +1275,19 @@ const EditQuotation = () => {
         }
       }
 
+      // ── Issue 7: Brand + Care/Size label spec + one shared design upload.
+      // A newly staged file/link overrides the saved design; if the CSR touches
+      // neither, we send nothing for the design and the backend keeps the
+      // existing value (controller resolveLabelDesign returns null → service
+      // falls back to the existing record).
+      formDataToSend.append("brand_label_json", JSON.stringify(brandLabel));
+      formDataToSend.append("care_label_json", JSON.stringify(careLabel));
+      if (labelDesign.inputType === "file" && labelDesign.file) {
+        formDataToSend.append("label_design_file", labelDesign.file);
+      } else if (labelDesign.inputType === "link" && labelDesign.link?.trim()) {
+        formDataToSend.append("label_design_path", labelDesign.link.trim());
+      }
+
       await quotationApi.update(id, formDataToSend);
 
       navigate("/quotations");
@@ -1309,126 +1351,17 @@ const EditQuotation = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
-            <h2 className="text-sm font-medium text-primary mb-3 flex items-center gap-2">
-              <i className="fas fa-info-circle"></i>
-              Order Information
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-1 gap-3.75">
-              <div className="relative">
-                <label className="block text-xs font-medium text-gray-600 mb-1">Search Client *</label>
-                <input
-                  type="text"
-                  value={clientSearchTerm}
-                  onChange={(e) => handleClientSearchChange(e.target.value)}
-                  className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                  placeholder="Search by name, email, or brand"
-                />
-                {clientSearchTerm.trim() && clientSearchTerm !== formData.client_name && (
-                  <div className="absolute z-20 mt-1 w-full max-h-48 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow">
-                    {filteredClients.length > 0 ? (
-                      filteredClients.map((client) => {
-                        const brands = normalizeClientBrands(client);
-                        return (
-                          <button
-                            type="button"
-                            key={client.id}
-                            onClick={() => handleSelectClient(client)}
-                            className="w-full text-left px-2 py-2 hover:bg-primary/5 border-b border-gray-100 last:border-b-0"
-                          >
-                            <p className="text-xs font-medium text-gray-800">{client.name}</p>
-                            <p className="text-[11px] text-gray-500">{client.email || "No email"}</p>
-                            <p className="text-[11px] text-gray-400">
-                              {brands.length > 0 ? brands.join(", ") : "No brands"}
-                            </p>
-                          </button>
-                        );
-                      })
-                    ) : (
-                      <p className="px-2 py-2 text-xs text-gray-500">No matching clients found.</p>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {selectedClientId && (
-                <>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Selected Client</label>
-                    <p className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
-                      {formData.client_name}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Client Email</label>
-                    <input
-                      type="email"
-                      value={formData.client_email}
-                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-700"
-                      placeholder="Auto-filled from selected client"
-                      readOnly
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Client Facebook</label>
-                    <input
-                      type="text"
-                      value={formData.client_facebook}
-                      onChange={(e) =>
-                        setOrderInfo((prev) => ({ ...prev, client_facebook: e.target.value }))
-                      }
-                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                      placeholder="Enter Facebook profile or page"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Brand</label>
-                    <select
-                      value={formData.brand}
-                      onChange={(e) =>
-                        setOrderInfo((prev) => ({ ...prev, brand: e.target.value }))
-                      }
-                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                    >
-                      {selectedClientBrands.length > 0 ? (
-                        selectedClientBrands.map((brandName) => (
-                          <option key={brandName} value={brandName}>
-                            {brandName}
-                          </option>
-                        ))
-                      ) : (
-                        <option value="">No brands available</option>
-                      )}
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Shirt Color</label>
-                    <input
-                      type="text"
-                      value={formData.shirt_color}
-                      onChange={(e) =>
-                        setOrderInfo((prev) => ({ ...prev, shirt_color: e.target.value }))
-                      }
-                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                      placeholder="Enter shirt color"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium text-gray-600 mb-1">Free Items</label>
-                    <input
-                      type="text"
-                      value={formData.free_items}
-                      onChange={(e) =>
-                        setOrderInfo((prev) => ({ ...prev, free_items: e.target.value }))
-                      }
-                      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                      placeholder="Enter free items"
-                    />
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
+          <OrderInfoSection
+            formData={formData}
+            onFieldChange={(field, value) => setOrderInfo((prev) => ({ ...prev, [field]: value }))}
+            clientSearchTerm={clientSearchTerm}
+            onClientSearchChange={handleClientSearchChange}
+            filteredClients={filteredClients}
+            normalizeClientBrands={normalizeClientBrands}
+            onSelectClient={handleSelectClient}
+            selectedClientId={selectedClientId}
+            selectedClientBrands={selectedClientBrands}
+          />
 
           <div className="bg-white rounded-lg border border-gray-200 p-3 sm:p-4">
             <h2 className="text-sm font-medium text-primary mb-3 flex items-center gap-2">
@@ -1572,6 +1505,16 @@ const EditQuotation = () => {
                   )}
                 </div>
               )}
+
+              {/* Issue 7: Brand + Care/Size label spec (shared component). */}
+              <LabelSpecSection
+                brandLabel={brandLabel}
+                careLabel={careLabel}
+                onBrandLabelChange={setBrandLabel}
+                onCareLabelChange={setCareLabel}
+                labelDesign={labelDesign}
+                onLabelDesignChange={setLabelDesign}
+              />
 
               <div className="pt-8 border-t border-gray-100">
                 <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-3">
