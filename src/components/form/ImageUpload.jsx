@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 
 const ImageUpload = ({
   label,
@@ -15,8 +15,10 @@ const ImageUpload = ({
   ...props
 }) => {
   const fileInputRef = useRef(null);
-  const inputId =
-    name || label?.toLowerCase().replace(/\s+/g, "-") || "image-upload";
+  // Stable, unique id so the <label htmlFor> reliably targets THIS input even
+  // when several ImageUpload instances are on the same page.
+  const inputId = `image-upload-${name || label?.toLowerCase().replace(/\s+/g, "-") || "field"}`;
+  const [selectedNames, setSelectedNames] = useState([]);
 
   const handleFileChange = (e) => {
     const files = e.target.files;
@@ -41,24 +43,21 @@ const ImageUpload = ({
       validFiles.push(file);
     }
 
-    if (onChange && validFiles.length > 0) {
-      if (multiple) {
-        onChange(validFiles);
-      } else {
-        onChange(validFiles[0]);
-      }
-    }
-  };
+    // Reflect the selection in state so the label re-renders (reading
+    // fileInputRef.current.files directly never triggers a re-render).
+    setSelectedNames(validFiles.map((f) => f.name));
 
-  const handleContainerClick = () => {
-    if (!disabled && !readOnly && fileInputRef.current) {
-      fileInputRef.current.click();
+    if (onChange && validFiles.length > 0) {
+      onChange(multiple ? validFiles : validFiles[0]);
     }
+
+    // Allow re-selecting the same file again (onChange won't fire otherwise).
+    e.target.value = "";
   };
 
   const getButtonClasses = () => {
     let classes =
-      "text-sm mt-3 border rounded-lg py-2 px-4 transition-colors duration-200 focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-blue-400 ";
+      "text-sm mt-3 border rounded-lg py-2 px-4 transition-colors duration-200 block ";
 
     if (disabled || readOnly) {
       classes += "bg-gray-100 text-gray-500 border-gray-300 cursor-not-allowed";
@@ -74,16 +73,15 @@ const ImageUpload = ({
     return classes;
   };
 
+  const isDisabled = disabled || readOnly;
+
   return (
     <div className={`mb-4 ${className}`}>
       {label && (
-        <label
-          htmlFor={inputId}
-          className="text-primary text-sm font-semibold flex items-center"
-        >
+        <span className="text-primary text-sm font-semibold flex items-center">
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
-        </label>
+        </span>
       )}
 
       <div className="mt-2">
@@ -95,29 +93,30 @@ const ImageUpload = ({
           accept={accept}
           onChange={handleFileChange}
           required={required}
-          disabled={disabled || readOnly}
+          disabled={isDisabled}
           multiple={multiple}
-          className="hidden"
+          className="sr-only"
           {...props}
         />
 
-        <div className={getButtonClasses()} onClick={handleContainerClick}>
-          <div className="flex items-center justify-between">
-            <span
-              className={
-                disabled || readOnly ? "text-gray-500" : "text-gray-700"
-              }
-            >
+        {/* A <label> bound to the input opens the picker natively — no JS
+            click() call that a browser could silently block. This is the fix
+            for the "dead Choose Files button". */}
+        <label htmlFor={inputId} className={getButtonClasses()}>
+          <span className="flex items-center justify-between">
+            <span className={isDisabled ? "text-gray-500" : "text-gray-700"}>
               <i className="fa-solid fa-paperclip mr-2 text-xs"></i>
-              Choose Files
+              Choose {multiple ? "Files" : "File"}
             </span>
-            <span className="text-gray-400 text-sm ml-4">
-              {fileInputRef.current?.files?.length
-                ? `${fileInputRef.current.files.length} file(s) selected`
-                : "No files chosen"}
+            <span className="text-gray-400 text-sm ml-4 truncate max-w-[55%]">
+              {selectedNames.length
+                ? multiple
+                  ? `${selectedNames.length} file(s) selected`
+                  : selectedNames[0]
+                : "No file chosen"}
             </span>
-          </div>
-        </div>
+          </span>
+        </label>
       </div>
 
       {error && (
