@@ -5,12 +5,12 @@ import Select from "../../components/form/Select";
 import FileUpload from "../../components/form/FileUpload";
 import ImageUpload from "../../components/form/ImageUpload";
 import FormActions from "../../components/form/FormActions";
+import RoleAssignment from "../../components/form/RoleAssignment";
 
 import { AccountInitialState } from "../../constants/formInitialState/accountInitialState";
 import {
   genderOptions,
   civilStatusOptions,
-  RoleAccess,
 } from "../../constants/formOptions/accountOptions";
 import { accountSchema } from "../../validations/accountSchema";
 import { validateForm, hasErrors } from "../../utils/validation";
@@ -141,17 +141,10 @@ export default function AddNewAccount() {
     }
   };
 
-  const handleRoleChange = (e) => {
-    const { value, checked } = e.target;
-    const currentRoles = Array.isArray(formData.roles) ? formData.roles : [];
-
-    const updatedRoles = checked
-      ? [...currentRoles, value]
-      : currentRoles.filter((role) => role !== value);
-
+  const handleRolesChange = (rolesArray) => {
     setFormData((prev) => ({
       ...prev,
-      roles: updatedRoles,
+      roles: rolesArray,
     }));
 
     if (errors.roles) {
@@ -524,39 +517,11 @@ export default function AddNewAccount() {
               error={errors.department}
             />
           </div>
-          <div className="mx-4 mb-5">
-            <h1 className="text-primary text-sm font-semibold flex items-center mb-3">
-              Role Access<span className="text-red-500 ml-1">*</span>
-            </h1>
-
-            {errors.roles && (
-              <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded-md">
-                <div className="flex items-center">
-                  <i className="fa-solid fa-exclamation-circle text-red-500 mr-2"></i>
-                  <p className="text-red-700 text-sm">{errors.roles}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 py-7 px-4 sm:px-6 md:px-8 lg:px-20 bg-white border border-gray-300 rounded">
-              {RoleAccess.map((role) => (
-                <div key={role.value} className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    name="roles"
-                    id={role.value}
-                    value={role.value}
-                    onChange={handleRoleChange}
-                    checked={formData.roles?.includes(role.value) || false}
-                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-                  />
-                  <label htmlFor={role.value} className="text-sm text-gray-700">
-                    {role.label}
-                  </label>
-                </div>
-              ))}
-            </div>
-          </div>
+          <RoleAssignment
+            value={formData.roles}
+            onChange={handleRolesChange}
+            error={errors.roles}
+          />
 
           <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-1">
             Documents

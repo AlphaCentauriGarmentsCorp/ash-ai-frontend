@@ -158,18 +158,37 @@ export default function ViewAccount() {
             </div>
             <div className="mx-4 mb-5">
               <h1 className="text-primary text-sm font-semibold mb-3">
-                Role Access
+                Role Assignment
               </h1>
-              <div className="flex flex-wrap gap-2 py-4 px-4 bg-white border border-gray-300 rounded">
+              <div className="py-4 px-4 bg-white border border-gray-300 rounded">
                 {roles.length > 0 ? (
-                  roles.map((role) => (
-                    <span
-                      key={role}
-                      className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm"
-                    >
-                      {formatRole(role)}
-                    </span>
-                  ))
+                  <div className="space-y-3">
+                    <div>
+                      <span className="block text-xs text-gray-400 mb-1">
+                        Primary Role
+                      </span>
+                      <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                        {formatRole(roles[0])}
+                      </span>
+                    </div>
+                    {roles.length > 1 && (
+                      <div>
+                        <span className="block text-xs text-gray-400 mb-1">
+                          Secondary Roles
+                        </span>
+                        <div className="flex flex-wrap gap-2">
+                          {roles.slice(1).map((role) => (
+                            <span
+                              key={role}
+                              className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 text-gray-600 text-sm"
+                            >
+                              {formatRole(role)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <span className="text-gray-400 text-sm">No roles assigned</span>
                 )}
