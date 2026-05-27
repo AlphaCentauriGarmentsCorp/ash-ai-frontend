@@ -28,41 +28,37 @@ const AccountsPage = () => {
       label: "Role",
       sortable: true,
       render: (item) => {
-        let roles = [];
+        const formatRole = (role) =>
+          role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+
+        let roleList = [];
         if (Array.isArray(item.domain_role)) {
-          roles = item.domain_role.map((role) =>
-            role.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-          );
+          roleList = item.domain_role;
         } else if (item.domain_role) {
-          roles = [
-            item.domain_role
-              .replace(/_/g, " ")
-              .replace(/\b\w/g, (c) => c.toUpperCase()),
-          ];
+          roleList = [item.domain_role];
         }
 
-        if (roles.length === 0) {
+        if (roleList.length === 0) {
           return <span className="text-gray-400">No role</span>;
         }
 
-        return (
-          <div className="relative inline-block group">
-            <span className="cursor-pointer">
-              {roles[0]}
-              {roles.length > 1 && (
-                <span className="text-gray-400 ml-1">+{roles.length - 1}</span>
-              )}
-            </span>
+        // Convention: index 0 is the primary role; the rest are secondary.
+        const primary = formatRole(roleList[0]);
+        const secondaries = roleList.slice(1).map(formatRole);
 
-            {/* Tooltip */}
-            {/* <div className="absolute z-[100] invisible group-hover:visible left-0 -top-3 mt-1 bg-gray-800 text-white text-xs rounded px-2 py-1 whitespace-nowrap shadow-lg min-w-max">
-              {roles.map((role, index) => (
-                <p key={index}>
-                  {role}
-                  {index < roles.length - 1 && <br />}
-                </p>
-              ))}
-            </div> */}
+        return (
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-primary/10 text-primary text-xs font-medium">
+              {primary}
+            </span>
+            {secondaries.map((role) => (
+              <span
+                key={role}
+                className="inline-flex items-center px-2 py-0.5 rounded-md bg-gray-100 text-gray-500 text-xs"
+              >
+                {role}
+              </span>
+            ))}
           </div>
         );
       },
