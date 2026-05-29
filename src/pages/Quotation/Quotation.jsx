@@ -422,7 +422,9 @@ const Quotation = () => {
   }, [selectedApparelPatternId]);
 
   useEffect(() => {
-    if (!selectedApparelPattern || selectedColors.length === 0 || items.length > 0) {
+    // Issue 8 — size rows derive from the apparel/pattern alone; parts/design
+    // are optional and no longer gate item generation.
+    if (!selectedApparelPattern || items.length > 0) {
       return;
     }
 
@@ -855,9 +857,15 @@ const Quotation = () => {
       return;
     }
 
+    // Issue 8 — Parts/design upload is now a SOFT requirement. A quotation can
+    // be created without any apparel part selected (the backend already treats
+    // print_parts_json as nullable). We surface a non-blocking confirm so the
+    // CSR is aware, but creation is never hard-blocked on this.
     if (selectedColors.length === 0) {
-      alert("Please select at least one apparel part.");
-      return;
+      const proceed = window.confirm(
+        "No apparel part / design has been added yet. You can add it later and send it to the Graphic Artist for review. Create the quotation anyway?",
+      );
+      if (!proceed) return;
     }
 
     setSaving(true);
@@ -1009,7 +1017,9 @@ const Quotation = () => {
 
   if (!data) return null;
 
-  const hasSelections = !!selectedApparelPattern && selectedColors.length > 0;
+  // Issue 8 — the form is ready once an apparel/pattern is chosen (pricing
+  // needs it). Parts/design are optional and no longer gate the form.
+  const hasSelections = !!selectedApparelPattern;
 
   return (
     <AdminLayout
@@ -1385,7 +1395,7 @@ const Quotation = () => {
                 <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">
                   Upload
                 </h3>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Parts *</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Parts (optional)</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -2025,7 +2035,7 @@ const Quotation = () => {
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
             <i className="fas fa-info-circle text-yellow-600 mr-2"></i>
             <span className="text-sm text-yellow-700">
-              Select an Apparel/Pattern and at least one part to start creating your quotation.
+              Select an Apparel/Pattern to start creating your quotation. Parts/design are optional.
             </span>
           </div>
         )}

@@ -91,6 +91,13 @@ export const quotationApi = {
     return data;
   },
 
+  // Issue 8 — CSR sends the quotation design to the Graphic Artist for review.
+  // Sets design_review_status to "Pending GA" and notifies the GA.
+  requestDesignReview: async (id) => {
+    const { data } = await api.post(`/quotations/${id}/request-design-review`);
+    return data;
+  },
+
   delete: async (id) => {
     try {
       const response = await api.delete(
@@ -101,4 +108,4 @@ export const quotationApi = {
       throw error;
     }
   },
-};
+};

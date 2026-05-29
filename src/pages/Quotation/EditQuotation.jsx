@@ -1167,9 +1167,12 @@ const EditQuotation = () => {
       return;
     }
 
+    // Issue 8 — Parts/design upload is a SOFT requirement (see Add Quotation).
     if (selectedColors.length === 0) {
-      alert("Please select at least one apparel part.");
-      return;
+      const proceed = window.confirm(
+        "No apparel part / design has been added yet. Save the quotation anyway?",
+      );
+      if (!proceed) return;
     }
 
     setSaving(true);
@@ -1314,7 +1317,8 @@ const EditQuotation = () => {
 
   if (!data) return null;
 
-  const hasSelections = !!selectedApparelPattern && selectedColors.length > 0;
+  // Issue 8 — parts/design are optional; only the apparel/pattern is required.
+  const hasSelections = !!selectedApparelPattern;
 
   return (
     <AdminLayout
@@ -1602,7 +1606,7 @@ const EditQuotation = () => {
                 <h3 className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">
                   Upload
                 </h3>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Parts *</label>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Parts (optional)</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -2255,7 +2259,7 @@ const EditQuotation = () => {
           <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
             <i className="fas fa-info-circle text-yellow-600 mr-2"></i>
             <span className="text-sm text-yellow-700">
-              Select an Apparel/Pattern and at least one part to edit this quotation.
+              Select an Apparel/Pattern to edit this quotation. Parts/design are optional.
             </span>
           </div>
         )}

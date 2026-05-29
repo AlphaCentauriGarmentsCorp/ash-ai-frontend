@@ -5,8 +5,9 @@ import { apparelTypeApi } from "../../api/apparelTypeApi";
 import { patternTypeApi } from "../../api/patternTypeApi";
 import { apparelNecklineApi } from "../../api/apparelNecklineApi";
 import { useParams, useNavigate } from "react-router-dom";
-import TicketComposer from "../../components/tickets/TicketComposer";
+import TicketComposer from "../../components/tickets/TicketComposer"; // eslint-disable-line no-unused-vars
 import QuotationStatusActions from "../../components/quotation/QuotationStatusActions";
+import DesignReviewPanel from "../../components/quotation/DesignReviewPanel";
 
 const ViewQuotation = () => {
   const { id } = useParams();
@@ -80,6 +81,24 @@ const ViewQuotation = () => {
       setError("Failed to load quotation. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Issue 8 — CSR sends (or re-sends) the design to the Graphic Artist.
+  const handleRequestDesignReview = async () => {
+    try {
+      const updated = await quotationApi.requestDesignReview(id);
+      const record = updated && updated.data ? updated.data : updated || {};
+      setQuotation((prev) => ({
+        ...(prev || {}),
+        ...record,
+        // The action always sets the review status to "Pending GA"; set it
+        // locally too so the badge flips even if the response shape varies.
+        design_review_status: record.design_review_status || "Pending GA",
+      }));
+    } catch (err) {
+      console.error("Failed to send design to GA:", err);
+      alert("Could not send the design to the Graphic Artist. Please try again.");
     }
   };
 
@@ -406,6 +425,17 @@ const ViewQuotation = () => {
             </div>
           </div>
 
+          {/* Issue 8 — Design review (read-only here; the GA edits it on the
+              dedicated review surface). CSR can send / re-send to the GA. */}
+          <div className="p-6 border-b border-gray-200">
+            <DesignReviewPanel
+              review={quotation}
+              printParts={printParts}
+              editable={false}
+              onRequestReview={handleRequestDesignReview}
+            />
+          </div>
+
           {/* Addons */}
           {addons.length > 0 && (
             <div className="p-6 border-b border-gray-200">
@@ -602,14 +632,6 @@ const ViewQuotation = () => {
           <i className="fas fa-arrow-left"></i>Back
         </button>
 
-        {/* Convert to Order button — hidden once converted */}
-        <button
-          onClick={() => setShowComposer(true)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-lg hover:bg-indigo-700 transition-all text-sm flex items-center gap-2"
-        >
-          <i className="fas fa-share"></i>Send to GA
-        </button>
-
         {!isConverted ? (
           <button
             onClick={handleConvertToOrder}
@@ -650,21 +672,6 @@ const ViewQuotation = () => {
         />
       )}
 
-      {/* Ticket composer (hidden trigger) */}
-      {quotation && (
-        <TicketComposer
-          quotationId={quotation.id}
-          requestType="Quotation"
-          forceOpen={showComposer}
-          hideTrigger={true}
-          initialToRole="graphic artist"
-          initialAttachmentUrls={initialAttachments.map((a) => a.url)}
-          onCreated={() => {
-            setShowComposer(false);
-            window.alert("Ticket created and sent to Graphic Artist.");
-          }}
-        />
-      )}
     </AdminLayout>
   );
 };
