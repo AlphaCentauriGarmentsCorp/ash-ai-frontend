@@ -99,6 +99,7 @@ import EditApparelPatternPrices from "./pages/QuotationSettings/ApparelPatternPr
 
 import AllQuotation from "./pages/Quotation/AllQuotation";
 import ViewQuotation from "./pages/Quotation/ViewQuotation";
+import DesignReviewPage from "./pages/Quotation/DesignReviewPage";
 import EditQuotation from "./pages/Quotation/EditQuotation";
 import QuotationClient from "./pages/Quotation/QuotationClient";
 import RolesPage from "./pages/RBAC/Roles/RolesPage";
@@ -740,6 +741,14 @@ function App() {
           element={
             <ProtectedRoute>
               <EditQuotation />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotation-reviews/:id"
+          element={
+            <ProtectedRoute>
+              <DesignReviewPage />
             </ProtectedRoute>
           }
         />
