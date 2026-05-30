@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { portalApi } from "../../../api/portalApi";
 import { cutterPortalApi } from "../../../api/cutterPortalApi";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
+import StageRejectionBanner from "../../../components/portals/StageRejectionBanner";
+import StageUploadSection from "../../../components/portals/StageUploadSection";
 import ServiceTypeToggle from "../../../components/portals/ServiceTypeToggle";
 import SubcontractModeView from "../../../components/portals/SubcontractModeView";
 import OrderDetailsSection from "./sections/OrderDetailsSection";
@@ -31,11 +33,11 @@ import ActivityLogSection from "./sections/ActivityLogSection";
 
 const STATUS_FLOW = [
   { key: "payment_verification_sample", label: "Payment Verified", icon: "fa-credit-card" },
-  { key: "graphic_artwork",             label: "Graphic Artwork", icon: "fa-pen-ruler" },
-  { key: "screen_making",               label: "Screen Making",   icon: "fa-stamp" },
-  { key: "sample_creation",             label: "Sample Creation", icon: "fa-shirt" },
-  { key: "sample_approval",             label: "Sample Approval", icon: "fa-circle-check" },
-  { key: "mass_production",             label: "Mass Production", icon: "fa-industry" },
+  { key: "graphic_artwork", label: "Graphic Artwork", icon: "fa-pen-ruler" },
+  { key: "screen_making", label: "Screen Making", icon: "fa-stamp" },
+  { key: "sample_creation", label: "Sample Creation", icon: "fa-shirt" },
+  { key: "sample_approval", label: "Sample Approval", icon: "fa-circle-check" },
+  { key: "mass_production", label: "Mass Production", icon: "fa-industry" },
 ];
 
 const CutterPortalPage = () => {
@@ -74,7 +76,7 @@ const CutterPortalPage = () => {
         if (cancelled) return;
         setResolveError(
           err?.response?.data?.message ||
-            "Hindi ma-load ang assignment mo. Try refreshing.",
+          "Hindi ma-load ang assignment mo. Try refreshing.",
         );
       } finally {
         if (!cancelled) setResolving(false);
@@ -101,7 +103,7 @@ const CutterPortalPage = () => {
         if (cancelled) return;
         setContextError(
           err?.response?.data?.message ||
-            "Hindi ma-load ang order details. Refresh para subukan ulit.",
+          "Hindi ma-load ang order details. Refresh para subukan ulit.",
         );
       } finally {
         if (!cancelled) setContextLoading(false);
@@ -256,6 +258,19 @@ const CutterPortalPage = () => {
 
       {context && (
         <div className="flex flex-col gap-4">
+          {/* CSR Review Hub — shows a rejection + resubmit action only
+              when this stage currently has an open rejection. */}
+          <StageRejectionBanner
+            orderStageId={currentStageId}
+            onResubmitted={handleRefresh}
+          />
+
+          <StageUploadSection
+            orderStageId={currentStageId}
+            category="cutting"
+            title="Cutting Proof"
+          />
+
           {/* Section 1: Order Details */}
           <OrderDetailsSection order={context.order} stage={context.stage} />
 

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { portalApi } from "../../../api/portalApi";
 import { graphicArtistPortalApi } from "../../../api/graphicArtistPortalApi";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
+import StageRejectionBanner from "../../../components/portals/StageRejectionBanner";
 import OrderDetailsSection from "../Cutter/sections/OrderDetailsSection";
 
 import DesignFilesSection from "./sections/DesignFilesSection";
@@ -243,6 +244,13 @@ const GraphicArtistPortalPage = () => {
 
       {context && (
         <div className="flex flex-col gap-4">
+          {/* CSR Review Hub — shows a rejection + resubmit action only
+              when this stage currently has an open rejection. */}
+          <StageRejectionBanner
+            orderStageId={currentStageId}
+            onResubmitted={handleRefresh}
+          />
+
           {/* 1. Order Details */}
           <OrderDetailsSection order={context.order} stage={context.stage} />
 
