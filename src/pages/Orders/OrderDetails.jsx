@@ -9,6 +9,7 @@ import {
 } from "../../utils/roleAccess";
 import { WorkPages } from "../../constants/formOptions/workPages";
 import { getStatusMeta } from "../../constants/formOptions/orderStages";
+import { hasRequiredPermissions } from "../../utils/authz";
 import RoleProtected from "../../features/order/orderDetails/RoleProtected";
 import ClientInformation from "../../features/order/orderDetails/ClientInformation";
 import ShippingInformation from "../../features/order/orderDetails/ShippingInformation";
@@ -22,6 +23,7 @@ import { useAuth } from "../../hooks/useAuth";
 import Loader from "../../components/common/Loader";
 
 import OrderStage from "../../features/orderStages/OrderStage";
+import ReviewHub from "../../features/order/reviewHub/ReviewHub";
 import GraphicEditing from "../../features/graphicEditing/GraphicEditing";
 import ScreenMaking from "../../features/screenMaking/ScreenMaking";
 import ScreenChecking from "../../features/screenChecking/ScreenChecking";
@@ -39,11 +41,11 @@ import MassPrinting from "../../features/massPrinting/MassPrinting";
  *
  * Two tabs:
  *  - Order Information: client, shipping, product, design, pricing, items, logs
- *  - Production: a single "Workflow" section (the 14-stage timeline) plus
+ *  - Production: a single "Workflow" section (the 16-stage timeline) plus
  *    role-specific work pages the user has access to (graphic editing,
  *    screen making, sample/mass cutting/printing/sewing, packing, …).
  *
- * The 14-step workflow is auto-created on the backend when the order is
+ * The 16-stage workflow is auto-created on the backend when the order is
  * stored, so the user never has to "select stages" any more.
  */
 const OrderDetailsPage = () => {
@@ -85,6 +87,16 @@ const OrderDetailsPage = () => {
       });
     }
 
+    // CSR Review Hub — read + approve/reject each stage's output. Visible to
+    // reviewers (CSR / Super Admin / Admin) via access.production-review.
+    if (hasRequiredPermissions(user, ["access.production-review"], "any")) {
+      sections.push({
+        id: "review_hub",
+        label: "Review Hub",
+        icon: "fa-clipboard-check",
+      });
+    }
+
     WorkPages.forEach((page) => {
       if (hasWorkPageAccess(userRoles, page.id)) {
         sections.push({
@@ -97,7 +109,7 @@ const OrderDetailsPage = () => {
     });
 
     return sections;
-  }, [userRoles]);
+  }, [userRoles, user]);
 
   const visibleSections =
     activeTab === "order" ? orderSections : productionSections;
@@ -114,6 +126,18 @@ const OrderDetailsPage = () => {
       if (allDone) return "completed";
       const anyDelayed = order.orderStages.some((s) => s.status === "delayed");
       if (anyDelayed) return "delayed";
+      const anyInProgress = order.orderStages.some(
+        (s) => s.status === "in_progress" || s.status === "for_approval",
+      );
+      return anyInProgress ? "in_progress" : "pending";
+    }
+
+    // The Review Hub mirrors the overall workflow progress for its badge.
+    if (sectionId === "review_hub") {
+      const allDone =
+        order.orderStages.length > 0 &&
+        order.orderStages.every((s) => s.status === "completed");
+      if (allDone) return "completed";
       const anyInProgress = order.orderStages.some(
         (s) => s.status === "in_progress" || s.status === "for_approval",
       );
@@ -282,6 +306,11 @@ const OrderDetailsPage = () => {
             <OrderStage order={order} onStagesUpdated={fetchOrderDetails} />
           )}
 
+        {activeSection === "review_hub" &&
+          hasRequiredPermissions(user, ["access.production-review"], "any") && (
+            <ReviewHub order={order} onChanged={fetchOrderDetails} />
+          )}
+
         {activeSection === "graphic_editing" &&
           hasWorkPageAccess(userRoles, "graphic_editing") && (
             <GraphicEditing order={order} onSuccess={fetchOrderDetails} />
@@ -402,11 +431,10 @@ const OrderDetailsPage = () => {
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 mb-4 sm:mb-5 border-b border-gray-200 pb-2">
           <button
             onClick={() => handleTabChange("order")}
-            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${
-              activeTab === "order"
+            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${activeTab === "order"
                 ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
                 : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
+              }`}
           >
             <i className="fas fa-shopping-bag"></i>
             <span className="truncate">Order Information</span>
@@ -414,11 +442,10 @@ const OrderDetailsPage = () => {
 
           <button
             onClick={() => handleTabChange("production")}
-            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${
-              activeTab === "production"
+            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${activeTab === "production"
                 ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
                 : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
+              }`}
           >
             <i className="fas fa-cogs"></i>
             <span className="truncate">
@@ -437,11 +464,10 @@ const OrderDetailsPage = () => {
 
           <button
             onClick={() => handleTabChange("activity_log")}
-            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${
-              activeTab === "activity_log"
+            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${activeTab === "activity_log"
                 ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
                 : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
+              }`}
           >
             <i className="fas fa-clock-rotate-left"></i>
             <span className="truncate">Activity Log</span>
@@ -504,19 +530,17 @@ const OrderDetailsPage = () => {
                     <button
                       key={section.id}
                       onClick={() => handleSectionSelect(section.id)}
-                      className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 rounded-xl lg:rounded-2xl border p-3 sm:p-4 lg:p-5 transition-all ${
-                        activeSection === section.id
+                      className={`flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 sm:gap-0 rounded-xl lg:rounded-2xl border p-3 sm:p-4 lg:p-5 transition-all ${activeSection === section.id
                           ? "bg-blue-50 border-primary shadow-sm"
                           : "bg-white border-gray-200 lg:border-gray-300 hover:bg-gray-50"
-                      }`}
+                        }`}
                     >
                       <span className="font-semibold text-xs sm:text-sm flex items-center gap-2">
                         <i
-                          className={`fas ${section.icon} ${
-                            activeSection === section.id
+                          className={`fas ${section.icon} ${activeSection === section.id
                               ? "text-primary/90"
                               : "text-gray-500"
-                          }`}
+                            }`}
                         ></i>
                         <span className="text-left">{section.label}</span>
                       </span>
@@ -536,11 +560,10 @@ const OrderDetailsPage = () => {
                         )}
 
                         <i
-                          className={`fas fa-chevron-right text-base sm:text-lg transition-transform duration-300 ease-in-out ${
-                            activeSection === section.id
+                          className={`fas fa-chevron-right text-base sm:text-lg transition-transform duration-300 ease-in-out ${activeSection === section.id
                               ? "text-primary/90 rotate-90 lg:rotate-90"
                               : "text-gray-300 rotate-0"
-                          }`}
+                            }`}
                         ></i>
                       </span>
                     </button>

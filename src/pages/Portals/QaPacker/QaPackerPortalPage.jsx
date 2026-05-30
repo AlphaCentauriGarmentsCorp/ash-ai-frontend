@@ -4,6 +4,8 @@ import { portalApi } from "../../../api/portalApi";
 import { qaPackerPortalApi } from "../../../api/qaPackerPortalApi";
 import { useAuth } from "../../../hooks/useAuth";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
+import StageRejectionBanner from "../../../components/portals/StageRejectionBanner";
+import StageUploadSection from "../../../components/portals/StageUploadSection";
 import TaskOverviewSection from "./sections/TaskOverviewSection";
 import ReferenceImagesSection from "./sections/ReferenceImagesSection";
 import QaChecklistSection from "./sections/QaChecklistSection";
@@ -273,6 +275,13 @@ const QaPackerPortalPage = () => {
 
       {context && (
         <div className="flex flex-col gap-4">
+          {/* CSR Review Hub — shows a rejection + resubmit action only
+              when this stage currently has an open rejection. */}
+          <StageRejectionBanner
+            orderStageId={currentStageId}
+            onResubmitted={handleRefresh}
+          />
+
           {/* Section 1: Task Overview */}
           <TaskOverviewSection task={context.task} />
 
@@ -297,6 +306,16 @@ const QaPackerPortalPage = () => {
             currentUserId={user?.id}
             onChanged={handleRefresh}
             sectionNumber={4}
+          />
+
+          {/* Issue / Defect Photos — QA attaches photos of any problems found,
+              with an optional caption. Flows to the CSR Review Hub as artifacts
+              (category 'qa_issue') via the generic stage-uploads system. */}
+          <StageUploadSection
+            orderStageId={context.task.order_stage_id}
+            category="qa_issue"
+            title="Issue / Defect Photos"
+            helpText="Mag-attach ng larawan ng anumang depekto o problema sa produkto. May optional na caption. Makikita ito ng CSR sa Review Hub."
           />
 
           {/* Section 5: Packing Checklist — only when on packing stage */}

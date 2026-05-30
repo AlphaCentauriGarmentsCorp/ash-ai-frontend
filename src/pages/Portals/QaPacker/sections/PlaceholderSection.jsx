@@ -25,7 +25,7 @@ const PlaceholderSection = ({
     <section className="bg-white rounded-lg border border-dashed border-gray-300 p-5">
       <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
         <span className="w-6 h-6 rounded-full bg-gray-300 text-white text-xs flex items-center justify-center">
-          {sectionNumber}
+          <i className={`fa-solid ${icon} text-[11px]`} />
         </span>
         {title}
         <span className="ml-auto text-[10px] uppercase tracking-wide font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">

@@ -28,7 +28,7 @@ const REJECT_ELIGIBLE_STAGES = ["quality_control"];
 /**
  * OrderStage – sequential workflow timeline view.
  *
- * Replaces the legacy checkbox grid. The order's 14-stage workflow is
+ * Replaces the legacy checkbox grid. The order's 16-stage workflow is
  * auto-created when the order is stored, so this component is read-only
  * for status and exposes action buttons only on the currently active stage.
  */
@@ -139,9 +139,8 @@ const OrderStage = ({ order, onStagesUpdated }) => {
           </div>
           {!isLast && (
             <div
-              className={`flex-1 w-0.5 my-1 ${
-                isCompleted ? "bg-green-300" : "bg-gray-200"
-              }`}
+              className={`flex-1 w-0.5 my-1 ${isCompleted ? "bg-green-300" : "bg-gray-200"
+                }`}
               style={{ minHeight: "32px" }}
             ></div>
           )}
@@ -291,14 +290,10 @@ const OrderStage = ({ order, onStagesUpdated }) => {
                 )}
 
                 {isForApproval && (
-                  <button
-                    type="button"
-                    onClick={() => openAction(stage.id, "complete")}
-                    disabled={isLoading}
-                    className="text-xs px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors inline-flex items-center"
-                  >
-                    <i className="fas fa-thumbs-up mr-1"></i> Approve & Complete
-                  </button>
+                  <span className="text-xs px-3 py-1.5 rounded bg-amber-50 text-amber-700 inline-flex items-center border border-amber-200">
+                    <i className="fas fa-clipboard-check mr-1"></i>
+                    Awaiting approval in the Review Hub
+                  </span>
                 )}
 
                 {(isDelayed || isOnHold) && (
@@ -459,7 +454,7 @@ const OrderStage = ({ order, onStagesUpdated }) => {
             Order Workflow
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            14-step sequential pipeline. Each stage must be completed before
+            16-step sequential pipeline. Each stage must be completed before
             the next can begin.
           </p>
         </div>
