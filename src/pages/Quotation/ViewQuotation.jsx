@@ -8,6 +8,8 @@ import { useParams, useNavigate } from "react-router-dom";
 import TicketComposer from "../../components/tickets/TicketComposer"; // eslint-disable-line no-unused-vars
 import QuotationStatusActions from "../../components/quotation/QuotationStatusActions";
 import DesignReviewPanel from "../../components/quotation/DesignReviewPanel";
+import { partImage } from "../../utils/designImage";
+import DesignThumb from "../../components/common/DesignThumb";
 
 const ViewQuotation = () => {
   const { id } = useParams();
@@ -36,20 +38,7 @@ const ViewQuotation = () => {
     return Number.isNaN(numeric) ? null : numeric;
   };
 
-  const resolveImageUrl = (part) => {
-    const rawPath = String(
-      part?.image_link || part?.image_url || part?.image_path || part?.image || "",
-    ).trim();
-    if (!rawPath) return "";
-    if (rawPath.startsWith("http") || rawPath.startsWith("data:")) return rawPath;
-    const apiUrl = import.meta.env.VITE_API_URL || "";
-    let origin = "";
-    try { origin = new URL(apiUrl).origin; } catch { origin = ""; }
-    if (rawPath.startsWith("/storage/")) return origin ? `${origin}${rawPath}` : rawPath;
-    if (rawPath.startsWith("storage/")) return origin ? `${origin}/${rawPath}` : `/${rawPath}`;
-    const cleanedPath = rawPath.replace(/^\/+/, "");
-    return origin ? `${origin}/storage/${cleanedPath}` : `/storage/${cleanedPath}`;
-  };
+  const resolveImageUrl = partImage;
 
   useEffect(() => { fetchQuotation(); }, [id]);
 
@@ -402,10 +391,12 @@ const ViewQuotation = () => {
                           <td className="px-3 py-2 font-medium text-gray-800">{partName}</td>
                           <td className="px-3 py-2">
                             {imageUrl ? (
-                              <a href={imageUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2">
-                                <img src={imageUrl} alt={partName} className="h-10 w-10 rounded border border-gray-200 object-cover bg-white" />
-                                <span className="text-xs text-primary hover:underline">View image</span>
-                              </a>
+                              <div className="inline-flex items-center gap-2">
+                                <DesignThumb url={imageUrl} alt={partName} />
+                                <a href={imageUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+                                  View image
+                                </a>
+                              </div>
                             ) : (
                               <span className="text-xs text-gray-400">No uploaded image</span>
                             )}

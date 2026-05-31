@@ -4,21 +4,9 @@ import { FileUploadSection } from "../common/FileUploadSection";
 import Select from "../../../../../components/form/Select";
 import Textarea from "../../../../../components/form/Textarea";
 import { apparelPlacementMeasurements } from "../../../../../constants/formOptions/orderOptions";
+import { partImage } from "../../../../../utils/designImage";
 
-const resolveImageUrl = (part) => {
-  const rawPath = String(
-    part?.image_link || part?.image_url || part?.image_path || part?.image || ""
-  ).trim();
-  if (!rawPath) return "";
-  if (rawPath.startsWith("http") || rawPath.startsWith("data:")) return rawPath;
-  const apiUrl = import.meta.env.VITE_API_URL || "";
-  let origin = "";
-  try { origin = new URL(apiUrl).origin; } catch { origin = ""; }
-  if (rawPath.startsWith("/storage/")) return origin ? `${origin}${rawPath}` : rawPath;
-  if (rawPath.startsWith("storage/")) return origin ? `${origin}/${rawPath}` : `/${rawPath}`;
-  const cleaned = rawPath.replace(/^\/+/, "");
-  return origin ? `${origin}/storage/${cleaned}` : `/storage/${cleaned}`;
-};
+const resolveImageUrl = partImage;
 
 /**
  * DesignFilesSection

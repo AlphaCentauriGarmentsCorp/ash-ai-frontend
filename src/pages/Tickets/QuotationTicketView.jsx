@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import ticketService from "../../services/ticketService";
 import { quotationApi } from "../../api/quotationApi";
+import { partImage } from "../../utils/designImage";
 
 const getStatusClassName = (status) => {
   const normalized = String(status || "").trim().toLowerCase();
@@ -53,20 +54,7 @@ const QuotationTicketView = () => {
 
     fetchTicket();
   }, [id]);
-  const resolveImageUrl = (part) => {
-    const rawPath = String(
-      part?.image_link || part?.image_url || part?.image_path || part?.image || "",
-    ).trim();
-    if (!rawPath) return "";
-    if (rawPath.startsWith("http") || rawPath.startsWith("data:")) return rawPath;
-    const apiUrl = import.meta.env.VITE_API_URL || "";
-    let origin = "";
-    try { origin = new URL(apiUrl).origin; } catch { origin = ""; }
-    if (rawPath.startsWith("/storage/")) return origin ? `${origin}${rawPath}` : rawPath;
-    if (rawPath.startsWith("storage/")) return origin ? `${origin}/${rawPath}` : `/${rawPath}`;
-    const cleanedPath = rawPath.replace(/^\/+/, "");
-    return origin ? `${origin}/storage/${cleanedPath}` : `/storage/${cleanedPath}`;
-  };
+  const resolveImageUrl = partImage;
 
   useEffect(() => {
     const loadQuotationIfNeeded = async () => {
