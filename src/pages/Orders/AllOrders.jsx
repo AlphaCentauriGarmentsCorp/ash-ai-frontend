@@ -3,6 +3,8 @@ import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Table from "../../components/table/Table";
 import { orderApi } from "../../api/orderApi";
 import { useNavigate } from "react-router-dom";
+import { firstPartThumbnail } from "../../utils/designImage";
+import DesignThumb from "../../components/common/DesignThumb";
 
 const AllOrders = () => {
   const navigate = useNavigate();
@@ -21,7 +23,7 @@ const AllOrders = () => {
     };
     const cls = map[status] || "bg-gray-100 text-gray-600";
     return (
-      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>
+      <span className={`inline-block whitespace-nowrap px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>
         {status || "—"}
       </span>
     );
@@ -38,6 +40,12 @@ const AllOrders = () => {
           {item.po_code}
         </div>
       ),
+    },
+    {
+      key: "design_thumbnail",
+      label: "Design",
+      sortable: false,
+      render: (item) => <DesignThumb url={firstPartThumbnail(item)} />,
     },
     {
       key: "client_name",

@@ -4,6 +4,15 @@ import Table from "../../components/table/Table";
 import { quotationApi } from "../../api/quotationApi";
 import DeleteConfirmationDialog from "../../components/common/DeleteConfirmationDialog";
 import { useNavigate } from "react-router-dom";
+import { firstPartThumbnail } from "../../utils/designImage";
+import DesignThumb from "../../components/common/DesignThumb";
+
+// Design-review status badge colors (Issue 8 output → shown here per Issue 11).
+const DESIGN_REVIEW_COLORS = {
+  "Pending GA": "bg-yellow-100 text-yellow-700",
+  "GA Approved": "bg-green-100 text-green-700",
+  "Needs New File": "bg-red-100 text-red-700",
+};
 
 const AllQuotation = () => {
   const navigate = useNavigate();
@@ -23,6 +32,12 @@ const AllQuotation = () => {
       render: (item) => {
         return <div className="font-medium text-primary">#{item.quotation_id}</div>;
       },
+    },
+    {
+      key: "design_thumbnail",
+      label: "Design",
+      sortable: false,
+      render: (item) => <DesignThumb url={firstPartThumbnail(item)} />,
     },
      {
       key: "created_by",
@@ -79,8 +94,23 @@ const AllQuotation = () => {
         };
         const statusColor = statusColors[item.status?.toLowerCase()] || "bg-gray-100 text-gray-700";
         return (
-          <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>
+          <span className={`inline-block whitespace-nowrap px-2 py-1 rounded-full text-xs font-medium ${statusColor}`}>
             {item.status || "Draft"}
+          </span>
+        );
+      },
+    },
+    {
+      key: "design_review_status",
+      label: "Design Review",
+      sortable: true,
+      filterable: true,
+      render: (item) => {
+        const s = item.design_review_status;
+        const color = DESIGN_REVIEW_COLORS[s] || "bg-gray-100 text-gray-500";
+        return (
+          <span className={`inline-block whitespace-nowrap px-2 py-1 rounded-full text-xs font-medium ${color}`}>
+            {s || "Not submitted"}
           </span>
         );
       },

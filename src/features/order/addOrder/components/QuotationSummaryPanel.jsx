@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { partImage } from "../../../../utils/designImage";
 
 const formatCurrency = (v) => {
     const n = Number(v) || 0;
@@ -8,30 +9,7 @@ const formatCurrency = (v) => {
     })}`;
 };
 
-const resolveImageUrl = (part) => {
-    const rawPath = String(
-        part?.image_link ||
-        part?.image_url ||
-        part?.image_path ||
-        part?.image ||
-        ""
-    ).trim();
-    if (!rawPath) return "";
-    if (rawPath.startsWith("http") || rawPath.startsWith("data:")) return rawPath;
-    const apiUrl = import.meta.env.VITE_API_URL || "";
-    let origin = "";
-    try {
-        origin = new URL(apiUrl).origin;
-    } catch {
-        origin = "";
-    }
-    if (rawPath.startsWith("/storage/"))
-        return origin ? `${origin}${rawPath}` : rawPath;
-    const cleanedPath = rawPath.replace(/^\/+/, "");
-    return origin
-        ? `${origin}/storage/${cleanedPath}`
-        : `/storage/${cleanedPath}`;
-};
+const resolveImageUrl = partImage;
 
 /**
  * QuotationSummaryPanel
