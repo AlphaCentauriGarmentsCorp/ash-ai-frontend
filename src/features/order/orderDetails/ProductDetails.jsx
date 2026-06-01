@@ -32,6 +32,23 @@ const ProductDetails = ({ order }) => {
         </div>
       </section>
 
+      {/* ── Production Details ───────────────────────────────────────────── */}
+      <section className="flex-col flex gap-y-2 sm:gap-y-3">
+        <h1 className="font-semibold text-base sm:text-lg">Production Details</h1>
+        <div className="border border-gray-200 sm:border-gray-300 p-2 sm:p-3 rounded-lg sm:rounded-xl">
+          <Row label="Design Name" value={order?.design_name} />
+          <Row label="Service Type" value={order?.service_type} />
+          <Row label="Print Service" value={order?.print_service} />
+          <Row label="Size Label" value={order?.size_label} />
+          <Row label="Print Label Placement" value={order?.print_label_placement} />
+          <Row label="Fabric Type" value={order?.fabric_type} />
+          <Row label="Fabric Supplier" value={order?.fabric_supplier} />
+          <Row label="Fabric Color" value={order?.fabric_color} />
+          <Row label="Thread Color" value={order?.thread_color} />
+          <Row label="Ribbing Color" value={order?.ribbing_color} />
+        </div>
+      </section>
+
       {/* ── Size Breakdown ───────────────────────────────────────────────── */}
       {items.length > 0 && (
         <section className="flex-col flex gap-y-2 sm:gap-y-3">
@@ -112,12 +129,16 @@ const ProductDetails = ({ order }) => {
       )}
 
       {/* ── Free Items / Notes ───────────────────────────────────────────── */}
-      {order?.free_items && (
+      {(order?.free_items || order?.freebie_items || order?.freebie_color || order?.freebie_others) && (
         <section className="flex-col flex gap-y-2 sm:gap-y-3">
           <h1 className="font-semibold text-base sm:text-lg">Free Items</h1>
-          <p className="text-xs sm:text-sm p-2 sm:p-3 bg-gray-50 rounded-lg border border-gray-200 whitespace-pre-line">
-            {order.free_items}
-          </p>
+          <div className="border border-gray-200 sm:border-gray-300 p-2 sm:p-3 rounded-lg sm:rounded-xl">
+            {order?.freebie_items && <Row label="Freebie Item" value={order.freebie_items} />}
+            {order?.freebie_color && <Row label="Freebie Color" value={order.freebie_color} />}
+            {(order?.freebie_others || order?.free_items) && (
+              <Row label="Other Freebies" value={order.freebie_others || order.free_items} />
+            )}
+          </div>
         </section>
       )}
 

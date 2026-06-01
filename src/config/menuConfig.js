@@ -170,6 +170,10 @@ export const getMenuByPermissions = (user = null) => {
               path: "/admin/settings/print-method",
             },
             {
+              name: "Special Print",
+              path: "/admin/settings/special-print",
+            },
+            {
               name: "Size Label",
               path: "/admin/settings/size-label",
             },
@@ -242,6 +246,10 @@ export const getMenuByPermissions = (user = null) => {
             {
               name: "Apparel Pattern Prices",
               path: "/quotation/settings/apparel-pattern-prices",
+            },
+            {
+              name: "Pricing Settings",
+              path: "/quotation/settings/pricing",
             },
           ],
         },

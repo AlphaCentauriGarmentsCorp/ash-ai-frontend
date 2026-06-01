@@ -27,6 +27,21 @@ export const orderInitialState = {
   service_type: "",
   print_method: "",
   print_service: "",
+  special_print: "",
+  print_area: "Regular",
+  // Per-method print configuration, mirrors the Quotation form's methodConfig.
+  // Used by embroidery / sublimation pricing (wired into the engine in the
+  // order pricing task). Silkscreen uses special_print + print_area above.
+  print_method_config: {
+    embroidery_size: "small",
+    embroidery_manual_price: 0,
+    sublimation_type: "partial",
+    sublimation_manual_price: 0,
+  },
+  // Per-placement print configuration that feeds the pricing engine.
+  // Silkscreen: { part, unitCount, fullUnitCount }. DTF: { part, width,
+  // height, pieces }. Empty for embroidery/sublimation (flat/manual).
+  print_parts: [],
   size_label: "",
   print_label_placement: "",
 

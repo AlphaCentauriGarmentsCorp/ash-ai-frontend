@@ -15,6 +15,17 @@ export const orderApi = {
     return data;
   },
 
+  /**
+   * Live engine pricing for the Add Order form (Option A). Delegates server-
+   * side to the shared quotation pricing engine and returns the computed
+   * totals + breakdown without saving. Accepts the same payload shape as the
+   * quotation preview (item_config_json / items_json / print_parts_json / ...).
+   */
+  preview: async (payload) => {
+    const { data } = await api.post("/orders/preview", payload);
+    return data;
+  },
+
   index: async (params = {}) => {
     try {
       const response = await api.get("/orders", { params });

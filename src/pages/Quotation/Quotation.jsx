@@ -7,6 +7,7 @@ import { clientApi } from "../../api/clientApi";
 import { apparelPartsApi } from "../../api/apparelPartsApi";
 import { apparelNecklineApi } from "../../api/apparelNecklineApi";
 import { printMethodApi } from "../../api/printMethodApi";
+import { specialPrintApi } from "../../api/specialPrintApi";
 import FileUpload from "../../components/form/FileUpload";
 import LabelSpecSection, {
   EMPTY_LABEL,
@@ -132,6 +133,7 @@ const Quotation = () => {
   // Print Information State
   const [selectedPrintMethodId, setSelectedPrintMethodId] = useState(null);
   const [selectedSpecialPrint, setSelectedSpecialPrint] = useState("");
+  const [specialPrints, setSpecialPrints] = useState([]);
   const [selectedPrintArea, setSelectedPrintArea] = useState("Regular");
 
   // Method-specific pricing inputs (Addendum 4.2–4.4). Only the fields
@@ -168,18 +170,20 @@ const Quotation = () => {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [quotationData, clientsRes, apparelPartsRes, necklinesRes, printMethodsRes] = await Promise.all([
+      const [quotationData, clientsRes, apparelPartsRes, necklinesRes, printMethodsRes, specialPrintsRes] = await Promise.all([
         quotationService.fetchAll(),
         clientApi.index(),
         apparelPartsApi.index(),
         apparelNecklineApi.index(),
         printMethodApi.index(),
+        specialPrintApi.index(),
       ]);
 
       const clientsData = clientsRes.data || clientsRes || [];
       const apparelPartsData = apparelPartsRes.data || apparelPartsRes || [];
       const necklinesData = necklinesRes.data || necklinesRes || [];
       const printMethodsData = printMethodsRes.data || printMethodsRes || [];
+      const specialPrintsData = specialPrintsRes.data || specialPrintsRes || [];
 
       // Find Silkscreen method and set as default
       const silkscreenMethod = printMethodsData.find(
@@ -198,6 +202,7 @@ const Quotation = () => {
       setNecklines(necklinesData);
       setClients(clientsData);
       setPrintMethods(printMethodsData);
+      setSpecialPrints(specialPrintsData);
       setItems([]);
     } catch (error) {
       console.error("Failed to load data:", error);
@@ -719,6 +724,12 @@ const Quotation = () => {
     // pick the silkscreen / dtf / embroidery / sublimation calculator.
     print_method_id: toNullableId(selectedPrintMethodId),
     print_method_name: selectedPrintMethod?.name || null,
+
+    // --- Special Print (Addendum: per-color silkscreen surcharge) ---
+    // Included here so the live PREVIEW applies the surcharge exactly like
+    // the saved quote (the engine reads special_print from item_config or the
+    // top-level field). Silkscreen-only; ignored by other methods.
+    special_print: selectedSpecialPrint || null,
 
     // --- Custom-fit flag (one-time ₱500 pattern fee, Addendum 3.4) ---
     // True when the chosen pattern/fit is "Custom".
@@ -1260,8 +1271,11 @@ const Quotation = () => {
                           className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                         >
                           <option value="">Select special print</option>
-                          <option value="Sublimation">Sublimation</option>
-                          <option value="High Density">High Density</option>
+                          {specialPrints.map((sp) => (
+                            <option key={sp.id} value={sp.name}>
+                              {sp.name}
+                            </option>
+                          ))}
                         </select>
                       </div>
 
