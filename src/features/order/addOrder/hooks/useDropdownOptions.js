@@ -11,6 +11,8 @@ export const useDropdownOptions = () => {
   const [printLabelPlacementOptions, setPrintLabelPlacementOptions] = useState(
     [],
   );
+  const [specialPrintOptions, setSpecialPrintOptions] = useState([]);
+  const [apparelPatternPrices, setApparelPatternPrices] = useState([]);
   const [serverError, setServerError] = useState("");
 
   const fetchDropdownOptions = useCallback(async () => {
@@ -24,6 +26,8 @@ export const useDropdownOptions = () => {
       setPrintMethodOptions(options.printMethods);
       setSizeLabelOptions(options.sizeLabels);
       setPrintLabelPlacementOptions(options.printLabelPlacements);
+      setSpecialPrintOptions(options.specialPrints);
+      setApparelPatternPrices(options.apparelPatternPrices);
     } catch (err) {
       setServerError("Failed to load dropdown options.");
     } finally {
@@ -39,6 +43,8 @@ export const useDropdownOptions = () => {
     printMethodOptions,
     sizeLabelOptions,
     printLabelPlacementOptions,
+    specialPrintOptions,
+    apparelPatternPrices,
     serverError,
     fetchDropdownOptions,
   };

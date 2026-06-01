@@ -10,29 +10,34 @@ const Row = ({ label, value }) => (
 /**
  * ShippingInformation
  *
- * The new orders schema no longer stores courier/method/address as top-level columns.
- * These were removed in the recreate_orders_table migration. They may live inside
- * breakdown_json or item_config_json if the quotation carried them.
- * For now we surface what we have and show a placeholder where fields are absent.
+ * Shows the courier / delivery details captured on the Add Order form
+ * (courier, shipping method, receiver, contact, address). These are now
+ * persisted as order columns and exposed by OrderResource.
  */
 const ShippingInformation = ({ order }) => {
-  const config = order?.item_config_json || {};
+  // Prefer the composed address from the API; fall back to assembling the parts.
+  const address =
+    order?.address ||
+    [
+      order?.street_address,
+      order?.barangay_address,
+      order?.city_address,
+      order?.province_address,
+      order?.postal_address,
+    ]
+      .filter(Boolean)
+      .join(", ");
 
   return (
     <section className="flex-col flex gap-y-2 sm:gap-y-3">
       <h1 className="font-semibold text-base sm:text-lg">Shipping Information</h1>
       <div className="border border-gray-200 sm:border-gray-300 p-2 sm:p-3 rounded-lg sm:rounded-xl">
-        <Row label="Print Area" value={order?.print_area} />
-        <Row label="Special Print" value={order?.special_print} />
-        <Row label="Shirt Color" value={order?.shirt_color} />
-        <Row label="Free Items" value={order?.free_items} />
+        <Row label="Courier" value={order?.courier} />
+        <Row label="Shipping Method" value={order?.method} />
+        <Row label="Receiver's Name" value={order?.receiver_name} />
+        <Row label="Contact Number" value={order?.contact_number || order?.receiver_contact} />
+        <Row label="Address" value={address} />
       </div>
-      {order?.notes && (
-        <div className="border border-gray-200 sm:border-gray-300 p-3 sm:p-4 rounded-lg sm:rounded-xl">
-          <h2 className="font-medium text-sm sm:text-base mb-2">Notes</h2>
-          <p className="text-xs sm:text-sm text-gray-700 whitespace-pre-line">{order.notes}</p>
-        </div>
-      )}
     </section>
   );
 };

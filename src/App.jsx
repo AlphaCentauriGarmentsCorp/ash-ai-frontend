@@ -29,6 +29,9 @@ import EditServiceType from "./pages/DropDownSettings/ServiceType/EditServiceTyp
 import PrintMethod from "./pages/DropDownSettings/PrintMethod/PrintMethod";
 import AddPrintMethod from "./pages/DropDownSettings/PrintMethod/AddPrintMethod";
 import EditPrintMethod from "./pages/DropDownSettings/PrintMethod/EditPrintMethod";
+import SpecialPrint from "./pages/DropDownSettings/SpecialPrint/SpecialPrint";
+import AddSpecialPrint from "./pages/DropDownSettings/SpecialPrint/AddSpecialPrint";
+import EditSpecialPrint from "./pages/DropDownSettings/SpecialPrint/EditSpecialPrint";
 import SizeLabel from "./pages/DropDownSettings/SizeLabel/SizeLabel";
 import AddSizeLabel from "./pages/DropDownSettings/SizeLabel/AddSizeLabel";
 import EditSizeLabel from "./pages/DropDownSettings/SizeLabel/EditSizeLabel";
@@ -96,6 +99,7 @@ import EditApparelNeckline from "./pages/QuotationSettings/ApparelNeckline/EditA
 import ApparelPatternPricesPage from "./pages/QuotationSettings/ApparelPatternPrices/ApparelPatternPricesPage";
 import AddApparelPatternPrices from "./pages/QuotationSettings/ApparelPatternPrices/AddApparelPatternPrices";
 import EditApparelPatternPrices from "./pages/QuotationSettings/ApparelPatternPrices/EditApparelPatternPrices";
+import PricingSettingsPage from "./pages/QuotationSettings/PricingSettings/PricingSettingsPage";
 
 import AllQuotation from "./pages/Quotation/AllQuotation";
 import ViewQuotation from "./pages/Quotation/ViewQuotation";
@@ -429,6 +433,30 @@ function App() {
           element={
             <ProtectedRoute>
               <EditPrintMethod />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/special-print"
+          element={
+            <ProtectedRoute>
+              <SpecialPrint />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/special-print/new"
+          element={
+            <ProtectedRoute>
+              <AddSpecialPrint />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/special-print/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditSpecialPrint />
             </ProtectedRoute>
           }
         />
@@ -839,6 +867,14 @@ function App() {
           element={
             <ProtectedRoute>
               <ApparelPatternPricesPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quotation/settings/pricing"
+          element={
+            <ProtectedRoute>
+              <PricingSettingsPage />
             </ProtectedRoute>
           }
         />

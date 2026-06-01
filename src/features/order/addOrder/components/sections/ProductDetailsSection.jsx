@@ -15,7 +15,18 @@ export const ProductDetailsSection = ({
   sizeLabelOptions,
   printLabelPlacementOptions,
   optionsLoading,
-}) => (
+}) => {
+  // "High Density" is a silkscreen Special Print, not a standalone print
+  // method, so it is excluded from the Print Method dropdown (mirrors the
+  // Quotation form). Silkscreen itself stays selectable.
+  const filteredPrintMethodOptions = (printMethodOptions || []).filter(
+    (opt) =>
+      !String(opt.value ?? opt.label ?? "")
+        .toLowerCase()
+        .includes("high density"),
+  );
+
+  return (
   <Section title="Product Details">
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <div className="col-span-1 sm:col-span-2">
@@ -74,7 +85,7 @@ export const ProductDetailsSection = ({
         <Select
           label="Print Method"
           name="print_method"
-          options={printMethodOptions}
+          options={filteredPrintMethodOptions}
           value={formData.print_method || ""}
           onChange={handleChange}
           placeholder="Select print method"
@@ -124,4 +135,5 @@ export const ProductDetailsSection = ({
       />
     </div>
   </Section>
-);
+  );
+};

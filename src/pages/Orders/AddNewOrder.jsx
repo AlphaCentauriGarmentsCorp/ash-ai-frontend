@@ -12,6 +12,7 @@ import { useFabricMaterials } from "../../features/order/addOrder/hooks/useFabri
 import { useOptions } from "../../features/order/addOrder/hooks/useOptions";
 import { useSampleSizes } from "../../features/order/addOrder/hooks/useSampleSizes";
 import { useOrderCalculations } from "../../features/order/addOrder/hooks/useOrderCalculations";
+import { useEnginePricing } from "../../features/order/addOrder/hooks/useEnginePricing";
 
 // ── Quotation prefill bridge ──────────────────────────────────────────────────
 import { useQuotationPrefill } from "../../features/order/addOrder/hooks/useQuotationPrefill";
@@ -64,6 +65,8 @@ export default function AddNewOrder() {
     printMethodOptions,
     sizeLabelOptions,
     printLabelPlacementOptions,
+    specialPrintOptions,
+    apparelPatternPrices,
     fetchDropdownOptions,
   } = useDropdownOptions();
 
@@ -92,6 +95,26 @@ export default function AddNewOrder() {
     formData.sizes,
     formData.deposit_percentage
   );
+
+  // ── Engine pricing (Option A) ────────────────────────────────────────────
+  // Base-price id carried from an approved quotation (if any), used as the
+  // first preference when resolving the apparel_pattern_price.
+  const prefillPatternPriceId = (() => {
+    const raw = rawPrefill?.item_config_json;
+    if (!raw) return null;
+    try {
+      const cfg = typeof raw === "string" ? JSON.parse(raw) : raw;
+      return cfg?.apparel_pattern_price_id ?? null;
+    } catch {
+      return null;
+    }
+  })();
+
+  const { totals: engineTotals, payload: enginePayload } = useEnginePricing({
+    formData,
+    apparelPatternPrices,
+    prefillPatternPriceId,
+  });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
@@ -189,6 +212,30 @@ export default function AddNewOrder() {
       handleChange(e);
     },
     [handleClientChange, handleFabricTypeChange, handleChange]
+  );
+
+  // ── Per-method print config (embroidery / sublimation) ───────────────────
+  const handlePrintConfigChange = useCallback(
+    (field, value) => {
+      setFormData((prev) => ({
+        ...prev,
+        print_method_config: {
+          ...(prev.print_method_config || {}),
+          [field]: value,
+        },
+      }));
+      setServerError("");
+    },
+    [setFormData, setServerError]
+  );
+
+  // ── Print placements / colors (feed the pricing engine) ──────────────────
+  const handlePrintPartsChange = useCallback(
+    (nextParts) => {
+      setFormData((prev) => ({ ...prev, print_parts: nextParts }));
+      setServerError("");
+    },
+    [setFormData, setServerError]
   );
 
   // ── Size handlers ────────────────────────────────────────────────────────
@@ -292,9 +339,15 @@ export default function AddNewOrder() {
           // Financials from quotation
           discount_type: rawPrefill?.discount_type || "",
           discount_price: rawPrefill?.discount_price ?? 0,
-          discount_amount: rawPrefill?.discount_amount ?? 0,
-          subtotal: rawPrefill?.subtotal ?? summary.totalAmount,
-          grand_total: rawPrefill?.grand_total ?? summary.estimatedTotal,
+          discount_amount: engineTotals
+            ? Number(engineTotals.discount_amount ?? rawPrefill?.discount_amount ?? 0)
+            : (rawPrefill?.discount_amount ?? 0),
+          subtotal: engineTotals
+            ? Number(engineTotals.subtotal ?? 0)
+            : (rawPrefill?.subtotal ?? summary.totalAmount),
+          grand_total: engineTotals
+            ? Number(engineTotals.grand_total ?? 0)
+            : (rawPrefill?.grand_total ?? summary.estimatedTotal),
           // Order form fields
           deadline: formData.deadline || "",
           priority: formData.priority || "",
@@ -325,9 +378,13 @@ export default function AddNewOrder() {
           payment_method: formData.payment_method || "",
           // Totals (from useOrderCalculations summary)
           total_quantity: summary.totalQuantity ?? 0,
-          total_amount: Number(summary.totalAmount ?? 0),
+          total_amount: engineTotals
+            ? Number(engineTotals.subtotal ?? 0)
+            : Number(summary.totalAmount ?? 0),
           average_unit_price: Number(summary.averageUnitPrice ?? 0),
-          estimated_total: summary.estimatedTotal,
+          estimated_total: engineTotals
+            ? Number(engineTotals.grand_total ?? 0)
+            : summary.estimatedTotal,
         };
 
         Object.entries(scalars).forEach(([k, v]) => {
@@ -338,6 +395,10 @@ export default function AddNewOrder() {
         fd.append("sizes", JSON.stringify(formData.sizes));
         fd.append("selectedOptions", JSON.stringify(selectedOptions));
         fd.append("samples", JSON.stringify(samples));
+        fd.append(
+          "print_method_config",
+          JSON.stringify(formData.print_method_config || {})
+        );
 
         const appendJson = (key, value) => {
           if (!value) return;
@@ -345,9 +406,21 @@ export default function AddNewOrder() {
         };
         appendJson("items_json", rawPrefill?.items_json);
         appendJson("addons_json", rawPrefill?.addons_json);
-        appendJson("print_parts_json", rawPrefill?.print_parts_json);
-        appendJson("breakdown_json", rawPrefill?.breakdown_json);
-        appendJson("item_config_json", rawPrefill?.item_config_json);
+        // When the engine priced this order, persist the order-built config +
+        // engine breakdown so the saved order reflects the live price; else
+        // fall back to the quotation's carried blobs.
+        appendJson(
+          "print_parts_json",
+          engineTotals ? enginePayload?.print_parts_json : rawPrefill?.print_parts_json
+        );
+        appendJson(
+          "breakdown_json",
+          engineTotals ? engineTotals.breakdown_json : rawPrefill?.breakdown_json
+        );
+        appendJson(
+          "item_config_json",
+          engineTotals ? enginePayload?.item_config_json : rawPrefill?.item_config_json
+        );
 
         // ── File arrays ───────────────────────────────────────────────────
         ["design_files", "design_mockup", "size_label_files", "freebies_files", "payments"].forEach((key) => {
@@ -377,6 +450,7 @@ export default function AddNewOrder() {
     [
       validate, validateSamples, formData, selectedOptions, samples,
       rawPrefill, rawClients, summary, setErrors, setServerError,
+      engineTotals, enginePayload,
     ]
   );
 
@@ -458,6 +532,10 @@ export default function AddNewOrder() {
         printMethodOptions={printMethodOptions}
         sizeLabelOptions={sizeLabelOptions}
         printLabelPlacementOptions={printLabelPlacementOptions}
+        specialPrintOptions={specialPrintOptions}
+        onPrintConfigChange={handlePrintConfigChange}
+        onPrintPartsChange={handlePrintPartsChange}
+        engineTotals={engineTotals}
         fabricTypeOptions={fabricTypeOptions}
         fabricSupplierOptions={fabricSupplierOptions}
         selectedOptions={selectedOptions}

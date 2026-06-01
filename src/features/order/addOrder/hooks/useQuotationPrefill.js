@@ -70,6 +70,35 @@ export const useQuotationPrefill = (prefill) => {
             }]
             : [];
 
+        // ── Print configuration (engine pricing inputs) ───────────────────────
+        // The quotation stores the per-placement print config in print_parts_json
+        // (snake_case) and embroidery/sublimation settings in item_config_json.
+        // Map both into the order form state so the live engine re-pricing on the
+        // Add Order form reproduces the EXACT same price as the quotation, and so
+        // the placement configurator visibly shows the carried-over placements.
+        const itemConfig = safeJson(prefill.item_config_json, {});
+        const printPartsRaw = safeJson(prefill.print_parts_json, []);
+
+        const prefillPrintParts = Array.isArray(printPartsRaw)
+            ? printPartsRaw.map((p) => ({
+                id: crypto.randomUUID(),
+                part: p.part ?? "",
+                unitCount: Number(p.unit_count ?? 0),
+                fullUnitCount: Number(p.full_unit_count ?? 0),
+                printSize: p.print_size ?? (p.is_full_print ? "Full" : "Regular"),
+                width: Number(p.width ?? 0),
+                height: Number(p.height ?? 0),
+                pieces: Number(p.pieces ?? 0),
+            }))
+            : [];
+
+        const prefillPrintMethodConfig = {
+            embroidery_size: itemConfig.embroidery_size ?? "small",
+            embroidery_manual_price: Number(itemConfig.embroidery_manual_price ?? 0),
+            sublimation_type: itemConfig.sublimation_type ?? "partial",
+            sublimation_manual_price: Number(itemConfig.sublimation_manual_price ?? 0),
+        };
+
         return {
             // Client
             client: prefill.client_id ?? "",
@@ -85,6 +114,10 @@ export const useQuotationPrefill = (prefill) => {
             special_print: prefill.special_print ?? "",
             print_area: prefill.print_area ?? "",
             notes: prefill.notes ?? "",
+
+            // Print configuration → drives engine re-pricing + configurator UI
+            print_parts: prefillPrintParts,
+            print_method_config: prefillPrintMethodConfig,
 
             // Freebies → freebie_others
             freebie_others: prefill.free_items ?? "",
