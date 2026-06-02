@@ -27,19 +27,6 @@ const DEFAULT_SIZE_OPTIONS = [
 
 const normalizeSizeName = (value) => String(value || "").trim().toLowerCase();
 
-const getDefaultSizeUnitPrice = (sizeName) => {
-  const normalizedSize = normalizeSizeName(sizeName);
-
-  if (normalizedSize === "l" || normalizedSize === "xl") {
-    return 10;
-  }
-
-  if (normalizedSize === "2xl" || normalizedSize === "3xl") {
-    return 30;
-  }
-
-  return 0;
-};
 
 const toNullableId = (value) => {
   const parsed = Number(value);
@@ -64,7 +51,11 @@ const buildDefaultSizeRows = ({
       size_id: matchedExisting?.size_id || option.id,
       size_label: matchedExisting?.size_label || matchedExisting?.size || option.name,
       quantity: matchedExisting?.quantity ?? 1,
-      unit_price: matchedExisting?.unit_price ?? getDefaultSizeUnitPrice(sizeName),
+      // Per-size base pricing now lives in admin (Apparel Pattern Prices →
+      // per-size grid). The row keeps unit_price only for payload
+      // back-compat; it is no longer entered in Add Quotation nor used to
+      // price (the backend resolves the base from the pattern's size_prices).
+      unit_price: matchedExisting?.unit_price ?? 0,
       price_per_piece: matchedExisting?.price_per_piece ?? 0,
       apparel_pattern_price_id:
         matchedExisting?.apparel_pattern_price_id || selectedApparelPattern?.id || null,
@@ -474,6 +465,36 @@ const Quotation = () => {
   const grandTotal = previewTotals?.grand_total ?? localGrandTotal;
   const downPayment = previewTotals?.downpayment ?? grandTotal * 0.6;
   const balance = previewTotals?.balance ?? grandTotal * 0.4;
+
+  // Map the backend preview's per-size computed prices by size name. The
+  // Price/Pc column and the cost breakdown read from THIS (the same engine
+  // that produces the headline total), so a row's price can never disagree
+  // with the total again. The local estimate is only a placeholder while the
+  // 350ms-debounced preview is in flight.
+  const previewItemsBySize = useMemo(() => {
+    const map = {};
+    (previewTotals?.items_json || []).forEach((it) => {
+      const key = String(it.size ?? "").trim().toLowerCase();
+      if (key) map[key] = it;
+    });
+    return map;
+  }, [previewTotals]);
+
+  const sizeNameForItem = (item) =>
+    item.size_label ||
+    sizeOptions.find((s) => Number(s.id) === Number(item.size_id))?.name ||
+    "";
+
+  const previewItemForRow = (item) =>
+    previewItemsBySize[sizeNameForItem(item).trim().toLowerCase()] || null;
+
+  // Authoritative per-piece price for a row: backend preview when available,
+  // otherwise the local estimate while the preview loads.
+  const rowPricePerPiece = (item) => {
+    const pv = previewItemForRow(item);
+    if (pv && pv.price_per_piece != null) return Number(pv.price_per_piece) || 0;
+    return itemDetails.find((d) => d.id === item.id)?.pricePerPiece ?? 0;
+  };
 
   const toggleColor = (part) => {
     const partId = Number(part.id ?? part.colorId ?? part.partId);
@@ -1648,7 +1669,6 @@ const Quotation = () => {
                     <tr>
                       <th className="px-2 py-2 text-left">Size</th>
                       <th className="px-2 py-2 text-right w-20">Qty</th>
-                      <th className="px-2 py-2 text-right w-28">Unit Price</th>
                       <th className="px-2 py-2 text-right w-28">Price/Pc</th>
                     </tr>
                   </thead>
@@ -1686,23 +1706,7 @@ const Quotation = () => {
                               type="number"
                               min="0"
                               step="0.01"
-                              value={item.unit_price ?? 0}
-                              onChange={(e) =>
-                                updateItem(
-                                  item.id,
-                                  "unit_price",
-                                  Math.max(0, parseFloat(e.target.value) || 0),
-                                )
-                              }
-                              className="w-full px-1 py-1 text-xs text-right border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
-                            />
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={itemDetails.find((detail) => detail.id === item.id)?.pricePerPiece ?? 0}
+                              value={rowPricePerPiece(item)}
                               className="w-full px-1 py-1 text-xs text-right border border-gray-200 rounded bg-gray-50 text-gray-600"
                               readOnly
                             />
@@ -1796,26 +1800,32 @@ const Quotation = () => {
                             {itemDetails.map((item) => {
                               const sizeName =
                                 sizeOptions.find((s) => Number(s.id) === Number(item.size_id))
-                                  ?.name || "Unknown";
+                                  ?.name || item.size_label || "Unknown";
+
+                              // Prefer the backend preview's computed numbers
+                              // for this size so every figure agrees with the
+                              // headline total; fall back to the local estimate.
+                              const pv = previewItemForRow(item);
+                              const basePrice = pv?.base_price ?? item.apparelPatternPrice ?? 0;
+                              const printTotal = pv?.print_parts_total ?? item.colorPrice ?? 0;
+                              const pricePerPiece = pv?.price_per_piece ?? item.pricePerPiece ?? 0;
+                              const rowTotal =
+                                pv?.total_amount ??
+                                item.total ??
+                                pricePerPiece * (item.quantity ?? 0);
 
                               return (
                                 <tr key={item.id} className="hover:bg-white/50">
                                   <td className="px-3 py-2 font-medium text-primary">{sizeName}</td>
                                   <td className="px-3 py-2 text-center">{item.quantity}</td>
                                   <td className="px-3 py-2 text-right">
-                                    ₱
-                                    {quotationService
-                                      .getApparelPatternPrice(
-                                        data.apparelPatternPrices,
-                                        item.apparel_pattern_price_id,
-                                      )
-                                      .toLocaleString()}
+                                    ₱{Number(basePrice).toLocaleString()}
                                   </td>
                                   <td className="px-3 py-2 text-right">₱{item.necklinePrice.toLocaleString()}</td>
-                                  <td className="px-3 py-2 text-right">₱{item.colorPrice.toLocaleString()}</td>
+                                  <td className="px-3 py-2 text-right">₱{Number(printTotal).toLocaleString()}</td>
                                   <td className="px-3 py-2 text-right">₱{item.unitPrice.toLocaleString()}</td>
-                                  <td className="px-3 py-2 text-right font-semibold">₱{item.pricePerPiece.toLocaleString()}</td>
-                                  <td className="px-3 py-2 text-right font-bold text-primary">₱{item.total.toLocaleString()}</td>
+                                  <td className="px-3 py-2 text-right font-semibold">₱{Number(pricePerPiece).toLocaleString()}</td>
+                                  <td className="px-3 py-2 text-right font-bold text-primary">₱{Number(rowTotal).toLocaleString()}</td>
                                 </tr>
                               );
                             })}

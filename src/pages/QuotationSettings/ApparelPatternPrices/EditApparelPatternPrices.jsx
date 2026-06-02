@@ -14,6 +14,7 @@ import {
   validateApparelPatternPricesUniqueness,
 } from "../../../validations/apparelPatternPricesSchema";
 import { validateForm, hasErrors } from "../../../utils/validation";
+import SizePriceGrid, { buildSizePricesPayload } from "./SizePriceGrid";
 
 const EditApparelPatternPrices = () => {
   const { id } = useParams();
@@ -67,6 +68,10 @@ const EditApparelPatternPrices = () => {
         apparel_type_id: showData.apparel_type_id || "",
         pattern_type_id: showData.pattern_type_id || "",
         price: showData.price ?? "",
+        size_prices:
+          showData.size_prices && typeof showData.size_prices === "object"
+            ? { ...showData.size_prices }
+            : {},
       });
     } catch (error) {
       console.error(error);
@@ -115,6 +120,7 @@ const EditApparelPatternPrices = () => {
         apparel_type_id: Number(formData.apparel_type_id),
         pattern_type_id: Number(formData.pattern_type_id),
         price: Number(formData.price),
+        size_prices: buildSizePricesPayload(formData.size_prices),
       });
 
       setSubmitSuccess(true);
@@ -229,17 +235,25 @@ const EditApparelPatternPrices = () => {
         />
 
         <Input
-          label="Price"
+          label="Base Price (fallback for any blank size)"
           name="price"
           value={formData.price}
           onChange={handleChange}
           error={errors.price}
           type="number"
-          placeholder="Enter price"
+          placeholder="Enter base price"
           min="0"
           max="999999.99"
           step="0.01"
           required
+        />
+
+        <SizePriceGrid
+          value={formData.size_prices}
+          onChange={(next) =>
+            setFormData((prev) => ({ ...prev, size_prices: next }))
+          }
+          disabled={isSubmitting}
         />
       </div>
 
