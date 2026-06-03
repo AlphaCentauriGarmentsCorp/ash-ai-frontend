@@ -17,11 +17,11 @@ import useDraftState from "../../../../hooks/useDraftState";
  * confirm calls qaPackerPortalApi.submit() with the full payload.
  *
  * Post-submit:
- *   - If stage was quality_control → next stage is packing → primary CTA
+ *   - If stage was mass_qa → next stage is mass_packing → primary CTA
  *     is "Continue to Packing" (only useful if the same user is also
  *     assigned to packing; otherwise it just navigates to /portal/qa-packer
  *     and the my-active resolver does its thing).
- *   - If stage was packing → next stage is delivery (logistics, different
+ *   - If stage was mass_packing → next stage is delivery (logistics, different
  *     portal) → primary CTA is "Back to Dashboard."
  *
  * Props:
@@ -123,7 +123,7 @@ const SubmitCompletedSection = ({
 
   // Post-submit success card.
   if (submittedResult) {
-    const wasQc = submittedResult.stage === "quality_control";
+    const wasQc = submittedResult.stage === "mass_qa";
     const nextStage = submittedResult.new_stage;
     const exceeded =
       !!submittedResult.reject_summary?.exceeds_threshold;
@@ -173,7 +173,7 @@ const SubmitCompletedSection = ({
           </div>
 
           <div className="flex items-center justify-center gap-2 flex-wrap">
-            {wasQc && nextStage === "packing" ? (
+            {wasQc && nextStage === "mass_packing" ? (
               <button
                 type="button"
                 onClick={() => window.location.reload()}

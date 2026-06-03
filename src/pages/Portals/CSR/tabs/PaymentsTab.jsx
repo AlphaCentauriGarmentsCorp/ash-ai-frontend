@@ -12,32 +12,32 @@ import VerifyPaymentModal from "../modals/VerifyPaymentModal";
  * for users with `action.verify-payment` permission (Finance + Super Admin).
  */
 const STATUS_FILTERS = [
-  { key: "all",              label: "All" },
-  { key: "waiting",          label: "Waiting" },
+  { key: "all", label: "All" },
+  { key: "waiting", label: "Waiting" },
   { key: "for_verification", label: "For Verification" },
-  { key: "verified",         label: "Verified" },
-  { key: "rejected",         label: "Rejected" },
+  { key: "verified", label: "Verified" },
+  { key: "rejected", label: "Rejected" },
 ];
 
 const STATUS_STYLES = {
-  waiting:          "bg-gray-100 text-gray-700",
+  waiting: "bg-gray-100 text-gray-700",
   for_verification: "bg-amber-100 text-amber-800",
-  verified:         "bg-emerald-100 text-emerald-700",
-  rejected:         "bg-red-100 text-red-700",
+  verified: "bg-emerald-100 text-emerald-700",
+  rejected: "bg-red-100 text-red-700",
 };
 
 const TYPE_LABELS = {
-  sample:       "Sample",
+  sample: "Sample",
   down_payment: "Down Payment",
-  balance:      "Balance",
-  full:         "Full",
+  balance: "Balance",
+  full: "Full",
 };
 
 const formatPHP = (n) =>
   "₱" +
   Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
-const PaymentsTab = () => {
+const PaymentsTab = ({ initialFilter = null }) => {
   const { user } = useAuth();
   const canVerify = useMemo(
     () => hasRequiredPermissions(user, ["action.verify-payment"], "any"),
@@ -47,7 +47,7 @@ const PaymentsTab = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(initialFilter || "all");
 
   const [showUpload, setShowUpload] = useState(false);
   const [verifyTarget, setVerifyTarget] = useState(null);
@@ -171,9 +171,8 @@ const PaymentsTab = () => {
                         </td>
                         <td className="py-2 px-2">
                           <span
-                            className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                              STATUS_STYLES[p.status]
-                            }`}
+                            className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${STATUS_STYLES[p.status]
+                              }`}
                           >
                             {p.status?.replace(/_/g, " ")}
                           </span>
@@ -231,9 +230,8 @@ const PaymentsTab = () => {
                         Order #{p.order_id}
                       </span>
                       <span
-                        className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                          STATUS_STYLES[p.status]
-                        }`}
+                        className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${STATUS_STYLES[p.status]
+                          }`}
                       >
                         {p.status?.replace(/_/g, " ")}
                       </span>

@@ -11,43 +11,43 @@ import RespondApprovalModal from "../modals/RespondApprovalModal";
  * Record response on a 'waiting' row → RespondApprovalModal.
  */
 const STATUS_FILTERS = [
-  { key: "all",                  label: "All" },
-  { key: "waiting",              label: "Waiting" },
-  { key: "approved",             label: "Approved" },
-  { key: "revision_requested",   label: "Revisions" },
-  { key: "rejected",             label: "Rejected" },
+  { key: "all", label: "All" },
+  { key: "waiting", label: "Waiting" },
+  { key: "approved", label: "Approved" },
+  { key: "revision_requested", label: "Revisions" },
+  { key: "rejected", label: "Rejected" },
 ];
 
 const STATUS_STYLES = {
-  waiting:            "bg-amber-100 text-amber-800",
-  approved:           "bg-emerald-100 text-emerald-700",
+  waiting: "bg-amber-100 text-amber-800",
+  approved: "bg-emerald-100 text-emerald-700",
   revision_requested: "bg-blue-100 text-blue-700",
-  rejected:           "bg-red-100 text-red-700",
+  rejected: "bg-red-100 text-red-700",
 };
 
 const KIND_LABELS = {
-  quotation:         "Quotation",
-  design:            "Design",
-  mockup:            "Mockup",
-  sample:            "Sample",
+  quotation: "Quotation",
+  design: "Design",
+  mockup: "Mockup",
+  sample: "Sample",
   production_change: "Production Change",
-  delivery:          "Delivery",
+  delivery: "Delivery",
 };
 
 const KIND_ICONS = {
-  quotation:         "fa-file-invoice-dollar",
-  design:            "fa-pen-ruler",
-  mockup:            "fa-image",
-  sample:            "fa-shirt",
+  quotation: "fa-file-invoice-dollar",
+  design: "fa-pen-ruler",
+  mockup: "fa-image",
+  sample: "fa-shirt",
   production_change: "fa-rotate",
-  delivery:          "fa-box-archive",
+  delivery: "fa-box-archive",
 };
 
-const ApprovalsTab = () => {
+const ApprovalsTab = ({ initialFilter = null }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(initialFilter || "all");
 
   const [showRecord, setShowRecord] = useState(false);
   const [respondTarget, setRespondTarget] = useState(null);
@@ -169,9 +169,8 @@ const ApprovalsTab = () => {
                         </td>
                         <td className="py-2 px-2">
                           <span
-                            className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                              STATUS_STYLES[a.status]
-                            }`}
+                            className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${STATUS_STYLES[a.status]
+                              }`}
                           >
                             {a.status?.replace(/_/g, " ")}
                           </span>
@@ -223,9 +222,8 @@ const ApprovalsTab = () => {
                         Order #{a.order_id}
                       </span>
                       <span
-                        className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                          STATUS_STYLES[a.status]
-                        }`}
+                        className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${STATUS_STYLES[a.status]
+                          }`}
                       >
                         {a.status?.replace(/_/g, " ")}
                       </span>

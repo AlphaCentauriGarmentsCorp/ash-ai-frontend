@@ -12,18 +12,21 @@ import LogWasteModal from "../stageInputs/LogWasteModal";
 import LogRejectModal from "../stageInputs/LogRejectModal";
 import SendToSubcontractorModal from "../stageInputs/SendToSubcontractorModal";
 
-// Stages where Send-to-Subcontractor makes sense (Cutting / Sample / Mass).
-// QC and packing aren't subcontractable; preprod stages aren't either.
+// Stages where Send-to-Subcontractor makes sense (the cut / print / sew build
+// stages, sample + mass, plus screen making). QA and packing aren't
+// subcontractable; preprod (inquiry/quotation/payment) isn't either.
 const SUBCONTRACT_ELIGIBLE_STAGES = [
-  "sample_creation",
-  "mass_production",
-  "cutting",
   "sample_cutting",
+  "sample_printing",
+  "sample_sewing",
   "mass_cutting",
+  "mass_printing",
+  "mass_sewing",
+  "screen_making",
 ];
 
-// Reject logging is QA-only and only meaningful on quality_control.
-const REJECT_ELIGIBLE_STAGES = ["quality_control"];
+// Reject logging is QA-only and only meaningful on the mass QA stage.
+const REJECT_ELIGIBLE_STAGES = ["mass_qa"];
 
 /**
  * OrderStage – sequential workflow timeline view.
@@ -72,6 +75,26 @@ const OrderStage = ({ order, onStagesUpdated }) => {
   }, [lastMessage, resetState]);
 
   const groups = getStageGroups();
+
+  // Tiers shared by more than one stage are a parallel fork (the sample phase:
+  // Screen Making ‖ Material Prep). Used to badge those cards and to explain
+  // that they start together rather than one-after-another.
+  const parallelSeqs = (() => {
+    const counts = {};
+    (stages || []).forEach((s) => {
+      counts[s.sequence] = (counts[s.sequence] || 0) + 1;
+    });
+    return new Set(
+      Object.keys(counts)
+        .filter((k) => counts[k] > 1)
+        .map(Number),
+    );
+  })();
+
+  // How many stages are active at once (>1 only during the fork).
+  const activeCount = (stages || []).filter(
+    (s) => s.status === STAGE_STATUS.IN_PROGRESS,
+  ).length;
 
   const openAction = (stageId, type) => {
     setActionStageId(stageId);
@@ -160,6 +183,11 @@ const OrderStage = ({ order, onStagesUpdated }) => {
                 <span className="text-xs font-mono bg-white border border-gray-200 rounded px-2 py-0.5 text-gray-600">
                   #{stage.sequence}
                 </span>
+                {parallelSeqs.has(stage.sequence) && (
+                  <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 inline-flex items-center gap-1">
+                    <i className="fas fa-code-branch"></i> Parallel
+                  </span>
+                )}
                 <h4 className={`font-semibold text-sm ${meta.text}`}>
                   {stage.label}
                 </h4>
@@ -314,7 +342,10 @@ const OrderStage = ({ order, onStagesUpdated }) => {
               <div className="pt-1">
                 {isPending && (
                   <span className="text-[11px] text-gray-400 italic inline-flex items-center">
-                    <i className="fas fa-lock mr-1"></i> Locked — waiting for previous stage
+                    <i className="fas fa-lock mr-1"></i>
+                    {parallelSeqs.has(stage.sequence)
+                      ? "Starts in parallel with its sibling stage"
+                      : "Locked — waiting for previous stage"}
                   </span>
                 )}
                 {isCompleted && (
@@ -454,8 +485,9 @@ const OrderStage = ({ order, onStagesUpdated }) => {
             Order Workflow
           </h1>
           <p className="text-xs sm:text-sm text-gray-500 mt-1">
-            16-step sequential pipeline. Each stage must be completed before
-            the next can begin.
+            {stats.totalStages}-stage production pipeline. Stages run in
+            sequence — except Screen Making and Material Prep, which run in
+            parallel during the sample phase.
           </p>
         </div>
 
@@ -464,6 +496,9 @@ const OrderStage = ({ order, onStagesUpdated }) => {
             <span className="text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full border border-blue-200 inline-flex items-center gap-2">
               <i className="fas fa-bolt"></i>
               Active: <strong>{currentStage.label}</strong>
+              {activeCount > 1 && (
+                <span className="text-blue-500">(+{activeCount - 1} parallel)</span>
+              )}
             </span>
           )}
         </div>

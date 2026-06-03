@@ -40,9 +40,9 @@ import ActivityLogSection from "./sections/ActivityLogSection";
  */
 
 const STATUS_FLOW = [
-  { key: "mass_production", label: "Mass Production", icon: "fa-industry" },
-  { key: "quality_control", label: "Quality Control", icon: "fa-clipboard-check" },
-  { key: "packing", label: "Packing", icon: "fa-box" },
+  { key: "mass_sewing", label: "Mass Production", icon: "fa-industry" },
+  { key: "mass_qa", label: "Quality Control", icon: "fa-clipboard-check" },
+  { key: "mass_packing", label: "Packing", icon: "fa-box" },
   { key: "delivery", label: "Delivery", icon: "fa-truck" },
   { key: "order_completed", label: "Order Completed", icon: "fa-flag-checkered" },
 ];
@@ -126,11 +126,12 @@ const QaPackerPortalPage = () => {
 
   const handleRefresh = () => setRefreshKey((k) => k + 1);
 
-  // Title depends on the current stage — QA vs Packing.
-  const portalTitle =
-    context?.task?.stage === "packing"
-      ? "Packing"
-      : "Quality Control";
+  // The QA/Packer portal serves the QA stage plus both packing stages
+  // (sample and mass). Title + packing-only sections key off this.
+  const isPackingStage = ["sample_packing", "mass_packing"].includes(
+    context?.task?.stage,
+  );
+  const portalTitle = isPackingStage ? "Packing" : "Quality Control";
 
   // ── Render branches ───────────────────────────────────────────
 
@@ -319,7 +320,7 @@ const QaPackerPortalPage = () => {
           />
 
           {/* Section 5: Packing Checklist — only when on packing stage */}
-          {context.task.stage === "packing" && (
+          {isPackingStage && (
             <PackingChecklistSection
               packingChecklist={context.packing_checklist}
               orderStageId={context.task.order_stage_id}
@@ -329,7 +330,7 @@ const QaPackerPortalPage = () => {
           )}
 
           {/* Section 6: Packing Boxes & QR — only when on packing stage */}
-          {context.task.stage === "packing" && (
+          {isPackingStage && (
             <PackingBoxesSection
               packingBoxes={context.packing_boxes}
               orderId={context.task.order_id}
@@ -339,7 +340,7 @@ const QaPackerPortalPage = () => {
           )}
 
           {/* Section 7: Final Photos — only when on packing stage */}
-          {context.task.stage === "packing" && (
+          {isPackingStage && (
             <FinalPhotosSection
               orderId={context.task.order_id}
               orderStageId={context.task.order_stage_id}

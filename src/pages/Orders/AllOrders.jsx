@@ -1,16 +1,53 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Table from "../../components/table/Table";
 import { orderApi } from "../../api/orderApi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { firstPartThumbnail } from "../../utils/designImage";
 import DesignThumb from "../../components/common/DesignThumb";
 
+// Change 16 — deep-link filters used by the CSR Hub overview cards. Predicates
+// mirror CsrDashboardService so the drilled-in list matches the card's count.
+const STATE_FILTERS = {
+  in_production: {
+    label: "In Production",
+    fn: (o) =>
+      o.workflow_status &&
+      !["completed", "delivered", "cancelled"].includes(o.workflow_status),
+  },
+  delayed: {
+    label: "Delayed",
+    fn: (o) => Boolean(o.delayed_at),
+  },
+  ready_for_delivery: {
+    label: "Ready for Delivery",
+    fn: (o) => o.workflow_status === "ready_for_delivery",
+  },
+  completed: {
+    label: "Completed",
+    fn: (o) => o.workflow_status === "completed",
+  },
+};
+
 const AllOrders = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
+
+  const stateKey = searchParams.get("state");
+  const activeStateFilter = stateKey ? STATE_FILTERS[stateKey] : null;
+  const displayData = useMemo(() => {
+    if (!activeStateFilter) return data;
+    return data.filter(activeStateFilter.fn);
+  }, [data, activeStateFilter]);
+
+  const clearStateFilter = () => {
+    const next = new URLSearchParams(searchParams);
+    next.delete("state");
+    setSearchParams(next, { replace: true });
+  };
 
   // ── Status badge ──────────────────────────────────────────────────────────
   const getStatusBadge = (status) => {
@@ -188,8 +225,25 @@ const AllOrders = () => {
         { label: "Orders", href: "/orders" },
       ]}
     >
+      {activeStateFilter && (
+        <div className="mb-3 flex items-center gap-2 text-sm">
+          <span className="text-gray-500">Showing:</span>
+          <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+            {activeStateFilter.label}
+            <span className="text-primary/60">({displayData.length})</span>
+            <button
+              type="button"
+              onClick={clearStateFilter}
+              className="hover:text-primary/70"
+              title="Clear filter"
+            >
+              <i className="fa-solid fa-xmark" />
+            </button>
+          </span>
+        </div>
+      )}
       <Table
-        data={data}
+        data={displayData}
         columns={columns}
         config={tableConfig}
         onPageSizeChange={handlePageSizeChange}

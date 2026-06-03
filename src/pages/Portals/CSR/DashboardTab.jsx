@@ -20,7 +20,7 @@ import MyOrdersList from "./sections/MyOrdersList";
  * Loading model: a single `loading` flag controls all 5 panels.
  * Each panel renders skeleton placeholders while loading is true.
  */
-const DashboardTab = () => {
+const DashboardTab = ({ onCardNavigate }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -95,7 +95,7 @@ const DashboardTab = () => {
       </div>
 
       {/* KPI overview — full width */}
-      <KpiOverviewCards kpis={data?.kpis || {}} loading={loading} />
+      <KpiOverviewCards kpis={data?.kpis || {}} loading={loading} onCardClick={onCardNavigate} />
 
       {/* Two-column grid below — left: tasks + my inquiries; right: activity + my orders */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
