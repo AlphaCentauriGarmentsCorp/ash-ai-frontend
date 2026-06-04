@@ -37,7 +37,7 @@ const formatPHP = (n) =>
   "₱" +
   Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
-const PaymentsTab = ({ initialFilter = null }) => {
+const PaymentsTab = ({ initialFilter = null, paymentsApi = csrPortalApi, canUpload = false }) => {
   const { user } = useAuth();
   const canVerify = useMemo(
     () => hasRequiredPermissions(user, ["action.verify-payment"], "any"),
@@ -56,14 +56,14 @@ const PaymentsTab = ({ initialFilter = null }) => {
     setLoading(true);
     setError(null);
     try {
-      const res = await csrPortalApi.listPayments();
+      const res = await paymentsApi.listPayments();
       setItems(res?.data ?? []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load payments.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [paymentsApi]);
 
   useEffect(() => {
     fetchList();
@@ -116,14 +116,16 @@ const PaymentsTab = ({ initialFilter = null }) => {
                 <i className={`fa-solid fa-arrows-rotate ${loading ? "fa-spin" : ""}`} />
                 <span className="hidden sm:inline">Refresh</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setShowUpload(true)}
-                className="text-xs font-semibold px-3 py-1.5 rounded-md bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-1.5"
-              >
-                <i className="fa-solid fa-cloud-arrow-up" />
-                <span className="hidden sm:inline">Upload Payment</span>
-              </button>
+              {canUpload && (
+                <button
+                  type="button"
+                  onClick={() => setShowUpload(true)}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-md bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-1.5"
+                >
+                  <i className="fa-solid fa-cloud-arrow-up" />
+                  <span className="hidden sm:inline">Upload Payment</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -141,7 +143,7 @@ const PaymentsTab = ({ initialFilter = null }) => {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <EmptyState filter={filter} onUpload={() => setShowUpload(true)} />
+            <EmptyState filter={filter} canUpload={canUpload} onUpload={() => setShowUpload(true)} />
           ) : (
             <>
               {/* Desktop table */}
@@ -292,6 +294,7 @@ const PaymentsTab = ({ initialFilter = null }) => {
         <UploadPaymentModal
           onClose={() => setShowUpload(false)}
           onSaved={handleUploaded}
+          paymentsApi={paymentsApi}
         />
       )}
       {verifyTarget && (
@@ -299,19 +302,20 @@ const PaymentsTab = ({ initialFilter = null }) => {
           payment={verifyTarget}
           onClose={() => setVerifyTarget(null)}
           onVerified={handleVerified}
+          paymentsApi={paymentsApi}
         />
       )}
     </>
   );
 };
 
-const EmptyState = ({ filter, onUpload }) => (
+const EmptyState = ({ filter, canUpload = false, onUpload }) => (
   <div className="text-center py-10 text-gray-400">
     <i className="fa-regular fa-money-bill-1 text-3xl mb-2" />
     <p className="text-sm">
       {filter === "all" ? "No payments yet." : `No payments in '${filter.replace(/_/g, " ")}' status.`}
     </p>
-    {filter === "all" && (
+    {canUpload && filter === "all" && (
       <button
         type="button"
         onClick={onUpload}

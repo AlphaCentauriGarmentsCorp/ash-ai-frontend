@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { OrderStages } from "../../../constants/formOptions/orderStages";
+import { OrderStages, isPaymentGate } from "../../../constants/formOptions/orderStages";
 import { stageReviewApi } from "../../../api/stageReviewApi";
 import { useAuth } from "../../../hooks/useAuth";
 import { hasRequiredPermissions } from "../../../utils/authz";
@@ -112,6 +112,11 @@ const RejectModal = ({ stage, onClose, onSubmit, busy }) => {
 const StageCard = ({ stage, state, history, uploads, canReview, onApprove, onReject, busyId }) => {
   const badge = STATE_BADGE[state?.review_state || "none"];
   const busy = busyId === stage.id;
+  const paymentGate = isPaymentGate(stage.stage);
+  // Whether THIS viewer can act on the stage. For a payment gate the backend
+  // returns can_approve/can_reject false unless the viewer has verify-payment,
+  // so a CSR ends up with no actionable buttons here (read-only).
+  const canAct = canReview && (state?.can_approve || state?.can_reject);
 
   return (
     <div className="rounded-xl border border-gray-200 p-4">
@@ -215,7 +220,7 @@ const StageCard = ({ stage, state, history, uploads, canReview, onApprove, onRej
 
       {/* Reviewer actions — each button shows only when actionable, so an
           already-approved or locked stage doesn't expose a spammy Approve. */}
-      {canReview && (state?.can_approve || state?.can_reject) && (
+      {canAct && (
         <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
           {state?.can_approve && (
             <button
@@ -235,6 +240,16 @@ const StageCard = ({ stage, state, history, uploads, canReview, onApprove, onRej
               Reject
             </button>
           )}
+        </div>
+      )}
+
+      {/* Change 17 — payment verification is a Finance action. For anyone who
+          can't verify payment (e.g. CSR) the gate is read-only here, so we show
+          a clear note in place of the (now-hidden) Approve/Reject buttons. */}
+      {paymentGate && !canAct && (
+        <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3 text-xs text-gray-500">
+          <i className="fa-solid fa-money-check-dollar text-gray-400" />
+          Payment verification is handled by Finance — read-only here.
         </div>
       )}
     </div>

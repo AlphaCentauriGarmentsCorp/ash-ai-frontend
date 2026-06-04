@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   getStageGroups,
   getStatusMeta,
+  isPaymentGate,
   STAGE_STATUS,
 } from "../../constants/formOptions/orderStages";
 import { getRoleDisplayName } from "../../config/roleConfig";
@@ -9,6 +10,7 @@ import { useOrderStages } from "./hooks/useOrderStages";
 import { useAuth } from "../../hooks/useAuth";
 import { hasRequiredPermissions } from "../../utils/authz";
 import LogWasteModal from "../stageInputs/LogWasteModal";
+import MaterialRequirementsPanel from "../../pages/Portals/MaterialPrep/MaterialRequirementsPanel";
 import LogRejectModal from "../stageInputs/LogRejectModal";
 import SendToSubcontractorModal from "../stageInputs/SendToSubcontractorModal";
 
@@ -66,6 +68,10 @@ const OrderStage = ({ order, onStagesUpdated }) => {
   const canLogWaste = hasRequiredPermissions(user, ["stage_inputs.log_waste"]);
   const canLogReject = hasRequiredPermissions(user, ["stage_inputs.log_reject"]);
   const canSubcontract = hasRequiredPermissions(user, ["stage_inputs.log_subcontract"]);
+  // Payment-verification gates are passed by Finance only. Non-Finance users
+  // see a read-only note on those stages instead of the workflow buttons
+  // (the Complete action 403s server-side anyway — this hides the dead button).
+  const canVerifyPayment = hasRequiredPermissions(user, ["action.verify-payment"], "any");
 
   // Auto-dismiss success message after 3s
   useEffect(() => {
@@ -145,6 +151,8 @@ const OrderStage = ({ order, onStagesUpdated }) => {
     const isForApproval = stage.status === STAGE_STATUS.FOR_APPROVAL;
     const isDelayed = stage.status === STAGE_STATUS.DELAYED;
     const isOnHold = stage.status === STAGE_STATUS.ON_HOLD;
+    // On a payment gate, only Finance (verify-payment) may act; others read-only.
+    const gateLocked = isPaymentGate(stage.stage) && !canVerifyPayment;
 
     return (
       <div key={stage.id} className="relative flex gap-4">
@@ -246,38 +254,47 @@ const OrderStage = ({ order, onStagesUpdated }) => {
               <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-200/60">
                 {isInProgress && (
                   <>
-                    <button
-                      type="button"
-                      onClick={() => openAction(stage.id, "complete")}
-                      disabled={isLoading}
-                      className="text-xs px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors inline-flex items-center"
-                    >
-                      <i className="fas fa-check mr-1"></i> Complete
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openAction(stage.id, "approval")}
-                      disabled={isLoading}
-                      className="text-xs px-3 py-1.5 rounded bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors inline-flex items-center"
-                    >
-                      <i className="fas fa-hourglass-half mr-1"></i> For Approval
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openAction(stage.id, "delay")}
-                      disabled={isLoading}
-                      className="text-xs px-3 py-1.5 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50 transition-colors inline-flex items-center"
-                    >
-                      <i className="fas fa-triangle-exclamation mr-1"></i> Delay
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => openAction(stage.id, "hold")}
-                      disabled={isLoading}
-                      className="text-xs px-3 py-1.5 rounded bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 disabled:opacity-50 transition-colors inline-flex items-center"
-                    >
-                      <i className="fas fa-pause mr-1"></i> Hold
-                    </button>
+                    {gateLocked ? (
+                      <p className="text-xs text-gray-500 italic inline-flex items-center gap-1.5">
+                        <i className="fas fa-lock text-[10px]"></i>
+                        Payment verification is handled by Finance.
+                      </p>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          onClick={() => openAction(stage.id, "complete")}
+                          disabled={isLoading}
+                          className="text-xs px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors inline-flex items-center"
+                        >
+                          <i className="fas fa-check mr-1"></i> Complete
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openAction(stage.id, "approval")}
+                          disabled={isLoading}
+                          className="text-xs px-3 py-1.5 rounded bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors inline-flex items-center"
+                        >
+                          <i className="fas fa-hourglass-half mr-1"></i> For Approval
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openAction(stage.id, "delay")}
+                          disabled={isLoading}
+                          className="text-xs px-3 py-1.5 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50 transition-colors inline-flex items-center"
+                        >
+                          <i className="fas fa-triangle-exclamation mr-1"></i> Delay
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => openAction(stage.id, "hold")}
+                          disabled={isLoading}
+                          className="text-xs px-3 py-1.5 rounded bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 disabled:opacity-50 transition-colors inline-flex items-center"
+                        >
+                          <i className="fas fa-pause mr-1"></i> Hold
+                        </button>
+                      </>
+                    )}
 
                     {/* ── Phase 4 inputs ─────────────────────────────────── */}
                     {canLogWaste && (
@@ -334,6 +351,17 @@ const OrderStage = ({ order, onStagesUpdated }) => {
                     <i className="fas fa-play mr-1"></i> Resume
                   </button>
                 )}
+              </div>
+            )}
+
+            {/* Change 18 — material requirement at the Material Prep stage */}
+            {stage.stage === "material_prep_mass" && (
+              <div className="pt-3 mt-2 border-t border-gray-200/60">
+                <p className="text-xs font-semibold text-gray-700 mb-2">
+                  <i className="fa-solid fa-boxes-stacked mr-1.5 text-gray-400"></i>
+                  Material requirement
+                </p>
+                <MaterialRequirementsPanel orderId={order.id} readOnly />
               </div>
             )}
 

@@ -13,6 +13,7 @@ import ViewClient from "./pages/Clients/ViewClient";
 import EditClient from "./pages/Clients/EditClient";
 import AddNewOrder from "./pages/Orders/AddNewOrder";
 import AllOrders from "./pages/Orders/AllOrders";
+import FinancePaymentsPage from "./pages/Portals/Finance/FinancePaymentsPage";
 import OrderDetails from "./pages/Orders/OrderDetails";
 import PatternType from "./pages/DropDownSettings/PatternType/PatternType";
 import AddPatternType from "./pages/DropDownSettings/PatternType/AddPatternType";
@@ -233,6 +234,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AllOrders />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/finance/payments"
+          element={
+            <ProtectedRoute requiredPermissions={["action.verify-payment"]}>
+              <FinancePaymentsPage />
             </ProtectedRoute>
           }
         />

@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { materialPrepPortalApi } from "../../../api/materialPrepPortalApi";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
 import PRSummarySection from "./sections/PRSummarySection";
 import MaterialsToBuySection from "./sections/MaterialsToBuySection";
 import SupplierDetailsSection from "./sections/SupplierDetailsSection";
 import PRActionsSection from "./sections/PRActionsSection";
+import OrdersNeedingPrepSection from "./sections/OrdersNeedingPrepSection";
 
 /**
  * Phase 5-G — Material Prep Portal landing page.
@@ -20,8 +20,6 @@ import PRActionsSection from "./sections/PRActionsSection";
  * the inventory-purchase mechanism).
  */
 const MaterialPrepPortalPage = () => {
-  const navigate = useNavigate();
-
   const [resolving, setResolving] = useState(true);
   const [resolveError, setResolveError] = useState(null);
   const [activeStatus, setActiveStatus] = useState(null);
@@ -51,7 +49,7 @@ const MaterialPrepPortalPage = () => {
         if (cancelled) return;
         setResolveError(
           err?.response?.data?.message ||
-            "Hindi ma-load ang PRs. Try refreshing."
+          "Hindi ma-load ang PRs. Try refreshing."
         );
       } finally {
         if (!cancelled) setResolving(false);
@@ -74,7 +72,7 @@ const MaterialPrepPortalPage = () => {
         if (cancelled) return;
         setContextError(
           err?.response?.data?.message ||
-            "Hindi ma-load ang PR details. Refresh para subukan ulit."
+          "Hindi ma-load ang PR details. Refresh para subukan ulit."
         );
       } finally {
         if (!cancelled) setContextLoading(false);
@@ -112,24 +110,12 @@ const MaterialPrepPortalPage = () => {
   if (activeStatus === "none") {
     return (
       <RolePortalLayout roleTitle="Material Preparation Portal">
-        <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
-            <i className="fa-solid fa-cart-shopping text-2xl text-gray-400" />
-          </div>
-          <h3 className="text-base font-semibold text-gray-900 mb-1">
-            Walang active na Purchase Request
-          </h3>
-          <p className="text-sm text-gray-500 mb-4 max-w-md mx-auto">
-            Wala pang pending, approved, o ordered na PRs. Tatawagin ka kapag
-            may bagong material request na in-aapprove ng manager.
+        <OrdersNeedingPrepSection />
+        <div className="bg-white border border-gray-200 rounded-lg p-6 text-center">
+          <p className="text-sm text-gray-500">
+            No active Purchase Requests yet. Prepare an order above — shortfalls
+            will create a Purchase Request automatically.
           </p>
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="text-xs text-primary hover:underline"
-          >
-            ← Bumalik sa Dashboard
-          </button>
         </div>
       </RolePortalLayout>
     );
@@ -148,9 +134,9 @@ const MaterialPrepPortalPage = () => {
           <div className="flex flex-col gap-2">
             {assignmentList.map((a) => {
               const statusStyle = {
-                pending:  "bg-amber-100 text-amber-700",
+                pending: "bg-amber-100 text-amber-700",
                 approved: "bg-blue-100 text-blue-700",
-                ordered:  "bg-indigo-100 text-indigo-700",
+                ordered: "bg-indigo-100 text-indigo-700",
               }[a.status] || "bg-gray-100 text-gray-700";
 
               return (
@@ -196,6 +182,7 @@ const MaterialPrepPortalPage = () => {
       breadcrumbLinks={[{ name: "Material Prep Portal", path: "/portal/material-prep" }]}
       tipText="Always check all items before purchasing, confirm price and stock availability with supplier, and update the system after purchasing."
     >
+      <OrdersNeedingPrepSection />
       {activeStatus === "multiple" && (
         <button
           type="button"

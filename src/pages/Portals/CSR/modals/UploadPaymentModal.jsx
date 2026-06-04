@@ -26,13 +26,13 @@ import { paymentMethodsApi } from "../../../../api/paymentMethodsApi";
  *   initialOrderId   — optional, pre-selects an order
  */
 const PAYMENT_TYPES = [
-  { value: "sample",       label: "Sample" },
+  { value: "sample", label: "Sample" },
   { value: "down_payment", label: "Down Payment" },
-  { value: "balance",      label: "Balance" },
-  { value: "full",         label: "Full Payment" },
+  { value: "balance", label: "Balance" },
+  { value: "full", label: "Full Payment" },
 ];
 
-const UploadPaymentModal = ({ onClose, onSaved, initialOrderId = null }) => {
+const UploadPaymentModal = ({ onClose, onSaved, initialOrderId = null, paymentsApi = csrPortalApi }) => {
   const [orders, setOrders] = useState([]);
   const [methods, setMethods] = useState([]);
   const [loadingLookups, setLoadingLookups] = useState(true);
@@ -114,7 +114,7 @@ const UploadPaymentModal = ({ onClose, onSaved, initialOrderId = null }) => {
       });
       if (proof) payload.proof = proof;
 
-      const res = await csrPortalApi.uploadPayment(payload);
+      const res = await paymentsApi.uploadPayment(payload);
       onSaved?.(res?.data ?? res);
     } catch (err) {
       const status = err?.response?.status;
@@ -175,9 +175,8 @@ const UploadPaymentModal = ({ onClose, onSaved, initialOrderId = null }) => {
               value={form.order_id}
               onChange={(e) => update("order_id", e.target.value)}
               disabled={submitting || loadingLookups || !!initialOrderId}
-              className={`w-full text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${
-                errors.order_id ? "border-red-300" : "border-gray-300"
-              }`}
+              className={`w-full text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.order_id ? "border-red-300" : "border-gray-300"
+                }`}
             >
               <option value="">
                 {loadingLookups ? "Loading…" : "— Select an order —"}
@@ -203,9 +202,8 @@ const UploadPaymentModal = ({ onClose, onSaved, initialOrderId = null }) => {
                 value={form.payment_type}
                 onChange={(e) => update("payment_type", e.target.value)}
                 disabled={submitting}
-                className={`w-full text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${
-                  errors.payment_type ? "border-red-300" : "border-gray-300"
-                }`}
+                className={`w-full text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.payment_type ? "border-red-300" : "border-gray-300"
+                  }`}
               >
                 {PAYMENT_TYPES.map((t) => (
                   <option key={t.value} value={t.value}>
@@ -230,9 +228,8 @@ const UploadPaymentModal = ({ onClose, onSaved, initialOrderId = null }) => {
                 onChange={(e) => update("amount", e.target.value)}
                 disabled={submitting}
                 placeholder="0.00"
-                className={`w-full text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${
-                  errors.amount ? "border-red-300" : "border-gray-300"
-                }`}
+                className={`w-full text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.amount ? "border-red-300" : "border-gray-300"
+                  }`}
               />
               {errors.amount && (
                 <p className="text-xs text-red-600 mt-1">{errors.amount}</p>
@@ -250,9 +247,8 @@ const UploadPaymentModal = ({ onClose, onSaved, initialOrderId = null }) => {
                 value={form.payment_method_id}
                 onChange={(e) => update("payment_method_id", e.target.value)}
                 disabled={submitting || loadingLookups}
-                className={`w-full text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${
-                  errors.payment_method_id ? "border-red-300" : "border-gray-300"
-                }`}
+                className={`w-full text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.payment_method_id ? "border-red-300" : "border-gray-300"
+                  }`}
               >
                 <option value="">— Select method —</option>
                 {methods.map((m) => (
@@ -278,9 +274,8 @@ const UploadPaymentModal = ({ onClose, onSaved, initialOrderId = null }) => {
                 onChange={(e) => update("reference_number", e.target.value)}
                 disabled={submitting}
                 placeholder="GCash ref / bank txn ID"
-                className={`w-full text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${
-                  errors.reference_number ? "border-red-300" : "border-gray-300"
-                }`}
+                className={`w-full text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.reference_number ? "border-red-300" : "border-gray-300"
+                  }`}
               />
               {errors.reference_number && (
                 <p className="text-xs text-red-600 mt-1">
@@ -336,9 +331,8 @@ const UploadPaymentModal = ({ onClose, onSaved, initialOrderId = null }) => {
               onChange={(e) => update("notes", e.target.value)}
               disabled={submitting}
               placeholder="Any extra context for Finance"
-              className={`w-full text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${
-                errors.notes ? "border-red-300" : "border-gray-300"
-              }`}
+              className={`w-full text-sm border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${errors.notes ? "border-red-300" : "border-gray-300"
+                }`}
             />
             {errors.notes && (
               <p className="text-xs text-red-600 mt-1">{errors.notes}</p>
