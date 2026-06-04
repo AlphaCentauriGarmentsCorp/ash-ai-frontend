@@ -41,14 +41,14 @@ const Select = ({
 
   const filteredOptions = searchable
     ? options.filter((option) => {
-        const search = searchTerm.toLowerCase();
+      const search = searchTerm.toLowerCase();
 
-        return (
-          String(option.label).toLowerCase().includes(search) ||
-          String(option.value).toLowerCase().includes(search) ||
-          (option.title && String(option.title).toLowerCase().includes(search))
-        );
-      })
+      return (
+        String(option.label).toLowerCase().includes(search) ||
+        String(option.value).toLowerCase().includes(search) ||
+        (option.title && String(option.title).toLowerCase().includes(search))
+      );
+    })
     : options;
 
   useEffect(() => {
@@ -231,7 +231,7 @@ const Select = ({
       {label && (
         <label
           htmlFor={inputId}
-          className="text-primary text-sm font-semibold flex items-center"
+          className="text-primary text-sm font-semibold flex items-center whitespace-nowrap"
         >
           {label}
           {required && <span className="text-red-500 ml-1">*</span>}
@@ -312,11 +312,10 @@ const Select = ({
                 <div
                   key={option.value}
                   ref={(el) => setOptionRef(el, index)}
-                  className={`select-option px-4 py-2 text-sm cursor-pointer transition-colors duration-150 flex items-center ${
-                    isSelected(option.value)
+                  className={`select-option px-4 py-2 text-sm cursor-pointer transition-colors duration-150 flex items-center ${isSelected(option.value)
                       ? "bg-blue-50 text-blue-700"
                       : "hover:bg-gray-50 text-gray-700"
-                  } ${index === highlightedIndex ? "bg-gray-100" : ""}`}
+                    } ${index === highlightedIndex ? "bg-gray-100" : ""}`}
                   onClick={() => handleOptionSelect(option)}
                   onMouseEnter={() => handleOptionMouseEnter(option, index)}
                   onMouseLeave={handleOptionMouseLeave}
@@ -324,11 +323,10 @@ const Select = ({
                 >
                   {multiple && (
                     <div
-                      className={`mr-3 w-4 h-4 border rounded flex items-center justify-center ${
-                        isSelected(option.value)
+                      className={`mr-3 w-4 h-4 border rounded flex items-center justify-center ${isSelected(option.value)
                           ? "bg-blue-500 border-blue-500"
                           : "border-gray-300"
-                      }`}
+                        }`}
                     >
                       {isSelected(option.value) && (
                         <i className="fa-solid fa-check text-xs text-white"></i>

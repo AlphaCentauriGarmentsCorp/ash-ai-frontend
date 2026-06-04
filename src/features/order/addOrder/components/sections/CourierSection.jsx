@@ -20,7 +20,6 @@ export const CourierSection = ({ formData, handleChange, errors }) => (
         placeholder="Select courier"
         searchable
         error={errors.courier}
-        required
       />
 
       <Select
@@ -32,7 +31,6 @@ export const CourierSection = ({ formData, handleChange, errors }) => (
         placeholder="Select shipping method"
         searchable
         error={errors.method}
-        required
       />
 
       <Input

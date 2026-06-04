@@ -172,6 +172,10 @@ export const getMenuByPermissions = (user = null) => {
               path: "/admin/settings/service-type",
             },
             {
+              name: "Fabric Type",
+              path: "/admin/settings/fabric-type",
+            },
+            {
               name: "Print Method",
               path: "/admin/settings/print-method",
             },
