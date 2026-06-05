@@ -20,27 +20,44 @@ export const useFabricMaterials = () => {
     try {
       setOptionsLoading(true);
 
-      const [typesRes, suppliersRes] = await Promise.all([
+      // Fetch independently: a failure on one (e.g. a permissions gate on
+      // suppliers) must NOT wipe out the other. Promise.all would reject the
+      // whole batch on a single rejection.
+      const [typesRes, suppliersRes] = await Promise.allSettled([
         fabricTypeApi.index(),
-        supplierApi.index(),
+        supplierApi.publicIndex(),
       ]);
 
-      const types = typesRes.data || typesRes || [];
-      setFabricTypeOptions(
-        types.map((t) => ({
-          value: t.name,
-          label: t.name,
-          title: t.description,
-        })),
-      );
+      if (typesRes.status === "fulfilled") {
+        const res = typesRes.value;
+        const types = res?.data || res || [];
+        setFabricTypeOptions(
+          types.map((t) => ({
+            value: t.name,
+            label: t.name,
+            title: t.description,
+          })),
+        );
+      } else {
+        console.error("Failed to fetch fabric types:", typesRes.reason);
+      }
 
-      const suppliers = suppliersRes.data || suppliersRes || [];
-      const uniqueSupplierNames = [
-        ...new Set(suppliers.map((s) => s.name).filter(Boolean)),
-      ];
-      setFabricSupplierOptions(
-        uniqueSupplierNames.map((name) => ({ value: name, label: name })),
-      );
+      if (suppliersRes.status === "fulfilled") {
+        const res = suppliersRes.value;
+        const suppliers = res?.data || res || [];
+        const uniqueSupplierNames = [
+          ...new Set(suppliers.map((s) => s.name).filter(Boolean)),
+        ];
+        setFabricSupplierOptions(
+          uniqueSupplierNames.map((name) => ({ value: name, label: name })),
+        );
+      } else {
+        console.error("Failed to fetch fabric suppliers:", suppliersRes.reason);
+      }
+
+      if (typesRes.status === "rejected" && suppliersRes.status === "rejected") {
+        setServerError("Failed to load fabric options.");
+      }
     } catch (error) {
       console.error("Failed to fetch fabric options:", error);
       setServerError("Failed to load fabric options.");

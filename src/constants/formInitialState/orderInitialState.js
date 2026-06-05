@@ -39,8 +39,9 @@ export const orderInitialState = {
     sublimation_manual_price: 0,
   },
   // Per-placement print configuration that feeds the pricing engine.
-  // Silkscreen: { part, unitCount, fullUnitCount }. DTF: { part, width,
-  // height, pieces }. Empty for embroidery/sublimation (flat/manual).
+  // Silkscreen: { part, printType, numColors } (Change 12 - one type + one
+  // colour count per placement). DTF: { part, width, height, pieces }. Empty
+  // for embroidery/sublimation (flat/manual).
   print_parts: [],
   size_label: "",
   print_label_placement: "",

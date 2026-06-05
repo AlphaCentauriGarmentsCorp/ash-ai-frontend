@@ -223,7 +223,6 @@ const ViewQuotation = () => {
     : parseJsonField(quotation.print_parts_json, []);
   const breakdown = parseJsonField(quotation.breakdown, null)
     || parseJsonField(quotation.breakdown_json, { items: [], sample_breakdown: {} });
-  const breakdownItems = Array.isArray(breakdown?.items) ? breakdown.items : [];
   const sampleBreakdown = breakdown?.sample_breakdown || {};
 
   const resolveNameOrId = (name, id) => {
@@ -384,7 +383,7 @@ const ViewQuotation = () => {
                     printParts.map((part, idx) => {
                       const imageUrl = resolveImageUrl(part);
                       const partName = part.part || part.name || (part.part_id ? `Part #${part.part_id}` : "Unknown Part");
-                      const unitCount = Number(part.unit_count ?? part.unitCount ?? part.color_count ?? part.colorCount) || 0;
+                      const unitCount = Number(part.num_colors ?? part.numColors ?? part.color_count ?? part.colorCount ?? part.unit_count ?? part.unitCount) || 0;
                       const pricePerUnit = part.price_per_unit ?? part.pricePerUnit ?? part.price_per_color ?? part.pricePerColor;
                       return (
                         <tr key={idx} className="hover:bg-light/30">
@@ -459,7 +458,7 @@ const ViewQuotation = () => {
           )}
 
           {/* Detailed Cost Breakdown */}
-          {breakdownItems.length > 0 && (
+          {items.length > 0 && (
             <div className="p-6 border-b border-gray-200 bg-light/10">
               <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
                 <i className="fas fa-receipt"></i>Detailed Cost Breakdown
@@ -479,18 +478,32 @@ const ViewQuotation = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {breakdownItems.map((item, idx) => (
-                      <tr key={idx} className="hover:bg-white/50">
-                        <td className="px-2 py-1.5 font-medium text-primary">{item.size}</td>
-                        <td className="px-2 py-1.5 text-center">{item.quantity}</td>
-                        <td className="px-2 py-1.5 text-right">{formatCurrency(item.apparel_pattern_price)}</td>
-                        <td className="px-2 py-1.5 text-right">{formatCurrency(item.neckline_price)}</td>
-                        <td className="px-2 py-1.5 text-right">{formatCurrency(item.color_price)}</td>
-                        <td className="px-2 py-1.5 text-right">{formatCurrency(item.unit_price)}</td>
-                        <td className="px-2 py-1.5 text-right font-semibold">{formatCurrency(item.price_per_piece)}</td>
-                        <td className="px-2 py-1.5 text-right font-bold text-primary">{formatCurrency(item.total_amount ?? item.total)}</td>
-                      </tr>
-                    ))}
+                    {items.map((item, idx) => {
+                      // Authoritative per-piece figures come from items_json
+                      // (the engine's output), not the stale local breakdown.
+                      const base = Number(item.base_price) || 0;
+                      const printTotal = Number(item.print_parts_total) || 0;
+                      const ppp = Number(item.price_per_piece) || 0;
+                      // Neckline (+ any per-piece options) is folded into the
+                      // per-piece price; surface it as the residual so the row
+                      // reconciles (base + neckline + color = price/pc).
+                      const neckline = Math.max(0, ppp - base - printTotal);
+                      const rowTotal =
+                        Number(item.total_amount ?? item.total) ||
+                        ppp * (Number(item.quantity) || 0);
+                      return (
+                        <tr key={idx} className="hover:bg-white/50">
+                          <td className="px-2 py-1.5 font-medium text-primary">{item.size}</td>
+                          <td className="px-2 py-1.5 text-center">{item.quantity}</td>
+                          <td className="px-2 py-1.5 text-right">{formatCurrency(base)}</td>
+                          <td className="px-2 py-1.5 text-right">{formatCurrency(neckline)}</td>
+                          <td className="px-2 py-1.5 text-right">{formatCurrency(printTotal)}</td>
+                          <td className="px-2 py-1.5 text-right">{formatCurrency(item.unit_price)}</td>
+                          <td className="px-2 py-1.5 text-right font-semibold">{formatCurrency(ppp)}</td>
+                          <td className="px-2 py-1.5 text-right font-bold text-primary">{formatCurrency(rowTotal)}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

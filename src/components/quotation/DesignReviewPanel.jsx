@@ -48,9 +48,17 @@ const DesignReviewPanel = ({
   onRequestReview,
 }) => {
   const status = review.design_review_status || null;
-  const [colorCount, setColorCount] = useState(
-    review.design_color_count ?? "",
+  // One verified colour count per placement (front/back/...). When the
+  // quotation has no placements we fall back to a single pooled count.
+  const initialCounts = useMemo(
+    () =>
+      (printParts || []).map((p) =>
+        p?.num_colors ?? p?.color_count ?? p?.colorCount ?? p?.unit_count ?? "",
+      ),
+    [printParts],
   );
+  const [counts, setCounts] = useState(initialCounts);
+  const [colorCount, setColorCount] = useState(review.design_color_count ?? "");
   const [note, setNote] = useState(review.design_review_note ?? "");
   const [saving, setSaving] = useState(false);
   const [requesting, setRequesting] = useState(false);
@@ -74,9 +82,23 @@ const DesignReviewPanel = ({
     if (!onSave) return;
     setSaving(true);
     try {
+      const hasPlacements = Array.isArray(printParts) && printParts.length > 0;
+      const perSide = hasPlacements
+        ? printParts.map((p, i) => ({
+            index: i,
+            num_colors:
+              counts[i] === "" || counts[i] == null ? 0 : Number(counts[i]),
+          }))
+        : null;
+      const pooled = hasPlacements
+        ? perSide.reduce((sum, e) => sum + (Number(e.num_colors) || 0), 0)
+        : colorCount === ""
+          ? null
+          : Number(colorCount);
       await onSave({
         design_review_status: verdict,
-        design_color_count: colorCount === "" ? null : Number(colorCount),
+        design_color_count: pooled,
+        ...(perSide ? { design_color_counts: perSide } : {}),
         design_review_note: note?.trim() || null,
       });
     } finally {
@@ -122,16 +144,50 @@ const DesignReviewPanel = ({
       {editable ? (
         <>
           <label className="block text-xs font-medium text-gray-600 mb-1">
-            Color count (verified) — feeds pricing
+            Verified colour count per placement — feeds pricing
           </label>
-          <input
-            type="number"
-            min="0"
-            max="99"
-            value={colorCount}
-            onChange={(e) => setColorCount(e.target.value)}
-            className="w-28 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-          />
+          {Array.isArray(printParts) && printParts.length > 0 ? (
+            <div className="space-y-2">
+              {printParts.map((p, i) => (
+                <div
+                  key={p.id ?? p.part_id ?? i}
+                  className="flex items-center gap-2"
+                >
+                  <span className="w-28 truncate text-xs text-gray-700">
+                    {p.part || p.name || `Placement ${i + 1}`}
+                  </span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="99"
+                    value={counts[i] ?? ""}
+                    onChange={(e) =>
+                      setCounts((prev) => {
+                        const next = [...prev];
+                        next[i] = e.target.value;
+                        return next;
+                      })
+                    }
+                    className="w-24 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                  />
+                  <span className="text-[11px] text-gray-400">colors</span>
+                </div>
+              ))}
+              <p className="text-[11px] text-gray-400">
+                Each side is priced on its own — your counts replace the
+                CSR’s.
+              </p>
+            </div>
+          ) : (
+            <input
+              type="number"
+              min="0"
+              max="99"
+              value={colorCount}
+              onChange={(e) => setColorCount(e.target.value)}
+              className="w-28 px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+            />
+          )}
 
           <label className="block text-xs font-medium text-gray-600 mb-1 mt-3">
             Note to CSR
