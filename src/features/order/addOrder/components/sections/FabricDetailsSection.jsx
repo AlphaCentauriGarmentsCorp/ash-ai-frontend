@@ -35,16 +35,14 @@ export const FabricDetailsSection = ({
         value={formData.fabric_supplier || ""}
         onChange={handleChange}
         placeholder={
-          !formData.fabric_type
-            ? "Select fabric type first"
-            : fabricSupplierOptions.length === 0
-              ? "No suppliers available"
-              : "Select fabric supplier"
+          fabricSupplierOptions.length === 0
+            ? "No suppliers available"
+            : "Select fabric supplier"
         }
         searchable
         error={errors.fabric_supplier}
         required
-        disabled={!formData.fabric_type || optionsLoading}
+        disabled={optionsLoading}
       />
 
       <Input

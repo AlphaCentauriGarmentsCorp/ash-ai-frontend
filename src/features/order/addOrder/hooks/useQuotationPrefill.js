@@ -83,8 +83,18 @@ export const useQuotationPrefill = (prefill) => {
             ? printPartsRaw.map((p) => ({
                 id: crypto.randomUUID(),
                 part: p.part ?? "",
-                unitCount: Number(p.unit_count ?? 0),
-                fullUnitCount: Number(p.full_unit_count ?? 0),
+                // Change 12: carry one print type + one colour count per
+                // placement, resolving from new or legacy saved shapes.
+                printType:
+                  p.print_type ??
+                  (Number(p.full_unit_count ?? 0) > 0 || p.is_full_print
+                    ? "full_print"
+                    : "regular"),
+                numColors: Number(
+                  p.num_colors ??
+                    p.color_count ??
+                    Number(p.unit_count ?? 0) + Number(p.full_unit_count ?? 0),
+                ),
                 printSize: p.print_size ?? (p.is_full_print ? "Full" : "Regular"),
                 width: Number(p.width ?? 0),
                 height: Number(p.height ?? 0),

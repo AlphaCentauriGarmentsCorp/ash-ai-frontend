@@ -13,6 +13,7 @@ import ViewClient from "./pages/Clients/ViewClient";
 import EditClient from "./pages/Clients/EditClient";
 import AddNewOrder from "./pages/Orders/AddNewOrder";
 import AllOrders from "./pages/Orders/AllOrders";
+import FinancePaymentsPage from "./pages/Portals/Finance/FinancePaymentsPage";
 import OrderDetails from "./pages/Orders/OrderDetails";
 import PatternType from "./pages/DropDownSettings/PatternType/PatternType";
 import AddPatternType from "./pages/DropDownSettings/PatternType/AddPatternType";
@@ -26,6 +27,9 @@ import EditApparelParts from "./pages/DropDownSettings/ApparelParts/EditApparelP
 import ServiceTypeList from "./pages/DropDownSettings/ServiceType/ServiceType";
 import AddServiceType from "./pages/DropDownSettings/ServiceType/AddServiceType";
 import EditServiceType from "./pages/DropDownSettings/ServiceType/EditServiceType";
+import FabricTypeList from "./pages/DropDownSettings/FabricType/FabricType";
+import AddFabricType from "./pages/DropDownSettings/FabricType/AddFabricType";
+import EditFabricType from "./pages/DropDownSettings/FabricType/EditFabricType";
 import PrintMethod from "./pages/DropDownSettings/PrintMethod/PrintMethod";
 import AddPrintMethod from "./pages/DropDownSettings/PrintMethod/AddPrintMethod";
 import EditPrintMethod from "./pages/DropDownSettings/PrintMethod/EditPrintMethod";
@@ -237,6 +241,14 @@ function App() {
           }
         />
         <Route
+          path="/finance/payments"
+          element={
+            <ProtectedRoute requiredPermissions={["action.verify-payment"]}>
+              <FinancePaymentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/orders/new"
           element={
             <ProtectedRoute>
@@ -409,6 +421,30 @@ function App() {
           element={
             <ProtectedRoute>
               <EditServiceType />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/fabric-type"
+          element={
+            <ProtectedRoute>
+              <FabricTypeList />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/fabric-type/new"
+          element={
+            <ProtectedRoute>
+              <AddFabricType />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/fabric-type/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditFabricType />
             </ProtectedRoute>
           }
         />

@@ -87,17 +87,32 @@ export const buildEnginePayload = ({
 
   // Print parts → print_parts_json (silkscreen colors / DTF sizing).
   const printArea = formData.print_area || "Regular";
-  const printParts = (formData.print_parts || []).map((p, i) => ({
-    part: p.part || `Part ${i + 1}`,
-    unit_count: num(p.unitCount),
-    full_unit_count: num(p.fullUnitCount),
-    print_size: String(p.printSize || printArea || "Regular").toLowerCase(),
-    is_full_print:
-      String(p.printSize || printArea || "").toLowerCase() === "full",
-    width: num(p.width),
-    height: num(p.height),
-    pieces: num(p.pieces),
-  }));
+  const printParts = (formData.print_parts || []).map((p, i) => {
+    // Change 12: each placement carries one print type + one colour count.
+    // Fall back to the legacy regular/full split (or the job-level print area)
+    // for placements created before the collapse.
+    const printType =
+      p.printType ||
+      (num(p.fullUnitCount) > 0 ||
+      String(p.printSize || printArea || "").toLowerCase() === "full"
+        ? "full_print"
+        : "regular");
+    const isFull = printType === "full_print";
+    const numColors =
+      p.numColors != null && p.numColors !== ""
+        ? num(p.numColors)
+        : num(p.unitCount) + num(p.fullUnitCount);
+    return {
+      part: p.part || `Part ${i + 1}`,
+      print_type: printType,
+      num_colors: numColors,
+      print_size: isFull ? "full" : "regular",
+      is_full_print: isFull,
+      width: num(p.width),
+      height: num(p.height),
+      pieces: num(p.pieces),
+    };
+  });
 
   return {
     item_config_json: JSON.stringify(itemConfig),

@@ -10,7 +10,7 @@ import React from "react";
  * Props:
  *   stages           — array of { key, label, icon? } objects.
  *                      key is matched against currentStageSlug.
- *   currentStageSlug — the slug of the current step (e.g. "sample_creation")
+ *   currentStageSlug — the slug of the current step (e.g. "sample_cutting")
  *
  * Per the mockups, this typically shows 6 steps:
  *   Payment Verified → Graphic Artwork → Screen Making →
@@ -70,9 +70,8 @@ const StatusFlowPipeline = ({ stages = [], currentStageSlug = null }) => {
               {/* Connector line, except after the last step */}
               {i < stages.length - 1 && (
                 <div
-                  className={`flex-1 h-0.5 mt-[-18px] min-w-[20px] ${
-                    isCompleted ? "bg-emerald-500" : "bg-gray-200"
-                  }`}
+                  className={`flex-1 h-0.5 mt-[-18px] min-w-[20px] ${isCompleted ? "bg-emerald-500" : "bg-gray-200"
+                    }`}
                   aria-hidden="true"
                 />
               )}

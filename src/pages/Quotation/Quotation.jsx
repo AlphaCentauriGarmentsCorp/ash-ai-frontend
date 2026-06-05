@@ -466,6 +466,28 @@ const Quotation = () => {
   const downPayment = previewTotals?.downpayment ?? grandTotal * 0.6;
   const balance = previewTotals?.balance ?? grandTotal * 0.4;
 
+  // Per-line components for the Payment Summary, sourced from the SAME backend
+  // preview as the headline total so every line reconciles with TOTAL. Falls
+  // back to the local estimate only while the 350ms preview is in flight.
+  const previewBreakdown = previewTotals?.breakdown_json || {};
+  const itemsSubtotal = previewTotals
+    ? (previewTotals.items_json || []).reduce(
+        (sum, it) => sum + (Number(it.total_amount) || 0),
+        0,
+      )
+    : totalAmount;
+  const addonsSubtotal = previewTotals
+    ? (previewTotals.addons_json || []).reduce(
+        (sum, a) => sum + (Number(a.line_total) || 0),
+        0,
+      )
+    : totalAddons;
+  const sampleSubtotal = previewTotals
+    ? Number(previewBreakdown?.sample_breakdown?.price_per_piece || 0)
+    : sampleBreakdownTotal;
+  const customPatternFee = Number(previewBreakdown?.custom_pattern_fee || 0);
+  const dtfOrderTotal = Number(previewBreakdown?.dtf_order_total || 0);
+
   // Map the backend preview's per-size computed prices by size name. The
   // Price/Pc column and the cost breakdown read from THIS (the same engine
   // that produces the headline total), so a row's price can never disagree
@@ -817,17 +839,33 @@ const Quotation = () => {
   // Pricing-relevant print parts for the preview (no images/files needed).
   // Maps over selectedColors — the same source the submit handler uses to
   // build print_parts_json.
-  const printPartsPreview = (selectedColors || []).map((part) => ({
-    part: part.part || `Part ${part.colorId}`,
-    unit_count: quotationService.toNumber(part.unitCount || 0),
-    full_unit_count: quotationService.toNumber(part.fullUnitCount || 0),
-    print_size: (part.printSize || selectedPrintArea || "Regular").toLowerCase(),
-    is_full_print:
-      (part.printSize || selectedPrintArea || "").toLowerCase() === "full",
-    width: quotationService.toNumber(part.width || 0),
-    height: quotationService.toNumber(part.height || 0),
-    pieces: quotationService.toNumber(part.pieces || 0),
-  }));
+  const printPartsPreview = (selectedColors || []).map((part) => {
+    // Change 12: collapse the old regular/full colour split into ONE explicit
+    // print type + ONE colour count per placement. A "Regular" placement uses
+    // the regular colour count; a "Full" placement uses the full colour count.
+    // This stops a Regular 1-colour front from being priced as a 2-colour full
+    // print (the hidden fullUnitCount default).
+    const isFull =
+      (part.printSize || selectedPrintArea || "").toLowerCase() === "full";
+    const numColors = isFull
+      ? quotationService.toNumber(part.fullUnitCount || 0)
+      : quotationService.toNumber(part.unitCount || 0);
+    return {
+      part: part.part || `Part ${part.colorId}`,
+      print_type: isFull ? "full_print" : "regular",
+      num_colors: numColors,
+      color_count: numColors,
+      // Legacy fields kept internally consistent (only the active type carries
+      // colours) so no downstream reader sees a phantom colour on the other.
+      unit_count: isFull ? 0 : numColors,
+      full_unit_count: isFull ? numColors : 0,
+      print_size: isFull ? "full" : "regular",
+      is_full_print: isFull,
+      width: quotationService.toNumber(part.width || 0),
+      height: quotationService.toNumber(part.height || 0),
+      pieces: quotationService.toNumber(part.pieces || 0),
+    };
+  });
 
   // Debounced live preview from the backend (single pricing source of truth).
   // Rebuilds whenever any pricing-relevant input changes; 350ms debounce keeps
@@ -913,18 +951,29 @@ const Quotation = () => {
           imageInputType === "link" ? String(part.imageLink || "").trim() : "";
         const image = imageInputType === "file" ? part.file : null;
 
+        // Change 12: one explicit print type + one colour count per placement
+        // (mirrors printPartsPreview). Keeps the saved charge in sync with the
+        // live preview and stops the Regular-1-colour -> Full-2-colour misprice.
+        const isFull =
+          (part.printSize || selectedPrintArea || "").toLowerCase() === "full";
+        const numColors = isFull
+          ? quotationService.toNumber(part.fullUnitCount || 0)
+          : quotationService.toNumber(part.unitCount || 0);
+
         return {
           part_id: toNullableId(partOption?.id ?? part.colorId),
           part: partOption?.name || part.part || `Part ${part.colorId}`,
-          unit_count: part.unitCount,
+          print_type: isFull ? "full_print" : "regular",
+          num_colors: numColors,
+          color_count: numColors,
+          unit_count: isFull ? 0 : numColors,
           price_per_unit: quotationService.toNumber(part.pricePerUnit),
-          full_unit_count: part.fullUnitCount || 0,
+          full_unit_count: isFull ? numColors : 0,
           price_per_full_unit: quotationService.toNumber(part.pricePerFullUnit || 0),
           // Per-placement print size flag for the silkscreen Regular/Full
           // rule (Addendum 4.1). Defaults to the order-level print area.
-          print_size: (part.printSize || selectedPrintArea || "Regular").toLowerCase(),
-          is_full_print:
-            (part.printSize || selectedPrintArea || "").toLowerCase() === "full",
+          print_size: isFull ? "full" : "regular",
+          is_full_print: isFull,
           // DTF placement dimensions (Addendum 4.2): each placement has its
           // own design size and piece count. Read by calculateDtfTotal().
           width: quotationService.toNumber(part.width || 0),
@@ -965,6 +1014,9 @@ const Quotation = () => {
           printParts.map((part) => ({
             part_id: part.part_id,
             part: part.part,
+            print_type: part.print_type,
+            num_colors: part.num_colors,
+            color_count: part.color_count,
             unit_count: part.unit_count,
             price_per_unit: part.price_per_unit,
             full_unit_count: part.full_unit_count,
@@ -1987,12 +2039,30 @@ const Quotation = () => {
                   <div className="space-y-2 pb-2 border-b border-dashed border-gray-200">
                     <div className="flex justify-between">
                       <span className="text-xs text-gray-500">Subtotal (Items)</span>
-                      <span className="text-sm font-medium">₱{totalAmount.toLocaleString()}</span>
+                      <span className="text-sm font-medium">₱{itemsSubtotal.toLocaleString()}</span>
                     </div>
-                    {totalAddons > 0 && (
+                    {addonsSubtotal > 0 && (
                       <div className="flex justify-between">
                         <span className="text-xs text-gray-500">Addons</span>
-                        <span className="text-sm font-medium">₱{totalAddons.toLocaleString()}</span>
+                        <span className="text-sm font-medium">₱{addonsSubtotal.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {sampleSubtotal > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-xs text-gray-500">Sample</span>
+                        <span className="text-sm font-medium">₱{sampleSubtotal.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {customPatternFee > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-xs text-gray-500">Custom pattern fee</span>
+                        <span className="text-sm font-medium">₱{customPatternFee.toLocaleString()}</span>
+                      </div>
+                    )}
+                    {dtfOrderTotal > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-xs text-gray-500">DTF print</span>
+                        <span className="text-sm font-medium">₱{dtfOrderTotal.toLocaleString()}</span>
                       </div>
                     )}
                     {discount.value > 0 && (

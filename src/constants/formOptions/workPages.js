@@ -4,8 +4,8 @@
  * "Work pages" are role-specific input UIs rendered inside an Order's
  * "Production" tab. They are DISTINCT from workflow stages:
  *
- *   - A workflow STAGE is a milestone in the 14-step production pipeline
- *     (e.g. "Graphic Artwork", "Sample Creation", "Mass Production").
+ *   - A workflow STAGE is a milestone in the 23-stage production pipeline
+ *     (e.g. "Graphic Artwork", "Sample Cutting", "Mass Cutting").
  *     See constants/formOptions/orderStages.js + backend WorkflowStages.
  *
  *   - A work PAGE is a hands-on screen for a specific role to do their
@@ -14,8 +14,8 @@
  *
  * Multiple work pages can roll up into a single workflow stage.
  * (e.g. graphic_editing, screen_making, screen_checking → "Graphic Artwork"
- *  + "Screen Making" workflow stages; the sample_* pages → "Sample Creation"
- *  workflow stage; mass_* pages → "Mass Production" workflow stage.)
+ *  + "Screen Making" workflow stages; the sample_* pages → the "Sample *" stages
+ *  workflow stage; mass_* pages → the "Mass *" stages.)
  *
  * NOTE: in Phase 5 most of these will move to dedicated /portal/* routes.
  * For now they remain accessible inside OrderDetails.
@@ -46,25 +46,25 @@ export const WorkPages = [
     id: "sample_material_preparation",
     label: "Sample Material Preparation",
     icon: "fa-boxes",
-    rollupStage: "sample_creation",
+    rollupStage: "material_prep_sample",
   },
   {
     id: "sample_cutting",
     label: "Sample Cutting",
     icon: "fa-scissors",
-    rollupStage: "sample_creation",
+    rollupStage: "sample_cutting",
   },
   {
     id: "sample_printing",
     label: "Sample Printing",
     icon: "fa-print",
-    rollupStage: "sample_creation",
+    rollupStage: "sample_printing",
   },
   {
     id: "sample_sewing",
     label: "Sample Sewing",
     icon: "fa-hand-sparkles",
-    rollupStage: "sample_creation",
+    rollupStage: "sample_sewing",
   },
 
   // Mass production
@@ -72,37 +72,37 @@ export const WorkPages = [
     id: "production_material_preparation",
     label: "Mass Material Preparation",
     icon: "fa-boxes-stacked",
-    rollupStage: "mass_production",
+    rollupStage: "material_prep_mass",
   },
   {
     id: "production_cutting",
     label: "Mass Cutting",
     icon: "fa-scissors",
-    rollupStage: "mass_production",
+    rollupStage: "mass_cutting",
   },
   {
     id: "production_printing",
     label: "Mass Printing",
     icon: "fa-print",
-    rollupStage: "mass_production",
+    rollupStage: "mass_printing",
   },
   {
     id: "production_sewing",
     label: "Mass Sewing",
     icon: "fa-hand-sparkles",
-    rollupStage: "mass_production",
+    rollupStage: "mass_sewing",
   },
   {
     id: "production_quality_assurance",
     label: "QA Check",
     icon: "fa-magnifying-glass",
-    rollupStage: "quality_control",
+    rollupStage: "mass_qa",
   },
   {
     id: "packing",
     label: "Packing",
     icon: "fa-box",
-    rollupStage: "packing",
+    rollupStage: "mass_packing",
   },
 ];
 

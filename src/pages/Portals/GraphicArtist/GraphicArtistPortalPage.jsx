@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { portalApi } from "../../../api/portalApi";
 import { graphicArtistPortalApi } from "../../../api/graphicArtistPortalApi";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
 import StageRejectionBanner from "../../../components/portals/StageRejectionBanner";
+import MyActiveTasksList from "../../../components/portals/MyActiveTasksList";
 import OrderDetailsSection from "../Cutter/sections/OrderDetailsSection";
 
 import DesignFilesSection from "./sections/DesignFilesSection";
+import SourceReferenceFilesSection from "./sections/SourceReferenceFilesSection";
 import PrintLocationsSection from "./sections/PrintLocationsSection";
 import PantoneColorsSection from "./sections/PantoneColorsSection";
 import LabelsTagsSection from "./sections/LabelsTagsSection";
@@ -40,18 +41,17 @@ const STATUS_FLOW = [
   { key: "payment_verification_sample", label: "Payment Verified", icon: "fa-credit-card" },
   { key: "graphic_artwork", label: "Graphic Artwork", icon: "fa-pen-ruler" },
   { key: "screen_making", label: "Screen Making", icon: "fa-stamp" },
-  { key: "sample_creation", label: "Sample Creation", icon: "fa-shirt" },
+  { key: "sample_cutting", label: "Sample Creation", icon: "fa-shirt" },
   { key: "sample_approval", label: "Sample Approval", icon: "fa-circle-check" },
-  { key: "mass_production", label: "Mass Production", icon: "fa-industry" },
+  { key: "mass_cutting", label: "Mass Production", icon: "fa-industry" },
 ];
 
 const GraphicArtistPortalPage = () => {
-  const navigate = useNavigate();
 
   const [resolving, setResolving] = useState(true);
   const [resolveError, setResolveError] = useState(null);
-  const [activeStatus, setActiveStatus] = useState(null);
-  const [assignmentList, setAssignmentList] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [listRefreshKey, setListRefreshKey] = useState(0);
   const [currentStageId, setCurrentStageId] = useState(null);
 
   const [context, setContext] = useState(null);
@@ -59,33 +59,28 @@ const GraphicArtistPortalPage = () => {
   const [contextError, setContextError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // ── Resolve active assignment ──────────────────────────────────
+  // ── Load my active tasks (Change 2) ────────────────────────────
   useEffect(() => {
     let cancelled = false;
     (async () => {
       setResolving(true);
       setResolveError(null);
       try {
-        const result = await portalApi.myActive("graphic-artist");
+        const result = await portalApi.myActiveTasks("graphic-artist");
         if (cancelled) return;
-        setActiveStatus(result.status);
-        if (result.status === "single") {
-          setCurrentStageId(result.assignment.order_stage_id);
-        } else if (result.status === "multiple") {
-          setAssignmentList(result.assignments || []);
-        }
+        setTasks(result.tasks || []);
       } catch (err) {
         if (cancelled) return;
         setResolveError(
           err?.response?.data?.message ||
-          "Hindi ma-load ang assignment mo. Try refreshing.",
+          "Hindi ma-load ang tasks mo. Try refreshing.",
         );
       } finally {
         if (!cancelled) setResolving(false);
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [listRefreshKey]);
 
   // ── Fetch context ──────────────────────────────────────────────
   useEffect(() => {
@@ -111,91 +106,30 @@ const GraphicArtistPortalPage = () => {
     return () => { cancelled = true; };
   }, [currentStageId, refreshKey]);
 
-  const handleRefresh = () => setRefreshKey((k) => k + 1);
+  const handleRefresh = () => {
+    setRefreshKey((k) => k + 1);
+    setListRefreshKey((k) => k + 1);
+  };
+  const refreshList = () => setListRefreshKey((k) => k + 1);
 
-  // ── Loading / error / empty states ─────────────────────────────
-  if (resolving) {
+  // ── Landing: My Active Tasks list (Change 2) ───────────────────
+  // Until the artist picks a task, the portal shows their active queue.
+  // The list component renders its own loading / error / empty states.
+  if (!currentStageId) {
     return (
-      <RolePortalLayout roleTitle="Graphic Artist Portal">
-        <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
-          <i className="fa-solid fa-spinner fa-spin mr-2" />
-          Hinahanap ang assignment mo…
-        </div>
-      </RolePortalLayout>
-    );
-  }
-
-  if (resolveError) {
-    return (
-      <RolePortalLayout roleTitle="Graphic Artist Portal">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
-          <i className="fa-solid fa-triangle-exclamation mr-2" />
-          {resolveError}
-        </div>
-      </RolePortalLayout>
-    );
-  }
-
-  if (activeStatus === "none") {
-    return (
-      <RolePortalLayout roleTitle="Graphic Artist Portal">
-        <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
-            <i className="fa-solid fa-pen-ruler text-2xl text-gray-400" />
-          </div>
-          <h3 className="text-base font-semibold text-gray-900 mb-1">
-            Walang active na assignment
-          </h3>
-          <p className="text-sm text-gray-500 mb-4 max-w-md mx-auto">
-            Wala ka pang in-progress na graphic artwork task. Aabisuhan ka ng
-            CSR kapag may bagong design na kailangan.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="text-xs text-primary hover:underline"
-          >
-            ← Bumalik sa Dashboard
-          </button>
-        </div>
-      </RolePortalLayout>
-    );
-  }
-
-  if (activeStatus === "multiple" && !currentStageId) {
-    return (
-      <RolePortalLayout roleTitle="Graphic Artist Portal">
-        <div className="bg-white border border-gray-200 rounded-lg p-5">
-          <h3 className="text-sm font-semibold text-gray-900 mb-1">
-            Pumili ng assignment
-          </h3>
-          <p className="text-xs text-gray-500 mb-4">
-            Marami kang active na graphic artwork task. Piliin kung saan ka
-            unang magtatrabaho.
-          </p>
-          <div className="flex flex-col gap-2">
-            {assignmentList.map((a) => (
-              <button
-                key={a.order_stage_id}
-                type="button"
-                onClick={() => setCurrentStageId(a.order_stage_id)}
-                className="text-left bg-gray-50 hover:bg-primary/5 border border-gray-200 hover:border-primary rounded-md p-3 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {a.order?.po_code || `Order #${a.order_id}`}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {a.order?.client_brand || a.order?.client_name || "—"}
-                    </p>
-                  </div>
-                  <i className="fa-solid fa-chevron-right text-gray-400 text-xs" />
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+      <RolePortalLayout
+        roleTitle="Graphic Artist Portal"
+        breadcrumbLinks={[{ name: "Graphic Artist Portal", path: "/portal/graphic-artist" }]}
+      >
+        <MyActiveTasksList
+          tasks={tasks}
+          loading={resolving}
+          error={resolveError}
+          onSelect={(id) => setCurrentStageId(id)}
+          onRefresh={refreshList}
+          title="My Active Tasks"
+          emptyText="Wala ka pang graphic artwork task. Aabisuhan ka ng CSR kapag may bagong design na kailangan."
+        />
       </RolePortalLayout>
     );
   }
@@ -210,16 +144,14 @@ const GraphicArtistPortalPage = () => {
       currentStageSlug={currentStageSlug}
       tipText="I-double check ang Pantone codes at print sizes bago i-save ang design files."
     >
-      {activeStatus === "multiple" && (
-        <button
-          type="button"
-          onClick={() => setCurrentStageId(null)}
-          className="text-xs text-gray-600 hover:text-primary mb-3 inline-flex items-center"
-        >
-          <i className="fa-solid fa-arrow-left mr-1" />
-          Bumalik sa picker
-        </button>
-      )}
+      <button
+        type="button"
+        onClick={() => { setCurrentStageId(null); refreshList(); }}
+        className="text-xs text-gray-600 hover:text-primary mb-3 inline-flex items-center"
+      >
+        <i className="fa-solid fa-arrow-left mr-1" />
+        My Active Tasks
+      </button>
 
       {contextLoading && !context && (
         <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
@@ -261,6 +193,9 @@ const GraphicArtistPortalPage = () => {
             orderStageId={context.stage.id}
             onChanged={handleRefresh}
           />
+
+          {/* 2b. Source / Reference Files (read-only — Change 14) */}
+          <SourceReferenceFilesSection files={context.source_files} />
 
           {/* 3. Print Locations & Size */}
           <PrintLocationsSection

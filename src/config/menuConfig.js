@@ -66,6 +66,12 @@ export const getMenuByPermissions = (user = null) => {
           ],
         },
         {
+          name: "Payments",
+          icon: "fa-solid fa-money-check-dollar",
+          path: "/finance/payments",
+          requiredPermissions: ["action.verify-payment"],
+        },
+        {
           name: "Quotation",
           icon: "fa-solid fa-file-invoice",
           subItems: [
@@ -164,6 +170,10 @@ export const getMenuByPermissions = (user = null) => {
             {
               name: "Service Type",
               path: "/admin/settings/service-type",
+            },
+            {
+              name: "Fabric Type",
+              path: "/admin/settings/fabric-type",
             },
             {
               name: "Print Method",

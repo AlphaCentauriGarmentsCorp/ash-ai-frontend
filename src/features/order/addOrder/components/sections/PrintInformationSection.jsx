@@ -66,7 +66,17 @@ export const PrintInformationSection = ({
     const base =
       methodKey === "dtf"
         ? { id: genId(), part: "", width: "", height: "", pieces: "" }
-        : { id: genId(), part: "", unitCount: "", fullUnitCount: "" };
+        : {
+            id: genId(),
+            part: "",
+            // Change 12: one print type + one colour count per placement.
+            // Seed the type from the job-level Print Area (still overridable).
+            printType:
+              String(formData.print_area || "").toLowerCase() === "full"
+                ? "full_print"
+                : "regular",
+            numColors: "",
+          };
     onPrintPartsChange?.([...parts, base]);
   };
   const updatePart = (id, field, value) =>
@@ -230,27 +240,28 @@ export const PrintInformationSection = ({
                 {methodKey === "silkscreen" ? (
                   <>
                     <div className="sm:col-span-3">
-                      <Input
-                        label={idx === 0 ? "Regular Colors" : ""}
-                        name={`uc_${p.id}`}
-                        type="number"
-                        min="0"
-                        value={p.unitCount ?? ""}
+                      <Select
+                        label={idx === 0 ? "Print Type" : ""}
+                        name={`pt_${p.id}`}
+                        options={[
+                          { value: "regular", label: "Regular" },
+                          { value: "full_print", label: "Full-Print" },
+                        ]}
+                        value={p.printType || "regular"}
                         onChange={(e) =>
-                          updatePart(p.id, "unitCount", e.target.value)
+                          updatePart(p.id, "printType", e.target.value)
                         }
-                        placeholder="0"
                       />
                     </div>
                     <div className="sm:col-span-3">
                       <Input
-                        label={idx === 0 ? "Full-Print Colors" : ""}
-                        name={`fc_${p.id}`}
+                        label={idx === 0 ? "Number of Colors" : ""}
+                        name={`nc_${p.id}`}
                         type="number"
                         min="0"
-                        value={p.fullUnitCount ?? ""}
+                        value={p.numColors ?? ""}
                         onChange={(e) =>
-                          updatePart(p.id, "fullUnitCount", e.target.value)
+                          updatePart(p.id, "numColors", e.target.value)
                         }
                         placeholder="0"
                       />

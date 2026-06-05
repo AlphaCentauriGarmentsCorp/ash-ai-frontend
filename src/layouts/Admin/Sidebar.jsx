@@ -1,8 +1,16 @@
 import { useState, useContext, useEffect, useCallback } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getMenuByPermissions } from "../../config/menuConfig";
+import { portalApi } from "../../api/portalApi";
 import { SidebarContext } from "../../context/SidebarContext";
 import Logo from "../../assets/images/logo/Logo.png";
+
+// Change 3 — map a "/portal/{slug}" nav path to the badge-count role key
+// (hyphens → underscores, e.g. graphic-artist → graphic_artist).
+const portalRoleFromPath = (path) =>
+  path && path.startsWith("/portal/")
+    ? path.slice("/portal/".length).replace(/-/g, "_")
+    : null;
 
 export default function Sidebar({
   user,
@@ -16,6 +24,29 @@ export default function Sidebar({
   const menu = getMenuByPermissions(user);
   const { activeLink, setActiveLink, openSubMenu, setOpenSubMenu } =
     useContext(SidebarContext);
+
+  // Change 3 — per-portal active-task counts for the nav badges. The endpoint
+  // self-scopes (oversight roles see every station; others see only their own),
+  // so we render whatever it returns. Polled ~45s (no WebSockets on Hostinger).
+  const [badgeCounts, setBadgeCounts] = useState({});
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      try {
+        const { counts } = await portalApi.badgeCounts();
+        if (active) setBadgeCounts(counts || {});
+      } catch {
+        /* badges are non-critical — ignore transient failures */
+      }
+    };
+    load();
+    const id = setInterval(load, 45000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, []);
 
   const findBestMatch = useCallback(() => {
     let bestMatch = null;
@@ -91,7 +122,7 @@ export default function Sidebar({
 
   return (
     <>
-      {}
+      { }
       {isMobileOpen && isMobileView && (
         <div
           className="md:hidden fixed inset-0 bg-black/40 z-40"
@@ -99,24 +130,23 @@ export default function Sidebar({
         ></div>
       )}
 
-      {}
+      { }
       <div
         className={`
           fixed top-0 z-100 left-0 h-full bg-primary text-white
           transition-all duration-300 ease-in-out
-          ${
-            isMobileView
-              ? isMobileOpen
-                ? "w-67.5"
-                : "w-0"
-              : isOpen
-                ? "w-67.5"
-                : "w-0"
+          ${isMobileView
+            ? isMobileOpen
+              ? "w-67.5"
+              : "w-0"
+            : isOpen
+              ? "w-67.5"
+              : "w-0"
           }
           ${isMobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
         `}
       >
-        {}
+        { }
         <div
           className={`
             flex justify-between items-center p-4
@@ -125,7 +155,7 @@ export default function Sidebar({
             ${showContent ? "opacity-100 h-auto" : "opacity-0 h-0 p-0 border-none"}
           `}
         >
-          {}
+          { }
           <div
             className={`
               bg-white w-full rounded-xl flex justify-center items-center py-1 border border-gray-400
@@ -136,7 +166,7 @@ export default function Sidebar({
             <img src={Logo} alt="Logo" className="object-contain" />
           </div>
 
-          {}
+          { }
           {isMobileView && isMobileOpen && (
             <button
               className="md:hidden ml-2 text-white hover:bg-gray-700 rounded-full w-8 h-8 flex items-center justify-center shrink-0"
@@ -147,7 +177,7 @@ export default function Sidebar({
           )}
         </div>
 
-        {}
+        { }
         <div
           className={`
           overflow-y-auto transition-all duration-300
@@ -157,7 +187,7 @@ export default function Sidebar({
         >
           {menu.map((section, sIdx) => (
             <div key={sIdx} className="mt-5">
-              {}
+              { }
               <div
                 className={`
                   px-4 py-2 overflow-hidden transition-all duration-200 ease-in-out
@@ -202,6 +232,16 @@ export default function Sidebar({
                               {item.name}
                             </span>
                           </div>
+                          {(() => {
+                            const role = portalRoleFromPath(item.path);
+                            const c = role ? badgeCounts[role] : undefined;
+                            if (!c || c <= 0) return null;
+                            return (
+                              <span className="ml-auto shrink-0 min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center rounded-full bg-red-600 text-white text-[11px] font-semibold leading-none">
+                                {c > 99 ? "99+" : c}
+                              </span>
+                            );
+                          })()}
                         </Link>
                       ) : (
                         <div
@@ -227,8 +267,7 @@ export default function Sidebar({
                           {hasSubItems && (
                             <i
                               className={`
-                                text-xs fa-solid fa-chevron-${
-                                  isSubMenuOpen ? "down" : "right"
+                                text-xs fa-solid fa-chevron-${isSubMenuOpen ? "down" : "right"
                                 } text-sm transition-all duration-300 ease-in-out ml-auto
                                 shrink-0
                               `}
@@ -254,10 +293,9 @@ export default function Sidebar({
                                     className={`
                                       block pl-4 py-2 cursor-pointer text-[14px]
                                       m-1 rounded-[5px] transition-all duration-200 ease-in-out
-                                      ${
-                                        isSubActive
-                                          ? "bg-white text-primary"
-                                          : "hover:bg-white hover:text-primary"
+                                      ${isSubActive
+                                        ? "bg-white text-primary"
+                                        : "hover:bg-white hover:text-primary"
                                       }
                                       whitespace-nowrap
                                     `}

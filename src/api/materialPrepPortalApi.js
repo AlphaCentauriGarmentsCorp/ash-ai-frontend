@@ -27,6 +27,25 @@ export const materialPrepPortalApi = {
     );
     return data;
   },
+
+  // ── Change 18: order material requirements at the Material Prep stage ──
+  ordersAtStage: async () => {
+    const { data } = await api.get("/portal/material-prep/orders");
+    return data;
+  },
+
+  getOrderRequirements: async (orderId) => {
+    const { data } = await api.get(`/portal/material-prep/order/${orderId}/requirements`);
+    return data;
+  },
+
+  saveOrderRequirements: async (orderId, items) => {
+    const { data } = await api.post(
+      `/portal/material-prep/order/${orderId}/requirements`,
+      { items }
+    );
+    return data;
+  },
 };
 
 export default materialPrepPortalApi;

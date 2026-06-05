@@ -24,7 +24,7 @@ export const PaymentSection = ({
         options={paymentPlans}
         value={formData.payment_plan || ""}
         onChange={handleChange}
-        placeholder="Select payment method"
+        placeholder="Select payment plan"
         searchable
         error={errors.payment_plan}
         required

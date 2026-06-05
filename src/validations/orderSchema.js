@@ -27,12 +27,12 @@ export const orderSchema = {
 
   // Courier Information
   courier: {
-    required: true,
+    required: false,
     message: "Preferred courier is required.",
   },
 
   method: {
-    required: true,
+    required: false,
     message: "Shipping method is required.",
   },
 

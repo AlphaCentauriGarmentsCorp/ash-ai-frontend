@@ -12,32 +12,32 @@ import VerifyPaymentModal from "../modals/VerifyPaymentModal";
  * for users with `action.verify-payment` permission (Finance + Super Admin).
  */
 const STATUS_FILTERS = [
-  { key: "all",              label: "All" },
-  { key: "waiting",          label: "Waiting" },
+  { key: "all", label: "All" },
+  { key: "waiting", label: "Waiting" },
   { key: "for_verification", label: "For Verification" },
-  { key: "verified",         label: "Verified" },
-  { key: "rejected",         label: "Rejected" },
+  { key: "verified", label: "Verified" },
+  { key: "rejected", label: "Rejected" },
 ];
 
 const STATUS_STYLES = {
-  waiting:          "bg-gray-100 text-gray-700",
+  waiting: "bg-gray-100 text-gray-700",
   for_verification: "bg-amber-100 text-amber-800",
-  verified:         "bg-emerald-100 text-emerald-700",
-  rejected:         "bg-red-100 text-red-700",
+  verified: "bg-emerald-100 text-emerald-700",
+  rejected: "bg-red-100 text-red-700",
 };
 
 const TYPE_LABELS = {
-  sample:       "Sample",
+  sample: "Sample",
   down_payment: "Down Payment",
-  balance:      "Balance",
-  full:         "Full",
+  balance: "Balance",
+  full: "Full",
 };
 
 const formatPHP = (n) =>
   "₱" +
   Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2 });
 
-const PaymentsTab = () => {
+const PaymentsTab = ({ initialFilter = null, paymentsApi = csrPortalApi, canUpload = false }) => {
   const { user } = useAuth();
   const canVerify = useMemo(
     () => hasRequiredPermissions(user, ["action.verify-payment"], "any"),
@@ -47,7 +47,7 @@ const PaymentsTab = () => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(initialFilter || "all");
 
   const [showUpload, setShowUpload] = useState(false);
   const [verifyTarget, setVerifyTarget] = useState(null);
@@ -56,14 +56,14 @@ const PaymentsTab = () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await csrPortalApi.listPayments();
+      const res = await paymentsApi.listPayments();
       setItems(res?.data ?? []);
     } catch (err) {
       setError(err.response?.data?.message || "Failed to load payments.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [paymentsApi]);
 
   useEffect(() => {
     fetchList();
@@ -116,14 +116,16 @@ const PaymentsTab = () => {
                 <i className={`fa-solid fa-arrows-rotate ${loading ? "fa-spin" : ""}`} />
                 <span className="hidden sm:inline">Refresh</span>
               </button>
-              <button
-                type="button"
-                onClick={() => setShowUpload(true)}
-                className="text-xs font-semibold px-3 py-1.5 rounded-md bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-1.5"
-              >
-                <i className="fa-solid fa-cloud-arrow-up" />
-                <span className="hidden sm:inline">Upload Payment</span>
-              </button>
+              {canUpload && (
+                <button
+                  type="button"
+                  onClick={() => setShowUpload(true)}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-md bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-1.5"
+                >
+                  <i className="fa-solid fa-cloud-arrow-up" />
+                  <span className="hidden sm:inline">Upload Payment</span>
+                </button>
+              )}
             </div>
           </div>
 
@@ -141,7 +143,7 @@ const PaymentsTab = () => {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <EmptyState filter={filter} onUpload={() => setShowUpload(true)} />
+            <EmptyState filter={filter} canUpload={canUpload} onUpload={() => setShowUpload(true)} />
           ) : (
             <>
               {/* Desktop table */}
@@ -171,9 +173,8 @@ const PaymentsTab = () => {
                         </td>
                         <td className="py-2 px-2">
                           <span
-                            className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                              STATUS_STYLES[p.status]
-                            }`}
+                            className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${STATUS_STYLES[p.status]
+                              }`}
                           >
                             {p.status?.replace(/_/g, " ")}
                           </span>
@@ -231,9 +232,8 @@ const PaymentsTab = () => {
                         Order #{p.order_id}
                       </span>
                       <span
-                        className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                          STATUS_STYLES[p.status]
-                        }`}
+                        className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${STATUS_STYLES[p.status]
+                          }`}
                       >
                         {p.status?.replace(/_/g, " ")}
                       </span>
@@ -294,6 +294,7 @@ const PaymentsTab = () => {
         <UploadPaymentModal
           onClose={() => setShowUpload(false)}
           onSaved={handleUploaded}
+          paymentsApi={paymentsApi}
         />
       )}
       {verifyTarget && (
@@ -301,19 +302,20 @@ const PaymentsTab = () => {
           payment={verifyTarget}
           onClose={() => setVerifyTarget(null)}
           onVerified={handleVerified}
+          paymentsApi={paymentsApi}
         />
       )}
     </>
   );
 };
 
-const EmptyState = ({ filter, onUpload }) => (
+const EmptyState = ({ filter, canUpload = false, onUpload }) => (
   <div className="text-center py-10 text-gray-400">
     <i className="fa-regular fa-money-bill-1 text-3xl mb-2" />
     <p className="text-sm">
       {filter === "all" ? "No payments yet." : `No payments in '${filter.replace(/_/g, " ")}' status.`}
     </p>
-    {filter === "all" && (
+    {canUpload && filter === "all" && (
       <button
         type="button"
         onClick={onUpload}

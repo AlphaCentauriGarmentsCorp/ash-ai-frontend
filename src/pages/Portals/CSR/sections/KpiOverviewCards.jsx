@@ -69,17 +69,17 @@ const CARDS = [
 ];
 
 const COLOR_STYLES = {
-  blue:    { bg: "bg-blue-50",    text: "text-blue-700",    border: "border-blue-200" },
-  indigo:  { bg: "bg-indigo-50",  text: "text-indigo-700",  border: "border-indigo-200" },
-  amber:   { bg: "bg-amber-50",   text: "text-amber-700",   border: "border-amber-200" },
-  orange:  { bg: "bg-orange-50",  text: "text-orange-700",  border: "border-orange-200" },
-  violet:  { bg: "bg-violet-50",  text: "text-violet-700",  border: "border-violet-200" },
-  red:     { bg: "bg-red-50",     text: "text-red-700",     border: "border-red-200" },
-  teal:    { bg: "bg-teal-50",    text: "text-teal-700",    border: "border-teal-200" },
+  blue: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+  indigo: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200" },
+  amber: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+  orange: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+  violet: { bg: "bg-violet-50", text: "text-violet-700", border: "border-violet-200" },
+  red: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
+  teal: { bg: "bg-teal-50", text: "text-teal-700", border: "border-teal-200" },
   emerald: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200" },
 };
 
-const KpiOverviewCards = ({ kpis = {}, loading = false }) => {
+const KpiOverviewCards = ({ kpis = {}, loading = false, onCardClick }) => {
   return (
     <section className="bg-white rounded-lg border border-gray-200 p-5">
       <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
@@ -94,9 +94,12 @@ const KpiOverviewCards = ({ kpis = {}, loading = false }) => {
           const style = COLOR_STYLES[c.color];
           const n = kpis[c.key] ?? 0;
           return (
-            <div
+            <button
               key={c.key}
-              className={`rounded-lg border ${style.border} ${style.bg} p-4`}
+              type="button"
+              onClick={() => onCardClick?.(c.key)}
+              disabled={loading}
+              className={`group text-left rounded-lg border ${style.border} ${style.bg} p-4 transition-shadow hover:shadow-md focus:outline-none focus:ring-2 focus:ring-primary/40 disabled:cursor-default`}
             >
               <div className="flex items-center justify-between mb-2">
                 <span className={`text-[10px] uppercase tracking-wide ${style.text}`}>
@@ -111,8 +114,11 @@ const KpiOverviewCards = ({ kpis = {}, loading = false }) => {
                   n
                 )}
               </div>
-              <div className="text-[10px] text-gray-500 mt-1">{c.helper}</div>
-            </div>
+              <div className="text-[10px] text-gray-500 mt-1 flex items-center justify-between">
+                <span>{c.helper}</span>
+                <i className="fa-solid fa-arrow-right opacity-0 group-hover:opacity-60 transition-opacity" />
+              </div>
+            </button>
           );
         })}
       </div>

@@ -35,9 +35,9 @@ const STATUS_FLOW = [
   { key: "payment_verification_sample", label: "Payment Verified", icon: "fa-credit-card" },
   { key: "graphic_artwork", label: "Graphic Artwork", icon: "fa-pen-ruler" },
   { key: "screen_making", label: "Screen Making", icon: "fa-stamp" },
-  { key: "sample_creation", label: "Sample Creation", icon: "fa-shirt" },
+  { key: "sample_cutting", label: "Sample Creation", icon: "fa-shirt" },
   { key: "sample_approval", label: "Sample Approval", icon: "fa-circle-check" },
-  { key: "mass_production", label: "Mass Production", icon: "fa-industry" },
+  { key: "mass_cutting", label: "Mass Production", icon: "fa-industry" },
 ];
 
 const CutterPortalPage = () => {

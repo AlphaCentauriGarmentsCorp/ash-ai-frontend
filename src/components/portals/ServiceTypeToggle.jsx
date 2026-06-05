@@ -25,11 +25,16 @@ import { hasRequiredPermissions } from "../../utils/authz";
  */
 
 const FLIPPABLE_STAGES = [
-  "sample_creation",
-  "mass_production",
+  "sample_cutting",
+  "sample_printing",
+  "sample_sewing",
+  "mass_cutting",
+  "mass_printing",
+  "mass_sewing",
   "screen_making",
-  "quality_control",
-  "packing",
+  "mass_qa",
+  "sample_packing",
+  "mass_packing",
 ];
 
 const ServiceTypeToggle = ({ stage, onChanged, size = "sm" }) => {

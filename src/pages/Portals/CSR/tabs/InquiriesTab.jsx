@@ -12,27 +12,27 @@ import ConvertToQuotationConfirmModal from "../modals/ConvertToQuotationConfirmM
  * CreateInquiryModal.
  */
 const STATUS_FILTERS = [
-  { key: "all",       label: "All" },
-  { key: "new",       label: "New" },
+  { key: "all", label: "All" },
+  { key: "new", label: "New" },
   { key: "contacted", label: "Contacted" },
-  { key: "quoted",    label: "Quoted" },
+  { key: "quoted", label: "Quoted" },
   { key: "converted", label: "Converted" },
-  { key: "lost",      label: "Lost" },
+  { key: "lost", label: "Lost" },
 ];
 
 const STATUS_STYLES = {
-  new:       "bg-blue-100 text-blue-700",
+  new: "bg-blue-100 text-blue-700",
   contacted: "bg-amber-100 text-amber-700",
-  quoted:    "bg-indigo-100 text-indigo-700",
+  quoted: "bg-indigo-100 text-indigo-700",
   converted: "bg-emerald-100 text-emerald-700",
-  lost:      "bg-gray-100 text-gray-500",
+  lost: "bg-gray-100 text-gray-500",
 };
 
-const InquiriesTab = () => {
+const InquiriesTab = ({ initialFilter = null }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState("all");
+  const [filter, setFilter] = useState(initialFilter || "all");
   const [search, setSearch] = useState("");
 
   // Modal state — one at a time
@@ -187,9 +187,8 @@ const InquiriesTab = () => {
                         <td className="py-2 px-2 text-gray-600">{i.source || "—"}</td>
                         <td className="py-2 px-2">
                           <span
-                            className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                              STATUS_STYLES[i.status] || STATUS_STYLES.new
-                            }`}
+                            className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${STATUS_STYLES[i.status] || STATUS_STYLES.new
+                              }`}
                           >
                             {i.status}
                           </span>
@@ -219,9 +218,8 @@ const InquiriesTab = () => {
                         {i.inquiry_code}
                       </span>
                       <span
-                        className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                          STATUS_STYLES[i.status] || STATUS_STYLES.new
-                        }`}
+                        className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${STATUS_STYLES[i.status] || STATUS_STYLES.new
+                          }`}
                       >
                         {i.status}
                       </span>
@@ -307,8 +305,8 @@ const EmptyState = ({ filter, search, onCreate }) => (
       {search
         ? "No inquiries match your search."
         : filter === "all"
-        ? "No inquiries yet."
-        : `No inquiries in '${filter}' status.`}
+          ? "No inquiries yet."
+          : `No inquiries in '${filter}' status.`}
     </p>
     {!search && filter === "all" && (
       <button
