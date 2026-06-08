@@ -12,6 +12,7 @@ import AllClients from "./pages/Clients/AllClient";
 import ViewClient from "./pages/Clients/ViewClient";
 import EditClient from "./pages/Clients/EditClient";
 import AddNewOrder from "./pages/Orders/AddNewOrder";
+import EditOrder from "./pages/Orders/EditOrder";
 import AllOrders from "./pages/Orders/AllOrders";
 import FinancePaymentsPage from "./pages/Portals/Finance/FinancePaymentsPage";
 import OrderDetails from "./pages/Orders/OrderDetails";
@@ -253,6 +254,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AddNewOrder />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/orders/:po_code/edit"
+          element={
+            <ProtectedRoute>
+              <EditOrder />
             </ProtectedRoute>
           }
         />

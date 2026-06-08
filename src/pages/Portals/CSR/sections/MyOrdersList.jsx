@@ -1,4 +1,5 @@
 import React from "react";
+import IncompleteBadge from "../../../../components/common/IncompleteBadge";
 
 /**
  * Phase 6-A — "My Orders" panel.
@@ -88,6 +89,10 @@ const MyOrdersList = ({ items = [], loading = false }) => {
                         RUSH
                       </span>
                     )}
+                    <IncompleteBadge
+                      incomplete={item.is_incomplete}
+                      fields={item.incomplete_fields}
+                    />
                   </div>
                   <p className="text-xs font-semibold text-gray-900 truncate mt-0.5">
                     {item.client_name}

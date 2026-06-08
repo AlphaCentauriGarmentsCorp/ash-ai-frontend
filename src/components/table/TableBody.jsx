@@ -1,6 +1,12 @@
 import React from "react";
 import { useTableContext } from "./context/TableContext";
 
+// Per-row action gating: a table may pass config.rowActions(item) to vary the
+// available actions per row (e.g. hide Edit on locked rows). Falls back to the
+// flat config.actions list when no resolver is provided (all existing tables).
+const resolveRowActions = (config, item) =>
+  (typeof config?.rowActions === "function" ? config.rowActions(item) : config?.actions) || [];
+
 const TableBody = ({ data, isLoading, emptyMessage }) => {
   const { columns, selectedItems, onSelectItem, onAction, config } =
     useTableContext();
@@ -132,7 +138,7 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
           {}
           <td className="px-6 py-2">
             <div className="flex space-x-2 justify-center">
-              {config.actions.includes("view") && (
+              {resolveRowActions(config, item).includes("view") && (
                 <button
                   onClick={() => onAction("view", item)}
                   className="cursor-pointer w-7 h-7 border border-gray-300 flex items-center justify-center rounded-lg text-xs hover:bg-gray-100 transition"
@@ -141,7 +147,7 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
                   <i className="fas fa-eye"></i>
                 </button>
               )}
-              {config.actions.includes("edit") && (
+              {resolveRowActions(config, item).includes("edit") && (
                 <button
                   onClick={() => onAction("edit", item)}
                   className="cursor-pointer w-7 h-7 border border-gray-300 flex items-center justify-center rounded-lg text-xs hover:bg-gray-100 transition"
@@ -150,7 +156,7 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
                   <i className="fas fa-pen"></i>
                 </button>
               )}
-              {config.actions.includes("delete") && (
+              {resolveRowActions(config, item).includes("delete") && (
                 <button
                   onClick={() => onAction("delete", item)}
                   className="cursor-pointer w-7 h-7 border text-red-600 border-red-600 flex items-center justify-center rounded-lg text-xs hover:bg-gray-100 transition"

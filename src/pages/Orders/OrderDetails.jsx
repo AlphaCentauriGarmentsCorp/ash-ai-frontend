@@ -207,6 +207,11 @@ const OrderDetailsPage = () => {
   };
 
   const handleTabChange = (tab) => {
+    // Production is locked while the order is Incomplete (Change 11 gate) —
+    // there should be no active production until the order is completed.
+    if (tab === "production" && order?.is_incomplete) {
+      return;
+    }
     setActiveTab(tab);
     if (tab === "production" && productionSections.length > 0) {
       setActiveSection(productionSections[0].id);
@@ -427,6 +432,20 @@ const OrderDetailsPage = () => {
       ]}
     >
       <div className="bg-light p-3 sm:p-4 lg:p-7 rounded-lg border border-gray-200 lg:border-gray-300">
+        {/* Incomplete-order notice (Change 11) */}
+        {order.is_incomplete && (
+          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-start gap-2">
+            <i className="fas fa-triangle-exclamation text-amber-600 mt-0.5"></i>
+            <div className="text-sm text-amber-800">
+              <span className="font-semibold">This order is marked Incomplete.</span>
+              {Array.isArray(order.incomplete_fields) &&
+                order.incomplete_fields.length > 0 && (
+                  <> Missing: {order.incomplete_fields.join(", ")}.</>
+                )}
+            </div>
+          </div>
+        )}
+
         {/* Tab Navigation */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 mb-4 sm:mb-5 border-b border-gray-200 pb-2">
           <button
@@ -442,15 +461,24 @@ const OrderDetailsPage = () => {
 
           <button
             onClick={() => handleTabChange("production")}
-            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${activeTab === "production"
-                ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
-                : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-              }`}
+            disabled={order.is_incomplete}
+            title={
+              order.is_incomplete
+                ? "Complete the order to enable production"
+                : undefined
+            }
+            className={`px-4 sm:px-6 py-2.5 sm:py-3 rounded-lg sm:rounded-t-lg font-medium text-xs sm:text-sm transition-all flex items-center justify-center sm:justify-start gap-2 ${
+              order.is_incomplete
+                ? "text-gray-300 cursor-not-allowed"
+                : activeTab === "production"
+                  ? "bg-primary/10 text-primary sm:bg-white sm:border-b-2 border-primary"
+                  : "text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
           >
-            <i className="fas fa-cogs"></i>
+            <i className={`fas ${order.is_incomplete ? "fa-lock" : "fa-cogs"}`}></i>
             <span className="truncate">
               Production
-              {order.orderStages?.length > 0 && (
+              {!order.is_incomplete && order.orderStages?.length > 0 && (
                 <span className="ml-2 text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
                   {
                     order.orderStages.filter((s) => s.status === "completed")

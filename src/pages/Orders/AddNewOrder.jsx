@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useState } from "react";
+import React, { useEffect, useCallback, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Loader from "../../components/common/Loader";
@@ -21,16 +21,48 @@ import { QuotationSummaryPanel } from "../../features/order/addOrder/components/
 // ── Service ───────────────────────────────────────────────────────────────────
 import { orderApi } from "../../api/orderApi";
 
-export default function AddNewOrder() {
+// ── Change 11/13: incomplete-override + structured errors ─────────────────────
+import { useAuth } from "../../hooks/useAuth";
+import { isSuperAdmin } from "../../utils/authz";
+import { parseApiError } from "../../utils/parseApiError";
+import { orderSchema } from "../../validations/orderSchema";
+import { validateForm } from "../../features/order/addOrder/utils/orderValidation";
+import IncompleteOverrideModal from "../../features/order/addOrder/components/IncompleteOverrideModal";
+import { mapOrderEditOverlay } from "../../features/order/addOrder/utils/orderEditMapper";
+
+// Fields the backend hard-requires (a superadmin override can NOT skip these):
+//   client  -> StoreOrderRequest requires it
+//   sizes   -> OrderService enforces >= 1 line item (ORDER_NO_LINE_ITEMS)
+const HARD_FLOOR_FIELDS = ["client", "sizes"];
+
+// Turn a schema field key into a friendly label by reusing its "X is required."
+// message (e.g. "Design name is required." -> "Design name").
+const fieldLabel = (key) => {
+  const msg = orderSchema[key]?.message || key;
+  return msg.replace(/\s*(field\s*)?is required\.?$/i, "").trim() || key;
+};
+
+export default function AddNewOrder({ editOrder = null }) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Prefill payload: navigate("/orders/new", { state: { prefill: result.order_payload } })
-  const rawPrefill = location.state?.prefill ?? null;
+  const isEdit = Boolean(editOrder);
+  // In edit mode the order itself drives the prefill plumbing — its OrderResource
+  // shape carries the same FK ids + JSON blobs the quotation order_payload does.
+  const rawPrefill = editOrder ?? location.state?.prefill ?? null;
 
   // ── Quotation prefill bridge ─────────────────────────────────────────────
   const { hasPrefill, prefillFormData, quotationMeta } =
     useQuotationPrefill(rawPrefill);
+
+  // Edit mode: production fields useQuotationPrefill doesn't carry (+ real deadline),
+  // spread AFTER the quotation prefill so the order's saved values win.
+  const editOverlay = useMemo(
+    () => (isEdit ? mapOrderEditOverlay(editOrder) : null),
+    [isEdit, editOrder]
+  );
 
   // ── Core form state ──────────────────────────────────────────────────────
   const {
@@ -44,7 +76,6 @@ export default function AddNewOrder() {
     handleDepositPercentageChange,
     handleFileChange,
     resetForm,
-    validate,
   } = useOrderForm();
 
   // ── Reference data ───────────────────────────────────────────────────────
@@ -119,6 +150,10 @@ export default function AddNewOrder() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
+  // Superadmin incomplete-override modal state (Change 11)
+  const [showOverrideModal, setShowOverrideModal] = useState(false);
+  const [overrideFields, setOverrideFields] = useState([]);
+
   // ── Keep estimated_total in formData in sync with live summary ──────────
   useEffect(() => {
     setFormData((prev) => ({
@@ -142,7 +177,7 @@ export default function AddNewOrder() {
     const { _prefillSamples, _prefillAddons, ...scalarPrefill } = prefillFormData;
 
     // Merge scalar fields
-    setFormData((prev) => ({ ...prev, ...scalarPrefill }));
+    setFormData((prev) => ({ ...prev, ...scalarPrefill, ...(editOverlay || {}) }));
 
     // Cascade brand/address from client
     if (scalarPrefill.client) {
@@ -152,6 +187,7 @@ export default function AddNewOrder() {
         ...scalarPrefill,
         ...(brandDefaults || {}),
         company: scalarPrefill.company || brandDefaults?.company || "",
+        ...(editOverlay || {}),
       }));
     }
 
@@ -178,7 +214,7 @@ export default function AddNewOrder() {
 
     setPrefillApplied(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasPrefill, clientsLoading, clients.length, prefillApplied]);
+  }, [hasPrefill, clientsLoading, clients.length, prefillApplied, editOverlay]);
 
   // ── Client change handler ────────────────────────────────────────────────
   const handleClientChange = useCallback(
@@ -288,17 +324,11 @@ export default function AddNewOrder() {
   }, [resetForm]);
 
   // ── Submit ───────────────────────────────────────────────────────────────
-  const handleSubmit = useCallback(
-    async (e) => {
-      if (e?.preventDefault) e.preventDefault();
-
-      const formValid = validate();
-      const samplesValid = validateSamples();
-      if (!formValid || !samplesValid) {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-        return;
-      }
-
+  // Build the FormData and POST the order. When `override` is provided
+  // ({ incompleteFields: [...] }) the request carries the superadmin
+  // incomplete-override flag so the backend will save + flag the order.
+  const submitOrder = useCallback(
+    async (override = null) => {
       setIsSubmitting(true);
       setServerError("");
 
@@ -429,36 +459,101 @@ export default function AddNewOrder() {
           });
         });
 
-        await orderApi.create(fd);
+        // ── Incomplete-override flag (Change 11) ─────────────────────────
+        if (override && Array.isArray(override.incompleteFields)) {
+          // Send "1" (not "true"): Laravel's `boolean` rule accepts 1/0/"1"/"0"
+          // /true/false but NOT the string "true".
+          fd.append("override_incomplete", "1");
+          fd.append("incomplete_fields", JSON.stringify(override.incompleteFields));
+        }
+
+        if (isEdit) {
+          await orderApi.update(editOrder.id, fd);
+        } else {
+          await orderApi.create(fd);
+        }
         setSubmitSuccess(true);
         window.scrollTo({ top: 0, behavior: "smooth" });
       } catch (err) {
-        if (err?.type === "validation") {
-          setErrors(err.errors);
-        } else {
-          if (err?.response?.data?.errors) setErrors(err.response.data.errors);
-          setServerError(
-            err?.response?.data?.message ||
-            "An error occurred while submitting the order. Please check all required fields."
-          );
+        // Structured-error mapping (Change 13).
+        const parsed = parseApiError(err);
+        if (parsed.type === "validation") {
+          setErrors(parsed.fields);
+        } else if (Object.keys(parsed.fields || {}).length) {
+          // Business errors may carry a field hint (e.g. ORDER_NO_LINE_ITEMS -> sizes)
+          setErrors((prev) => ({ ...prev, ...parsed.fields }));
         }
+        setServerError(parsed.message);
         window.scrollTo({ top: 0, behavior: "smooth" });
       } finally {
         setIsSubmitting(false);
       }
     },
     [
-      validate, validateSamples, formData, selectedOptions, samples,
+      formData, selectedOptions, samples,
       rawPrefill, rawClients, summary, setErrors, setServerError,
-      engineTotals, enginePayload,
+      engineTotals, enginePayload, isEdit, editOrder,
     ]
   );
+
+  // Validate, then either save (clean), block (non-superadmin / hard-floor
+  // broken), or offer the superadmin a "save anyway" override for soft fields.
+  const handleSubmit = useCallback(
+    async (e) => {
+      if (e?.preventDefault) e.preventDefault();
+
+      const formErrors = validateForm(formData);
+      const samplesValid = validateSamples();
+      const hasFormErrors = Object.keys(formErrors).length > 0;
+
+      if (!hasFormErrors && samplesValid) {
+        await submitOrder(null);
+        return;
+      }
+
+      // Surface inline field errors regardless of the path taken.
+      setErrors(formErrors);
+
+      const hardFloorBroken = HARD_FLOOR_FIELDS.some((k) => formErrors[k]);
+
+      // Superadmin may override ONLY soft fields, and only when the hard floor
+      // (client + at least one sized line item) and the sample sub-form are OK.
+      if (isSuperAdmin(user) && samplesValid && !hardFloorBroken) {
+        const softKeys = Object.keys(formErrors).filter(
+          (k) => !HARD_FLOOR_FIELDS.includes(k)
+        );
+        if (softKeys.length > 0) {
+          setOverrideFields(softKeys.map(fieldLabel));
+          setShowOverrideModal(true);
+          return;
+        }
+      }
+
+      // Everyone else (or hard-floor / sample problems): block and scroll up.
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    },
+    [formData, validateSamples, submitOrder, user, setErrors]
+  );
+
+  // Confirm the override -> resubmit with the incomplete flag + field list.
+  const confirmOverride = useCallback(async () => {
+    setShowOverrideModal(false);
+    await submitOrder({ incompleteFields: overrideFields });
+  }, [overrideFields, submitOrder]);
+
+  // ── Titles (edit vs quotation-prefill vs blank) ─────────────────────────
+  const pageTitle = isEdit
+    ? `Edit Order ${editOrder?.po_code ?? ""}`.trim()
+    : hasPrefill
+    ? "New Order (from Quotation)"
+    : "Add Order";
+  const lastCrumb = isEdit ? "Edit" : hasPrefill ? "New from Quotation" : "Add";
 
   // ── Boot loading ─────────────────────────────────────────────────────────
   if (clientsLoading && clients.length === 0) {
     return (
       <Loader
-        pageTitle={hasPrefill ? "New Order (from Quotation)" : "Add Order"}
+        pageTitle={pageTitle}
         path="/"
         links={[{ label: "Home", href: "/" }, { label: "Orders", href: "/orders" }]}
       />
@@ -467,12 +562,12 @@ export default function AddNewOrder() {
 
   return (
     <AdminLayout
-      pageTitle={hasPrefill ? "New Order (from Quotation)" : "Add Order"}
+      pageTitle={pageTitle}
       path="/"
       links={[
         { label: "Home", href: "/" },
         { label: "Orders", href: "/orders" },
-        { label: hasPrefill ? "New from Quotation" : "Add", href: "#" },
+        { label: lastCrumb, href: "#" },
       ]}
     >
       {/* ── Success banner ──────────────────────────────────────────────── */}
@@ -480,20 +575,30 @@ export default function AddNewOrder() {
         <div className="mb-6 bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
           <i className="fas fa-check-circle text-green-500 text-lg"></i>
           <div>
-            <p className="text-green-800 font-semibold text-sm">Order created successfully!</p>
-            <p className="text-green-600 text-xs mt-0.5">The order has been saved and assigned a PO code.</p>
+            <p className="text-green-800 font-semibold text-sm">{isEdit ? "Order updated successfully!" : "Order created successfully!"}</p>
+            <p className="text-green-600 text-xs mt-0.5">{isEdit ? "Your changes have been saved." : "The order has been saved and assigned a PO code."}</p>
           </div>
           <button
-            onClick={() => navigate("/orders")}
+            onClick={() => navigate(isEdit ? `/order/${editOrder.po_code}` : "/orders")}
             className="ml-auto px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700"
           >
-            View Orders
+            {isEdit ? "View Order" : "View Orders"}
           </button>
         </div>
       )}
 
+      {/* ── Edit-mode banner ─────────────────────────────────────────────── */}
+      {isEdit && !submitSuccess && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex items-center gap-2 text-amber-800 text-sm">
+          <i className="fas fa-pen"></i>
+          Editing order&nbsp;<strong>{editOrder?.po_code}</strong>. Fill in any
+          missing details and save — completing all required fields clears the
+          Incomplete flag.
+        </div>
+      )}
+
       {/* ── Prefill origin banner ────────────────────────────────────────── */}
-      {hasPrefill && !submitSuccess && (
+      {hasPrefill && !isEdit && !submitSuccess && (
         <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2 text-blue-700 text-sm">
           <i className="fas fa-info-circle"></i>
           Pre-filled from Quotation&nbsp;<strong>#{quotationMeta?.quotationId}</strong>.
@@ -502,7 +607,7 @@ export default function AddNewOrder() {
       )}
 
       {/* ── Quotation carried data panel (read-only) ─────────────────────── */}
-      {hasPrefill && <QuotationSummaryPanel meta={quotationMeta} />}
+      {hasPrefill && !isEdit && <QuotationSummaryPanel meta={quotationMeta} />}
 
       {/* ── Full feature-based OrderForm ─────────────────────────────────── */}
       <OrderForm
@@ -546,6 +651,14 @@ export default function AddNewOrder() {
         sampleErrors={sampleErrors}
         // Pass print_parts for DesignFilesSection
         printParts={hasPrefill ? (quotationMeta?.printParts ?? []) : []}
+      />
+
+      <IncompleteOverrideModal
+        isOpen={showOverrideModal}
+        onClose={() => setShowOverrideModal(false)}
+        onConfirm={confirmOverride}
+        fields={overrideFields}
+        isLoading={isSubmitting}
       />
     </AdminLayout>
   );

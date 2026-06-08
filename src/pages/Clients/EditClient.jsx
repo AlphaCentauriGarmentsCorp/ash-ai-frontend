@@ -53,7 +53,17 @@ export default function EditClient() {
       const client = response.data;
 
       const nameParts = client.name ? client.name.split(" ") : ["", ""];
-      const address = parseAddress(client.address);
+      // Change 6 (option B): prefer the client's real granular address
+      // columns; fall back to splitting the legacy `address` string for any
+      // row not yet re-saved/backfilled with granular data.
+      const legacy = parseAddress(client.address);
+      const address = {
+        street: client.street_address ?? legacy.street,
+        barangay: client.barangay ?? legacy.barangay,
+        city: client.city ?? legacy.city,
+        province: client.province ?? legacy.province,
+        postal: client.postal_code ?? legacy.postal,
+      };
 
       setFormData({
         first_name: nameParts[0] || "",

@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { parseApiError } from "../../utils/parseApiError";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import { quotationService } from "../../services/quotationService";
@@ -1348,7 +1349,18 @@ const EditQuotation = () => {
       navigate("/quotations");
     } catch (error) {
       console.error("Error saving quotation:", error);
-      alert("An error occurred while updating the quotation. Please try again.");
+      // Structured-error mapping (Change 13).
+      const parsed = parseApiError(error);
+      if (parsed.type === "validation" && Object.keys(parsed.fields).length) {
+        const lines = Object.entries(parsed.fields).map(
+          ([field, msg]) => `• ${field}: ${msg}`,
+        );
+        alert(
+          `Validation failed. Please fix the following:\n\n${lines.join("\n")}`,
+        );
+      } else {
+        alert(parsed.message);
+      }
     } finally {
       setSaving(false);
     }

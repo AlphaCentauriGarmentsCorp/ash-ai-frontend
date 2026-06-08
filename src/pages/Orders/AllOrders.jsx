@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
+import IncompleteBadge from "../../components/common/IncompleteBadge";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Table from "../../components/table/Table";
 import { orderApi } from "../../api/orderApi";
@@ -75,6 +76,10 @@ const AllOrders = () => {
         <div className="flex items-center gap-2 font-medium text-primary">
           <i className="fas fa-file-alt text-xs text-gray-400"></i>
           {item.po_code}
+          <IncompleteBadge
+            incomplete={item.is_incomplete}
+            fields={item.incomplete_fields}
+          />
         </div>
       ),
     },
@@ -185,8 +190,7 @@ const AllOrders = () => {
         navigate(`/order/${rowData.po_code}`);
         break;
       case "edit":
-        // Edit not yet implemented — can be wired to an edit page
-        console.log("Edit:", rowData);
+        navigate(`/orders/${rowData.po_code}/edit`);
         break;
       case "delete":
         if (window.confirm(`Delete order ${rowData.po_code}? It will be removed from the list but can be recovered if needed.`)) {
@@ -207,7 +211,11 @@ const AllOrders = () => {
     pagination: true,
     search: true,
     filters: true,
-    actions: ["view", "delete"],
+    actions: ["view", "edit", "delete"],
+    // Edit only while the order is still editable (pre-production). The
+    // backend enforces this too with ORDER_LOCKED_FOR_EDIT.
+    rowActions: (item) =>
+      item?.is_editable ? ["view", "edit", "delete"] : ["view", "delete"],
     pageSize: pageSize,
     pageSizeOptions: [10, 20, 50, 100, "All"],
     emptyMessage: "No orders found",
