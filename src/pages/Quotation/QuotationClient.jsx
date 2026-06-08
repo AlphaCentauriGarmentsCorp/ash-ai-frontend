@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { parseApiError } from "../../utils/parseApiError";
 import { useParams } from "react-router-dom";
 import { quotationClientInitialState } from "../../constants/formInitialState/quotationClientInitialState";
 import WizardProgress from "../../components/quotationClient/WizardProgress";
@@ -405,16 +406,13 @@ const QuotationClient = () => {
       setIsSubmitted(true);
     } catch (error) {
       console.error("Error submitting form:", error);
-      const responseData = error?.response?.data || {};
-      const fieldErrors = responseData?.errors || {};
-      const flattenedErrors = Object.values(fieldErrors)
-        .flat()
-        .filter(Boolean);
 
+      // Structured-error mapping (Change 13).
+      const parsed = parseApiError(error);
       const message =
-        flattenedErrors[0]
-        || responseData?.message
-        || "An error occurred. Please try again.";
+        parsed.type === "validation"
+          ? Object.values(parsed.fields)[0] || parsed.message
+          : parsed.message;
 
       alert(message);
     } finally {

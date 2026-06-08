@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { parseApiError } from "../../utils/parseApiError";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import { quotationService } from "../../services/quotationService";
@@ -1063,23 +1064,17 @@ const Quotation = () => {
     } catch (error) {
       console.error("Error saving quotation:", error);
 
-      // Surface validation errors so the user can fix them.
-      const status = error?.response?.status;
-      const data = error?.response?.data;
-
-      if (status === 422 && data?.errors) {
-        // Pull each "field: first message" out of the errors object
-        const lines = Object.entries(data.errors).map(([field, msgs]) => {
-          const msg = Array.isArray(msgs) ? msgs[0] : msgs;
-          return `• ${field}: ${msg}`;
-        });
+      // Structured-error mapping (Change 13).
+      const parsed = parseApiError(error);
+      if (parsed.type === "validation" && Object.keys(parsed.fields).length) {
+        const lines = Object.entries(parsed.fields).map(
+          ([field, msg]) => `• ${field}: ${msg}`,
+        );
         alert(
           `Validation failed. Please fix the following:\n\n${lines.join("\n")}`,
         );
-      } else if (data?.message) {
-        alert(`Could not save quotation:\n${data.message}`);
       } else {
-        alert("An error occurred while saving the quotation. Please try again.");
+        alert(parsed.message);
       }
     } finally {
       setSaving(false);
