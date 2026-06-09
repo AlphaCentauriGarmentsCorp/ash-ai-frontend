@@ -457,6 +457,67 @@ const ViewQuotation = () => {
             </div>
           )}
 
+          {/* Per-Color Quantity Breakdown (read-only) */}
+          {Array.isArray(breakdown?.color_breakdowns) &&
+            breakdown.color_breakdowns.length > 0 && (
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                  <i className="fas fa-tshirt"></i>Per-Color Quantity Breakdown
+                </h2>
+                <div className="space-y-3">
+                  {breakdown.color_breakdowns.map((group, gIdx) => {
+                    const sizes = Array.isArray(group?.sizes) ? group.sizes : [];
+                    const groupQty =
+                      group?.subtotal_qty ??
+                      sizes.reduce((sum, s) => sum + (Number(s.quantity) || 0), 0);
+                    return (
+                      <div
+                        key={gIdx}
+                        className="rounded-lg border border-gray-200 overflow-hidden"
+                      >
+                        <div className="px-3 py-2 bg-light/40 flex items-center justify-between">
+                          <span className="text-sm font-medium text-gray-800">
+                            {group?.color || "Unspecified Color"}
+                          </span>
+                          <span className="text-xs text-gray-500">{groupQty} pcs</span>
+                        </div>
+                        <div className="overflow-x-auto">
+                          <table className="w-full text-xs">
+                            <thead className="bg-light/50 border-b border-gray-200">
+                              <tr>
+                                <th className="px-2 py-1.5 text-left">Size</th>
+                                <th className="px-2 py-1.5 text-right">Qty</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                              {sizes.length > 0 ? (
+                                sizes.map((row, rIdx) => (
+                                  <tr key={rIdx}>
+                                    <td className="px-2 py-1.5 text-gray-700">
+                                      {row.size || "N/A"}
+                                    </td>
+                                    <td className="px-2 py-1.5 text-right text-gray-700">
+                                      {row.quantity ?? 0}
+                                    </td>
+                                  </tr>
+                                ))
+                              ) : (
+                                <tr>
+                                  <td colSpan={2} className="px-2 py-1.5 text-center text-gray-400">
+                                    No sizes
+                                  </td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
           {/* Detailed Cost Breakdown */}
           {items.length > 0 && (
             <div className="p-6 border-b border-gray-200 bg-light/10">

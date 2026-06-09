@@ -68,6 +68,20 @@ const buildDefaultSizeRows = ({
   });
 };
 
+// Per-Color Quantity Breakdown: a colour group owns its own size/qty list. New
+// rows seed at qty 0 (the CSR fills them per colour). The size set mirrors the
+// apparel pattern's sizes so every colour's list stays consistent.
+const buildColorGroup = ({ sizeOptions, color = "" }) => ({
+  id: `cg_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+  color,
+  sizes: (sizeOptions || []).map((option) => ({
+    id: `${option.id}`,
+    size_id: option.id,
+    size_label: option.name,
+    quantity: 0,
+  })),
+});
+
 const normalizeClientBrands = (client) => {
   if (!Array.isArray(client?.brands)) return [];
 
@@ -87,7 +101,7 @@ const Quotation = () => {
   const [previewTotals, setPreviewTotals] = useState(null);
   const [saving, setSaving] = useState(false);
 
-  const [items, setItems] = useState([]);
+  const [colorBreakdowns, setColorBreakdowns] = useState([]);
   const [selectedAddons, setSelectedAddons] = useState([]);
   const [selectedColors, setSelectedColors] = useState([]);
   const [apparelParts, setApparelParts] = useState([]);
@@ -195,7 +209,7 @@ const Quotation = () => {
       setClients(clientsData);
       setPrintMethods(printMethodsData);
       setSpecialPrints(specialPrintsData);
-      setItems([]);
+      setColorBreakdowns([]);
     } catch (error) {
       console.error("Failed to load data:", error);
     } finally {
@@ -405,33 +419,49 @@ const Quotation = () => {
     return normalizeClientBrands(selectedClient);
   }, [selectedClient]);
 
+  // Per-Color Quantity Breakdown — seed ONE colour group when a pattern is
+  // picked and none exist yet. The group is the implicit single colour (blank
+  // name) so the form degrades gracefully to the old single-list behaviour
+  // until the CSR names colours or adds more.
   useEffect(() => {
-    if (!selectedApparelPattern || items.length === 0) return;
-
-    setItems((prev) =>
-      prev.map((item) => ({
-        ...item,
-        apparel_pattern_price_id: selectedApparelPattern.id,
-        apparel_type_id: selectedApparelPattern.apparelTypeId,
-        pattern_type_id: selectedApparelPattern.patternTypeId,
-      })),
-    );
-  }, [selectedApparelPatternId]);
-
-  useEffect(() => {
-    // Issue 8 — size rows derive from the apparel/pattern alone; parts/design
-    // are optional and no longer gate item generation.
-    if (!selectedApparelPattern || items.length > 0) {
+    if (!selectedApparelPattern || colorBreakdowns.length > 0) {
       return;
     }
 
-    setItems(
-      buildDefaultSizeRows({
-        sizeOptions,
-        selectedApparelPattern,
-      }),
-    );
-  }, [selectedApparelPattern, selectedColors, items.length, sizeOptions]);
+    setColorBreakdowns([buildColorGroup({ sizeOptions })]);
+  }, [selectedApparelPattern, colorBreakdowns.length, sizeOptions]);
+
+  // The aggregate size list that DRIVES PRICING. Per-colour is allocation/
+  // display only: the engine prices the SUMMED quantity per size across every
+  // colour (pooled silkscreen model — garment colour doesn't move the print
+  // price). One row per distinct size, carrying the pattern ids + unit_price so
+  // the items_json/preview payload shape is byte-for-byte what it was before.
+  const items = useMemo(() => {
+    const bySize = new Map();
+    colorBreakdowns.forEach((group) => {
+      (group.sizes || []).forEach((row) => {
+        const key = normalizeSizeName(row.size_label);
+        if (!key) return;
+        const qty = Math.max(0, parseInt(row.quantity, 10) || 0);
+        if (bySize.has(key)) {
+          bySize.get(key).quantity += qty;
+        } else {
+          bySize.set(key, {
+            id: row.size_id,
+            size_id: row.size_id,
+            size_label: row.size_label,
+            quantity: qty,
+            unit_price: 0,
+            price_per_piece: 0,
+            apparel_pattern_price_id: selectedApparelPattern?.id || null,
+            apparel_type_id: selectedApparelPattern?.apparelTypeId || null,
+            pattern_type_id: selectedApparelPattern?.patternTypeId || null,
+          });
+        }
+      });
+    });
+    return Array.from(bySize.values());
+  }, [colorBreakdowns, selectedApparelPattern]);
 
   const { itemDetails, addonDetails, totalAmount, totalAddons, totalQuantity } =
     data && items.length > 0
@@ -663,9 +693,37 @@ const Quotation = () => {
     setPartSearchTerm("");
   };
 
-  const updateItem = (id, field, value) => {
-    setItems(
-      items.map((item) => (item.id === id ? { ...item, [field]: value } : item)),
+  const addColorGroup = () => {
+    setColorBreakdowns((prev) => [...prev, buildColorGroup({ sizeOptions })]);
+  };
+
+  const removeColorGroup = (groupId) => {
+    setColorBreakdowns((prev) =>
+      prev.length <= 1 ? prev : prev.filter((g) => g.id !== groupId),
+    );
+  };
+
+  const updateColorName = (groupId, color) => {
+    setColorBreakdowns((prev) =>
+      prev.map((g) => (g.id === groupId ? { ...g, color } : g)),
+    );
+  };
+
+  const updateColorSizeQty = (groupId, sizeId, value) => {
+    const qty = Math.max(0, parseInt(value, 10) || 0);
+    setColorBreakdowns((prev) =>
+      prev.map((g) =>
+        g.id === groupId
+          ? {
+              ...g,
+              sizes: g.sizes.map((s) =>
+                Number(s.size_id) === Number(sizeId)
+                  ? { ...s, quantity: qty }
+                  : s,
+              ),
+            }
+          : g,
+      ),
     );
   };
 
@@ -726,7 +784,7 @@ const Quotation = () => {
   const handleReset = () => {
     if (!window.confirm("Are you sure you want to reset all data?")) return;
 
-    setItems([]);
+    setColorBreakdowns([]);
     setSelectedAddons([]);
     setSelectedColors([]);
     setApparelParts(apparelParts);
@@ -819,6 +877,19 @@ const Quotation = () => {
       apparel_pattern_price: item.apparelPatternPrice,
       neckline_price: item.necklinePrice,
       unit_price: item.unitPrice,
+    })),
+    // Per-Color Quantity Breakdown (display/allocation only). Sent so the
+    // backend stores it in breakdown_json and the PDF renders per-colour
+    // tables; pricing stays on the summed items above. Only positive-qty rows
+    // are sent (keeps the PDF clean); the backend keeps named-but-empty groups.
+    color_breakdowns: colorBreakdowns.map((g) => ({
+      color: (g.color || "").trim(),
+      sizes: (g.sizes || [])
+        .map((s) => ({
+          size: s.size_label,
+          quantity: Math.max(0, parseInt(s.quantity, 10) || 0),
+        }))
+        .filter((s) => s.quantity > 0),
     })),
     sample_breakdown: {
       sample_apparel: selectedApparelPattern?.label || null,
@@ -994,7 +1065,18 @@ const Quotation = () => {
       formDataToSend.append("client_id", selectedClientId);
       formDataToSend.append("apparel_type_id", itemConfigPayload.apparel_type_id ?? "");
       formDataToSend.append("pattern_type_id", itemConfigPayload.pattern_type_id ?? "");
-      formDataToSend.append("shirt_color", formData.shirt_color);
+      // Per-Color: derive shirt_color from the named colour groups (distinct,
+      // in order) so the legacy scalar stays in sync; fall back to the typed
+      // value when no colour is named. The backend derives the same way.
+      const namedColors = [
+        ...new Set(
+          colorBreakdowns.map((g) => (g.color || "").trim()).filter(Boolean),
+        ),
+      ];
+      formDataToSend.append(
+        "shirt_color",
+        namedColors.length ? namedColors.join(", ") : formData.shirt_color,
+      );
       formDataToSend.append("apparel_neckline_id", formData.apparel_neckline_id || "");
       formDataToSend.append("free_items", formData.free_items);
       formDataToSend.append("notes", formData.notes);
@@ -1135,6 +1217,7 @@ const Quotation = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <OrderInfoSection
             formData={formData}
+            hideShirtColor={true}
             onFieldChange={(field, value) => setOrderInfo((prev) => ({ ...prev, [field]: value }))}
             clientSearchTerm={clientSearchTerm}
             onClientSearchChange={handleClientSearchChange}
@@ -1705,64 +1788,113 @@ const Quotation = () => {
         {hasSelections && (
           <>
             <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-              <div className="px-4 py-3 bg-primary/5">
+              <div className="px-4 py-3 bg-primary/5 flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-primary">
-                  <i className="fas fa-tshirt mr-2"></i>Quotation Items
+                  <i className="fas fa-tshirt mr-2"></i>Per-Color Quantity Breakdown
                 </h3>
+                <button
+                  type="button"
+                  onClick={addColorGroup}
+                  className="px-2.5 py-1 text-xs rounded-lg bg-primary text-white hover:bg-primary/90"
+                >
+                  <i className="fas fa-plus mr-1"></i>Add Color
+                </button>
               </div>
-              <div className="overflow-x-auto">
-                <table className="w-full text-xs">
-                  <thead className="bg-light/50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-2 py-2 text-left">Size</th>
-                      <th className="px-2 py-2 text-right w-20">Qty</th>
-                      <th className="px-2 py-2 text-right w-28">Price/Pc</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {items.map((item) => {
-                      return (
-                        <tr key={item.id} className="hover:bg-light/30">
-                          <td className="px-2 py-1.5">
-                            <input
-                              type="text"
-                              value={item.size_label || ""}
-                              onChange={(e) =>
-                                updateItem(item.id, "size_label", e.target.value)
-                              }
-                              className="w-full px-1 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
-                            />
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input
-                              type="number"
-                              min="0"
-                              value={item.quantity ?? 0}
-                              onChange={(e) =>
-                                updateItem(
-                                  item.id,
-                                  "quantity",
-                                  Math.max(0, parseInt(e.target.value, 10) || 0),
-                                )
-                              }
-                              className="w-full px-1 py-1 text-xs text-right border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
-                            />
-                          </td>
-                          <td className="px-2 py-1.5">
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={rowPricePerPiece(item)}
-                              className="w-full px-1 py-1 text-xs text-right border border-gray-200 rounded bg-gray-50 text-gray-600"
-                              readOnly
-                            />
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <div className="p-3 space-y-3">
+                {colorBreakdowns.map((group, gIdx) => {
+                  const groupQty = (group.sizes || []).reduce(
+                    (sum, s) => sum + (parseInt(s.quantity, 10) || 0),
+                    0,
+                  );
+                  return (
+                    <div
+                      key={group.id}
+                      className="rounded-lg border border-gray-200 overflow-hidden"
+                    >
+                      <div className="px-3 py-2 bg-light/40 flex items-center gap-2">
+                        <span className="text-[11px] font-semibold text-gray-500 whitespace-nowrap">
+                          Color {gIdx + 1}
+                        </span>
+                        <input
+                          type="text"
+                          value={group.color || ""}
+                          onChange={(e) => updateColorName(group.id, e.target.value)}
+                          placeholder="e.g. Black"
+                          className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                        />
+                        <span className="text-[11px] text-gray-500 whitespace-nowrap">
+                          {groupQty} pcs
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeColorGroup(group.id)}
+                          disabled={colorBreakdowns.length <= 1}
+                          title={
+                            colorBreakdowns.length <= 1
+                              ? "At least one color is required"
+                              : "Remove this color"
+                          }
+                          className="px-2 py-1 text-xs rounded bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead className="bg-light/50 border-b border-gray-200">
+                            <tr>
+                              <th className="px-2 py-2 text-left">Size</th>
+                              <th className="px-2 py-2 text-right w-24">Qty</th>
+                              <th className="px-2 py-2 text-right w-28">Price/Pc</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {(group.sizes || []).map((row) => (
+                              <tr key={row.id} className="hover:bg-light/30">
+                                <td className="px-2 py-1.5 text-gray-700">
+                                  {row.size_label}
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    value={row.quantity ?? 0}
+                                    onChange={(e) =>
+                                      updateColorSizeQty(
+                                        group.id,
+                                        row.size_id,
+                                        e.target.value,
+                                      )
+                                    }
+                                    className="w-full px-1 py-1 text-xs text-right border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20"
+                                  />
+                                </td>
+                                <td className="px-2 py-1.5">
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="0.01"
+                                    value={rowPricePerPiece({
+                                      size_label: row.size_label,
+                                      size_id: row.size_id,
+                                    })}
+                                    className="w-full px-1 py-1 text-xs text-right border border-gray-200 rounded bg-gray-50 text-gray-600"
+                                    readOnly
+                                  />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  );
+                })}
+                <p className="text-[11px] text-gray-400">
+                  Price/Pc is the same for every color — it depends on the print,
+                  not the garment color. Quantities are tracked per color so
+                  production knows how many of each to cut and make.
+                </p>
               </div>
             </div>
 
