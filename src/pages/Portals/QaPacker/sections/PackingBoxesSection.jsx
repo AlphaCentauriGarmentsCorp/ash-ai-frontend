@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { qaPackerPortalApi } from "../../../../api/qaPackerPortalApi";
+import useConfirm from "../../../../hooks/useConfirm";
 
 /**
  * Phase 7-B Bundle 4a — Packing Boxes section.
@@ -95,6 +96,7 @@ const PackingBoxesSection = ({
 // ─── BoxCard — one box's editor + actions ────────────────────────
 
 const BoxCard = ({ box, onChanged }) => {
+  const { confirm, dialog } = useConfirm();
   const [editing, setEditing] = useState(false);
   const [contents, setContents] = useState(box.contents_json || []);
   const [weight, setWeight] = useState(box.weight_kg ?? "");
@@ -151,7 +153,7 @@ const BoxCard = ({ box, onChanged }) => {
   };
 
   const handleSeal = async () => {
-    if (!window.confirm("Sigurado? Hindi na maeedit ang contents pag sealed.")) {
+    if (!(await confirm({ title: "I-seal ang box?", message: "Sigurado? Hindi na maeedit ang contents pag sealed.", confirmLabel: "I-seal", tone: "danger" }))) {
       return;
     }
     setSealing(true);
@@ -169,7 +171,7 @@ const BoxCard = ({ box, onChanged }) => {
   };
 
   const handleUnseal = async () => {
-    if (!window.confirm("I-unseal ang box para maibalik ang pag-edit?")) {
+    if (!(await confirm({ title: "I-unseal ang box?", message: "I-unseal ang box para maibalik ang pag-edit?", confirmLabel: "I-unseal" }))) {
       return;
     }
     setUnsealing(true);
@@ -449,6 +451,7 @@ const BoxCard = ({ box, onChanged }) => {
           </button>
         </div>
       )}
+      {dialog}
     </div>
   );
 };

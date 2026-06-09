@@ -4,6 +4,7 @@ import AdminLayout from "../../layouts/Admin/AdminLayout";
 import ticketService from "../../services/ticketService";
 import { quotationApi } from "../../api/quotationApi";
 import { partImage } from "../../utils/designImage";
+import useConfirm from "../../hooks/useConfirm";
 
 const getStatusClassName = (status) => {
   const normalized = String(status || "").trim().toLowerCase();
@@ -16,6 +17,7 @@ const getStatusClassName = (status) => {
 };
 
 const QuotationTicketView = () => {
+  const { confirm, alert, dialog } = useConfirm();
   const { id } = useParams();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -197,7 +199,7 @@ const QuotationTicketView = () => {
               {ticket && String(ticket.status || "").trim().toLowerCase() === "open" && (
                 <button
                   onClick={async () => {
-                    if (!window.confirm("Mark this ticket as verified (Resolved)?")) return;
+                    if (!(await confirm({ title: "Verify ticket", message: "Mark this ticket as verified (Resolved)?", confirmLabel: "Verify" }))) return;
                     try {
                       setVerifying(true);
                       const fd = new FormData();
@@ -218,7 +220,7 @@ const QuotationTicketView = () => {
                       setTicket(updated || { ...ticket, status: "resolved" });
                     } catch (err) {
                       console.error("Failed to verify ticket:", err);
-                      window.alert(err?.response?.data?.message || "Failed to mark ticket as verified. Please try again.");
+                      await alert({ title: "Verify failed", message: err?.response?.data?.message || "Failed to mark ticket as verified. Please try again.", tone: "danger" });
                     } finally {
                       setVerifying(false);
                     }
@@ -235,7 +237,7 @@ const QuotationTicketView = () => {
                 <>
                   <button
                     onClick={async () => {
-                      if (!window.confirm("Reopen this ticket?")) return;
+                      if (!(await confirm({ title: "Reopen ticket", message: "Reopen this ticket?", confirmLabel: "Reopen" }))) return;
                       try {
                         setVerifying(true);
                         const fd = new FormData();
@@ -256,7 +258,7 @@ const QuotationTicketView = () => {
                         setTicket(updated || { ...ticket, status: "open" });
                       } catch (err) {
                         console.error("Failed to reopen ticket:", err);
-                        window.alert(err?.response?.data?.message || "Failed to reopen ticket. Please try again.");
+                        await alert({ title: "Reopen failed", message: err?.response?.data?.message || "Failed to reopen ticket. Please try again.", tone: "danger" });
                       } finally {
                         setVerifying(false);
                       }
@@ -269,7 +271,7 @@ const QuotationTicketView = () => {
 
                   <button
                     onClick={async () => {
-                      if (!window.confirm("Close this ticket?")) return;
+                      if (!(await confirm({ title: "Close ticket", message: "Close this ticket?", confirmLabel: "Close ticket", tone: "danger" }))) return;
                       try {
                         setVerifying(true);
                         const fd = new FormData();
@@ -290,7 +292,7 @@ const QuotationTicketView = () => {
                         setTicket(updated || { ...ticket, status: "closed" });
                       } catch (err) {
                         console.error("Failed to close ticket:", err);
-                        window.alert(err?.response?.data?.message || "Failed to close ticket. Please try again.");
+                        await alert({ title: "Close failed", message: err?.response?.data?.message || "Failed to close ticket. Please try again.", tone: "danger" });
                       } finally {
                         setVerifying(false);
                       }
@@ -312,6 +314,7 @@ const QuotationTicketView = () => {
 
         {/* Draft space: quotation-specific fields can be added here later. */}
       </div>
+      {dialog}
     </AdminLayout>
   );
 };

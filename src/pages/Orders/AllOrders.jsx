@@ -6,6 +6,7 @@ import { orderApi } from "../../api/orderApi";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { firstPartThumbnail } from "../../utils/designImage";
 import DesignThumb from "../../components/common/DesignThumb";
+import useConfirm from "../../hooks/useConfirm";
 
 // Change 16 — deep-link filters used by the CSR Hub overview cards. Predicates
 // mirror CsrDashboardService so the drilled-in list matches the card's count.
@@ -31,6 +32,7 @@ const STATE_FILTERS = {
 };
 
 const AllOrders = () => {
+  const { confirm, alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [data, setData] = useState([]);
@@ -193,13 +195,13 @@ const AllOrders = () => {
         navigate(`/orders/${rowData.po_code}/edit`);
         break;
       case "delete":
-        if (window.confirm(`Delete order ${rowData.po_code}? It will be removed from the list but can be recovered if needed.`)) {
+        if (await confirm({ title: "Delete order", message: `Delete order ${rowData.po_code}? It will be removed from the list but can be recovered if needed.`, confirmLabel: "Delete", tone: "danger" })) {
           try {
             await orderApi.delete?.(rowData.id || rowData.po_code);
             fetchData();
           } catch (err) {
             console.error("Delete failed:", err);
-            alert("Failed to delete order. Please try again.");
+            await alert({ title: "Delete failed", message: "Failed to delete order. Please try again.", tone: "danger" });
           }
         }
         break;
@@ -260,6 +262,7 @@ const AllOrders = () => {
         url="/orders/new"
         button="New Order"
       />
+      {dialog}
     </AdminLayout>
   );
 };

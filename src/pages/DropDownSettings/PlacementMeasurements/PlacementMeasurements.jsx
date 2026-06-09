@@ -3,8 +3,10 @@ import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
 import { placementMeasurementApi } from "../../../api/placementMeasurementApi";
 import { useNavigate } from "react-router-dom";
+import useConfirm from "../../../hooks/useConfirm";
 
 const PlacementMeasurementsPage = () => {
+  const { confirm, dialog } = useConfirm();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,13 +57,13 @@ const PlacementMeasurementsPage = () => {
     setPageSize(newPageSize);
   };
 
-  const handleAction = (action, rowData) => {
+  const handleAction = async (action, rowData) => {
     switch (action) {
       case "edit":
         navigate(`/admin/settings/placement-measurements/edit/${rowData.id}`);
         break;
       case "delete":
-        if (window.confirm(`Are you sure you want to delete ${rowData.name}?`)) {
+        if (await confirm({ title: "Delete", message: `Are you sure you want to delete ${rowData.name}?`, confirmLabel: "Delete", tone: "danger" })) {
           placementMeasurementApi
             .delete(rowData.id)
             .then(() => fetchData(pageSize))
@@ -110,6 +112,7 @@ const PlacementMeasurementsPage = () => {
         button="Add Placement Measurement"
         PageTitle="Placement Measurements"
       />
+      {dialog}
     </AdminLayout>
   );
 };
