@@ -3,8 +3,10 @@ import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
 import { additionalOptionApi } from "../../../api/additionalOptionApi";
 import { useNavigate } from "react-router-dom";
+import useConfirm from "../../../hooks/useConfirm";
 
 const AdditionalOptionsPage = () => {
+  const { confirm, dialog } = useConfirm();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -55,13 +57,13 @@ const AdditionalOptionsPage = () => {
     setPageSize(newPageSize);
   };
 
-  const handleAction = (action, rowData) => {
+  const handleAction = async (action, rowData) => {
     switch (action) {
       case "edit":
         navigate(`/admin/settings/additional-options/edit/${rowData.id}`);
         break;
       case "delete":
-        if (window.confirm(`Are you sure you want to delete ${rowData.name}?`)) {
+        if (await confirm({ title: "Delete", message: `Are you sure you want to delete ${rowData.name}?`, confirmLabel: "Delete", tone: "danger" })) {
           additionalOptionApi
             .delete(rowData.id)
             .then(() => fetchData(pageSize))
@@ -107,6 +109,7 @@ const AdditionalOptionsPage = () => {
         button="Add Additional Option"
         PageTitle="Additional Options"
       />
+      {dialog}
     </AdminLayout>
   );
 };

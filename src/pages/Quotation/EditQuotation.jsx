@@ -15,6 +15,7 @@ import LabelSpecSection, {
   EMPTY_LABEL_DESIGN,
 } from "../../components/quotation/LabelSpecSection";
 import OrderInfoSection from "../../components/quotation/OrderInfoSection";
+import SwatchPickerModal from "../../components/quotation/SwatchPickerModal";
 
 const DEFAULT_SIZE_OPTIONS = [
   { id: 1, name: "XS" },
@@ -197,6 +198,7 @@ const EditQuotation = () => {
   const [isGeneratingShareLink, setIsGeneratingShareLink] = useState(false);
 
   const [colorBreakdowns, setColorBreakdowns] = useState([]);
+  const [swatchPickerGroupId, setSwatchPickerGroupId] = useState(null);
   const [selectedAddons, setSelectedAddons] = useState([]);
   const [selectedColors, setSelectedColors] = useState([]);
   const [apparelParts, setApparelParts] = useState([]);
@@ -2097,6 +2099,14 @@ const EditQuotation = () => {
                           placeholder="e.g. Black"
                           className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setSwatchPickerGroupId(group.id)}
+                          title="Pick from fabric swatches"
+                          className="px-2 py-1 text-xs rounded bg-light/60 text-primary border border-gray-200 hover:bg-primary/10 whitespace-nowrap"
+                        >
+                          <i className="fas fa-palette"></i>
+                        </button>
                         <span className="text-[11px] text-gray-500 whitespace-nowrap">
                           {groupQty} pcs
                         </span>
@@ -2170,6 +2180,17 @@ const EditQuotation = () => {
                   not the garment color. Quantities are tracked per color so
                   production knows how many of each to cut and make.
                 </p>
+                <SwatchPickerModal
+                  open={!!swatchPickerGroupId}
+                  currentValue={
+                    colorBreakdowns.find((g) => g.id === swatchPickerGroupId)?.color || ""
+                  }
+                  onClose={() => setSwatchPickerGroupId(null)}
+                  onSelect={(name) => {
+                    if (swatchPickerGroupId) updateColorName(swatchPickerGroupId, name);
+                    setSwatchPickerGroupId(null);
+                  }}
+                />
               </div>
             </div>
 

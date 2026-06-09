@@ -4,8 +4,10 @@ import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Table from "../../components/table/Table";
 import { accountApi } from "../../api/accountApi";
 import { accountService } from "../../services/accountService";
+import useConfirm from "../../hooks/useConfirm";
 
 const AccountsPage = () => {
+  const { confirm, dialog } = useConfirm();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -132,9 +134,7 @@ const AccountsPage = () => {
         break;
       case "delete":
         if (
-          window.confirm(
-            `Deactivate ${rowData.name}? Their account will be disabled but can be restored later.`,
-          )
+          await confirm({ title: "Deactivate", message: `Deactivate ${rowData.name}? Their account will be disabled but can be restored later.`, confirmLabel: "Deactivate", tone: "danger" })
         ) {
           try {
             await accountService.deleteAccount(rowData.id);
@@ -195,6 +195,7 @@ const AccountsPage = () => {
         button="New Account"
         PageTitle="All Accounts"
       />
+      {dialog}
     </AdminLayout>
   );
 };

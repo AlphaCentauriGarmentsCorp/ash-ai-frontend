@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { qaPackerPortalApi } from "../../../../api/qaPackerPortalApi";
 import RejectRepairModal from "../modals/RejectRepairModal";
+import useConfirm from "../../../../hooks/useConfirm";
 
 /**
  * Phase 7-B Bundle 3 — Reject / Repair log section.
@@ -61,8 +62,10 @@ const RejectRepairLogSection = ({
     return { rejectPcs, repairPcs, pct, exceedsThreshold };
   }, [rejectsRepairs, orderTotalPcs]);
 
+  const { confirm, dialog } = useConfirm();
+
   const handleDelete = async (id) => {
-    if (!window.confirm("Sigurado ka? Hindi na maibabalik ito.")) return;
+    if (!(await confirm({ title: "Burahin?", message: "Sigurado ka? Hindi na maibabalik ito.", confirmLabel: "Burahin", tone: "danger" }))) return;
 
     setDeletingId(id);
     setGeneralError(null);
@@ -319,6 +322,7 @@ const RejectRepairLogSection = ({
           onSaved={handleSaved}
         />
       )}
+      {dialog}
     </>
   );
 };

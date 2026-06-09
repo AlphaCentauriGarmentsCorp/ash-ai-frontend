@@ -131,7 +131,22 @@ const ViewQuotation = () => {
       const result = await quotationApi.confirm(id);
       // Update local status immediately so the button reflects the change
       setQuotation((prev) => ({ ...prev, status: "Converted" }));
-      // Navigate to AddNewOrder with the pre-filled payload
+
+      // Per-Color auto-split: a multi-colour quote is converted into N
+      // single-colour orders by the backend directly (no per-form review).
+      // The response carries { split: true, orders: [...] } — surface a clear
+      // confirmation and go to the Orders list.
+      if (result?.split) {
+        const count = Array.isArray(result.orders) ? result.orders.length : 0;
+        window.alert(
+          result.message ||
+            `Converted to ${count} single-color order${count === 1 ? "" : "s"} (one per color).`,
+        );
+        navigate("/orders");
+        return;
+      }
+
+      // Single-colour: unchanged prefill-and-review flow.
       navigate("/orders/new", { state: { prefill: result.order_payload } });
     } catch (err) {
       // 409 means already converted — still navigate if payload present
