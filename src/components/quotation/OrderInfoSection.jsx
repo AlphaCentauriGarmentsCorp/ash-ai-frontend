@@ -38,6 +38,7 @@ import { clientApi } from "../../api/clientApi";
  */
 const OrderInfoSection = ({
   formData,
+  hideShirtColor = false,
   onFieldChange,
   clientSearchTerm,
   onClientSearchChange,
@@ -302,6 +303,7 @@ const OrderInfoSection = ({
               {brandError && <p className="mt-1 text-[11px] text-red-600">{brandError}</p>}
             </div>
 
+            {!hideShirtColor && (
             <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">Shirt Color</label>
               <input
@@ -312,6 +314,7 @@ const OrderInfoSection = ({
                 placeholder="Enter shirt color"
               />
             </div>
+            )}
 
             {/* Issue 5 — Free Items as a locked multi-select */}
             <div>
