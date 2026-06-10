@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import useConfirm from "../../hooks/useConfirm";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import { quotationApi } from "../../api/quotationApi";
 import { apparelTypeApi } from "../../api/apparelTypeApi";
@@ -14,6 +15,7 @@ import DesignThumb from "../../components/common/DesignThumb";
 const ViewQuotation = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { confirm, alert, dialog } = useConfirm();
   const [quotation, setQuotation] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -87,7 +89,11 @@ const ViewQuotation = () => {
       }));
     } catch (err) {
       console.error("Failed to send design to GA:", err);
-      alert("Could not send the design to the Graphic Artist. Please try again.");
+      await alert({
+        title: "Couldn't send to Graphic Artist",
+        message: "Please try again.",
+        tone: "danger",
+      });
     }
   };
 
@@ -123,7 +129,17 @@ const ViewQuotation = () => {
 
   const handleConvertToOrder = async () => {
     if (quotation?.status === "Converted") return;
-    if (!window.confirm("Convert this quotation to an Order? This action cannot be undone.")) return;
+    if (
+      !(await confirm({
+        title: "Convert to order?",
+        message:
+          "This will convert the quotation to an order. This action cannot be undone.",
+        confirmLabel: "Convert",
+        cancelLabel: "Cancel",
+        tone: "primary",
+      }))
+    )
+      return;
 
     setIsConverting(true);
     setConvertError(null);
@@ -138,11 +154,16 @@ const ViewQuotation = () => {
       // confirmation and go to the Orders list.
       if (result?.split) {
         const count = Array.isArray(result.orders) ? result.orders.length : 0;
-        window.alert(
-          result.message ||
+        const goToOrders = await confirm({
+          title: "Quotation converted",
+          message:
+            result.message ||
             `Converted to ${count} single-color order${count === 1 ? "" : "s"} (one per color).`,
-        );
-        navigate("/orders");
+          confirmLabel: "View Orders",
+          cancelLabel: "Stay here",
+          tone: "primary",
+        });
+        if (goToOrders) navigate("/orders");
         return;
       }
 
@@ -752,6 +773,7 @@ const ViewQuotation = () => {
         />
       )}
 
+      {dialog}
     </AdminLayout>
   );
 };

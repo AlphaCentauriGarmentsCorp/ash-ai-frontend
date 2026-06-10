@@ -87,6 +87,47 @@ const SwatchPickerModal = ({ open, currentValue = "", onClose, onSelect }) => {
     onSelect?.(trimmed);
   };
 
+  // Selecting a catalog tile records a pick (fire-and-forget — never blocks
+  // the selection) and optimistically bumps the local count so the
+  // "Most used" shelf reflects it right away.
+  const chooseSwatch = (swatch) => {
+    if (!swatch) return;
+    if (swatch.id != null) {
+      csrPortalApi.incrementSwatchPick(swatch.id).catch(() => {});
+      setItems((prev) =>
+        prev.map((s) =>
+          s.id === swatch.id
+            ? { ...s, pick_count: Number(s.pick_count || 0) + 1 }
+            : s,
+        ),
+      );
+    }
+    choose(swatch.name);
+  };
+
+  const isSelected = (swatch) =>
+    !!currentValue &&
+    (swatch.name || "").toLowerCase() === currentValue.toLowerCase();
+
+  // "Most used" favourites shelf — top picks, shown only on the unfiltered
+  // view so it never fights an active search/filter. Excluded from the grid
+  // below so the same tile never appears twice.
+  const noFilter =
+    !filters.fabric_type &&
+    !filters.gsm &&
+    !filters.color_family &&
+    !filters.search;
+  const mostUsed = noFilter
+    ? [...items]
+        .filter((s) => Number(s.pick_count) > 0)
+        .sort((a, b) => Number(b.pick_count) - Number(a.pick_count))
+        .slice(0, 8)
+    : [];
+  const mostUsedIds = new Set(mostUsed.map((s) => s.id));
+  const gridItems = noFilter
+    ? filtered.filter((s) => !mostUsedIds.has(s.id))
+    : filtered;
+
   if (!open) return null;
 
   return (
@@ -134,19 +175,44 @@ const SwatchPickerModal = ({ open, currentValue = "", onClose, onSelect }) => {
               No swatches match. Try clearing filters or type a custom color below.
             </p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {filtered.map((swatch) => (
-                <SwatchTile
-                  key={swatch.id}
-                  swatch={swatch}
-                  selected={
-                    !!currentValue &&
-                    (swatch.name || "").toLowerCase() === currentValue.toLowerCase()
-                  }
-                  onClick={(s) => choose(s.name)}
-                />
-              ))}
-            </div>
+            <>
+              {mostUsed.length > 0 && (
+                <div className="mb-4">
+                  <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    <i className="fas fa-star mr-1 text-amber-400"></i>Most used
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {mostUsed.map((swatch) => (
+                      <SwatchTile
+                        key={`fav-${swatch.id}`}
+                        swatch={swatch}
+                        selected={isSelected(swatch)}
+                        onClick={chooseSwatch}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {gridItems.length > 0 && (
+                <>
+                  {mostUsed.length > 0 && (
+                    <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      All colors
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {gridItems.map((swatch) => (
+                      <SwatchTile
+                        key={swatch.id}
+                        swatch={swatch}
+                        selected={isSelected(swatch)}
+                        onClick={chooseSwatch}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </>
           )}
         </div>
 
