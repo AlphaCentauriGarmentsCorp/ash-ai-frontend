@@ -169,4 +169,11 @@ export const csrPortalApi = {
     const { data } = await api.delete(`/csr/fabric-swatches/${id}`);
     return data;
   },
+
+  // Issue 4 follow-on — record a "pick" so popular colours float to the top
+  // of the swatch picker. Fire-and-forget from the caller.
+  incrementSwatchPick: async (id) => {
+    const { data } = await api.post(`/csr/fabric-swatches/${id}/pick`);
+    return data;
+  },
 };

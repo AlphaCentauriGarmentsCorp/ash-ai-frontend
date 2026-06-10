@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import useConfirm from "../../hooks/useConfirm";
 import { parseApiError } from "../../utils/parseApiError";
 import { useNavigate, useParams } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
@@ -191,6 +192,7 @@ const normalizeClientBrands = (client) => {
 const EditQuotation = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { confirm, alert, dialog } = useConfirm();
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -792,7 +794,11 @@ const EditQuotation = () => {
       }
     } catch (error) {
       console.error("Failed to load data:", error);
-      alert("Failed to load quotation data. Please try again.");
+      await alert({
+        title: "Couldn't load quotation",
+        message: "Failed to load quotation data. Please try again.",
+        tone: "danger",
+      });
     } finally {
       setLoading(false);
     }
@@ -1179,22 +1185,38 @@ const EditQuotation = () => {
 
       const shareLink = extractShareLink(response);
       if (!shareLink) {
-        alert("Share token was generated, but no public link was returned by the API.");
+        await alert({
+          title: "No link returned",
+          message: "A share token was generated, but no public link was returned by the API.",
+          tone: "danger",
+        });
         return;
       }
 
       if (navigator?.clipboard?.writeText) {
         await navigator.clipboard.writeText(shareLink);
-        alert(`Share upload link copied to clipboard:\n${shareLink}`);
+        await alert({
+          title: "Share link copied",
+          message: `Copied to clipboard:\n${shareLink}`,
+          tone: "primary",
+        });
       } else {
-        alert(`Share upload link:\n${shareLink}`);
+        await alert({
+          title: "Share upload link",
+          message: `${shareLink}`,
+          tone: "primary",
+        });
       }
     } catch (error) {
       console.error("Failed to generate share upload link:", error);
       const message =
         error?.response?.data?.message ||
         "Failed to generate share upload link. Please try again.";
-      alert(message);
+      await alert({
+        title: "Couldn't create share link",
+        message,
+        tone: "danger",
+      });
     } finally {
       setIsGeneratingShareLink(false);
     }
@@ -1342,25 +1364,42 @@ const EditQuotation = () => {
 
   const handleUpdate = async () => {
     if (!selectedClientId) {
-      alert("Please search and select a client first.");
+      await alert({
+        title: "Select a client first",
+        message: "Please search and select a client before saving.",
+        tone: "danger",
+      });
       return;
     }
 
     if (!selectedApparelPattern) {
-      alert("Please select an Apparel/Pattern option.");
+      await alert({
+        title: "Select an apparel/pattern",
+        message: "Please select an Apparel/Pattern option before saving.",
+        tone: "danger",
+      });
       return;
     }
 
     if (items.length === 0) {
-      alert("Please add at least one item to the quotation.");
+      await alert({
+        title: "Add at least one item",
+        message: "Please add at least one item to the quotation before saving.",
+        tone: "danger",
+      });
       return;
     }
 
     // Issue 8 — Parts/design upload is a SOFT requirement (see Add Quotation).
     if (selectedColors.length === 0) {
-      const proceed = window.confirm(
-        "No apparel part / design has been added yet. Save the quotation anyway?",
-      );
+      const proceed = await confirm({
+        title: "No design added yet",
+        message:
+          "No apparel part / design has been added yet. Save the quotation anyway?",
+        confirmLabel: "Save anyway",
+        cancelLabel: "Go back",
+        tone: "primary",
+      });
       if (!proceed) return;
     }
 
@@ -1508,11 +1547,17 @@ const EditQuotation = () => {
         const lines = Object.entries(parsed.fields).map(
           ([field, msg]) => `• ${field}: ${msg}`,
         );
-        alert(
-          `Validation failed. Please fix the following:\n\n${lines.join("\n")}`,
-        );
+        await alert({
+          title: "Validation failed",
+          message: `Please fix the following:\n\n${lines.join("\n")}`,
+          tone: "danger",
+        });
       } else {
-        alert(parsed.message);
+        await alert({
+          title: "Couldn't save quotation",
+          message: parsed.message,
+          tone: "danger",
+        });
       }
     } finally {
       setSaving(false);
@@ -2596,6 +2641,7 @@ const EditQuotation = () => {
           </button>
         </div>
       </section>
+      {dialog}
     </AdminLayout>
   );
 };

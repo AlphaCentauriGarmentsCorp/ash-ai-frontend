@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import useConfirm from "../../hooks/useConfirm";
 import { parseApiError } from "../../utils/parseApiError";
 import { useNavigate } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
@@ -96,6 +97,7 @@ const normalizeClientBrands = (client) => {
 
 const Quotation = () => {
   const navigate = useNavigate();
+  const { confirm, alert, dialog } = useConfirm();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   // Backend-computed totals for the live preview (source of truth).
@@ -783,8 +785,17 @@ const Quotation = () => {
     }));
   };
 
-  const handleReset = () => {
-    if (!window.confirm("Are you sure you want to reset all data?")) return;
+  const handleReset = async () => {
+    if (
+      !(await confirm({
+        title: "Reset quotation?",
+        message: "This clears all the data you've entered on this form.",
+        confirmLabel: "Reset",
+        cancelLabel: "Cancel",
+        tone: "danger",
+      }))
+    )
+      return;
 
     setColorBreakdowns([]);
     setSelectedAddons([]);
@@ -987,17 +998,29 @@ const Quotation = () => {
 
   const handleSave = async () => {
     if (!selectedClientId) {
-      alert("Please search and select a client first.");
+      await alert({
+        title: "Select a client first",
+        message: "Please search and select a client before saving.",
+        tone: "danger",
+      });
       return;
     }
 
     if (!selectedApparelPattern) {
-      alert("Please select an Apparel/Pattern option.");
+      await alert({
+        title: "Select an apparel/pattern",
+        message: "Please select an Apparel/Pattern option before saving.",
+        tone: "danger",
+      });
       return;
     }
 
     if (items.length === 0) {
-      alert("Please add at least one item to the quotation.");
+      await alert({
+        title: "Add at least one item",
+        message: "Please add at least one item to the quotation before saving.",
+        tone: "danger",
+      });
       return;
     }
 
@@ -1006,9 +1029,14 @@ const Quotation = () => {
     // print_parts_json as nullable). We surface a non-blocking confirm so the
     // CSR is aware, but creation is never hard-blocked on this.
     if (selectedColors.length === 0) {
-      const proceed = window.confirm(
-        "No apparel part / design has been added yet. You can add it later and send it to the Graphic Artist for review. Create the quotation anyway?",
-      );
+      const proceed = await confirm({
+        title: "No design added yet",
+        message:
+          "No apparel part / design has been added yet. You can add it later and send it to the Graphic Artist for review. Create the quotation anyway?",
+        confirmLabel: "Create anyway",
+        cancelLabel: "Go back",
+        tone: "primary",
+      });
       if (!proceed) return;
     }
 
@@ -1154,11 +1182,17 @@ const Quotation = () => {
         const lines = Object.entries(parsed.fields).map(
           ([field, msg]) => `• ${field}: ${msg}`,
         );
-        alert(
-          `Validation failed. Please fix the following:\n\n${lines.join("\n")}`,
-        );
+        await alert({
+          title: "Validation failed",
+          message: `Please fix the following:\n\n${lines.join("\n")}`,
+          tone: "danger",
+        });
       } else {
-        alert(parsed.message);
+        await alert({
+          title: "Couldn't save quotation",
+          message: parsed.message,
+          tone: "danger",
+        });
       }
     } finally {
       setSaving(false);
@@ -2311,6 +2345,7 @@ const Quotation = () => {
           </button>
         </div>
       </section>
+      {dialog}
     </AdminLayout>
   );
 };
