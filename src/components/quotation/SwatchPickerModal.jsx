@@ -10,9 +10,10 @@ import SwatchFilters from "../../pages/Portals/CSR/sections/SwatchFilters";
  * Fabric Swatches instead of typing it. It REUSES the existing catalog pieces
  * (csrPortalApi.listSwatches + SwatchTile + SwatchFilters) — selecting a tile
  * returns the swatch NAME to the caller, which writes it into the Per-Color
- * group's colour field. A "custom colour" escape hatch is included for colours
- * not in the catalog (typed for immediate use; saving to the DB stays in the
- * CSR → Swatches tab).
+ * group's colour field. A "custom colour" escape hatch handles colours not in
+ * the catalog: "Save & use" persists the typed colour (name + hex) to the
+ * catalog via createSwatch and selects it; "Use once" applies it to this order
+ * without saving. An existing name is reused rather than duplicated.
  *
  * Props:
  *   open          boolean
@@ -31,6 +32,9 @@ const SwatchPickerModal = ({ open, currentValue = "", onClose, onSelect }) => {
     search: null,
   });
   const [custom, setCustom] = useState("");
+  const [customHex, setCustomHex] = useState("#888888");
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
 
   useEffect(() => {
     if (!open) return;
@@ -103,6 +107,49 @@ const SwatchPickerModal = ({ open, currentValue = "", onClose, onSelect }) => {
       );
     }
     choose(swatch.name);
+  };
+
+  // Save a typed custom colour to the catalog, then select it. If the name
+  // already exists (case-insensitive) we reuse that swatch instead of
+  // creating a duplicate. On any failure we fall back to using the colour
+  // for this order only — the CSR is never blocked mid-quotation.
+  const saveCustomToCatalog = async () => {
+    const trimmed = custom.trim();
+    if (!trimmed || saving) return;
+    setSaveError(null);
+
+    const existing = items.find(
+      (s) => (s.name || "").trim().toLowerCase() === trimmed.toLowerCase(),
+    );
+    if (existing) {
+      chooseSwatch(existing);
+      setCustom("");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await csrPortalApi.createSwatch({
+        name: trimmed,
+        hex_color: customHex,
+      });
+      const created = res?.data ?? res;
+      if (created && created.id != null) {
+        setItems((prev) => [created, ...prev]);
+        chooseSwatch(created);
+        setCustom("");
+      } else {
+        choose(trimmed); // unexpected shape — still use the colour
+      }
+    } catch (err) {
+      console.error("Failed to save swatch to catalog:", err);
+      setSaveError(
+        "Couldn't save to catalog — using this color for this order only.",
+      );
+      choose(trimmed);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const isSelected = (swatch) =>
@@ -221,29 +268,59 @@ const SwatchPickerModal = ({ open, currentValue = "", onClose, onSelect }) => {
           <label className="block text-[11px] font-medium text-gray-600 mb-1">
             Custom color (not in catalog)
           </label>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="color"
+              value={customHex}
+              onChange={(e) => setCustomHex(e.target.value)}
+              disabled={saving}
+              title="Pick a color (used when saving to the catalog)"
+              aria-label="Custom color swatch"
+              className="h-8 w-9 flex-none p-0.5 border border-gray-200 rounded cursor-pointer disabled:cursor-not-allowed"
+            />
             <input
               type="text"
               value={custom}
               onChange={(e) => setCustom(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") choose(custom);
+                if (e.key === "Enter") saveCustomToCatalog();
               }}
               placeholder="Type a color name…"
-              className="flex-1 px-2 py-1.5 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+              disabled={saving}
+              className="flex-1 px-2 py-1.5 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary disabled:opacity-60"
             />
             <button
               type="button"
-              onClick={() => choose(custom)}
-              disabled={!custom.trim()}
+              onClick={saveCustomToCatalog}
+              disabled={!custom.trim() || saving}
               className="px-3 py-1.5 text-xs rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
             >
-              Use this color
+              {saving ? (
+                <>
+                  <i className="fas fa-spinner fa-spin mr-1"></i>Saving…
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-plus mr-1"></i>Save &amp; use
+                </>
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => choose(custom)}
+              disabled={!custom.trim() || saving}
+              className="px-3 py-1.5 text-xs rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              Use once
             </button>
           </div>
-          <p className="text-[10px] text-gray-400 mt-1">
-            To save a new color to the catalog, use the CSR → Swatches tab.
-          </p>
+          {saveError ? (
+            <p className="text-[10px] text-amber-600 mt-1">{saveError}</p>
+          ) : (
+            <p className="text-[10px] text-gray-400 mt-1">
+              "Save &amp; use" adds it to the catalog. "Use once" won't save it.
+            </p>
+          )}
         </div>
       </div>
     </div>
