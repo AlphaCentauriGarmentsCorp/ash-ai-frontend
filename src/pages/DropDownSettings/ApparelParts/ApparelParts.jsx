@@ -4,8 +4,10 @@ import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
 import { apparelPartsApi } from "../../../api/apparelPartsApi";
+import useConfirm from "../../../hooks/useConfirm";
 
 const ApparelPartsPage = () => {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,7 +75,11 @@ const ApparelPartsPage = () => {
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete apparel parts. Please try again.");
+      await alert({
+        title: "Couldn't delete apparel parts",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -139,6 +145,7 @@ const ApparelPartsPage = () => {
         itemName={selectedItem?.name}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 };

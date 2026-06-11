@@ -4,6 +4,7 @@ import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
 import { permissionApi } from "../../../api/permissionApi";
+import useConfirm from "../../../hooks/useConfirm";
 
 const normalizeRows = (response) => {
   const data = response?.data || response || [];
@@ -11,6 +12,7 @@ const normalizeRows = (response) => {
 };
 
 const PermissionsPage = () => {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -83,7 +85,11 @@ const PermissionsPage = () => {
       setRows((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete permission. Please try again.");
+      await alert({
+        title: "Couldn't delete permission",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setSelectedItem(null);
       setIsDeleting(false);
@@ -149,6 +155,7 @@ const PermissionsPage = () => {
         itemName={selectedItem?.name}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 };

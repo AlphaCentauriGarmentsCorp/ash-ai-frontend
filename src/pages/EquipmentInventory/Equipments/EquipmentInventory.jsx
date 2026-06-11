@@ -4,8 +4,10 @@ import Table from "../../../components/table/Table";
 import { equipmentInventoryApi } from "../../../api/equipmentInventoryApi";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
 import { useNavigate, useParams } from "react-router-dom";
+import useConfirm from "../../../hooks/useConfirm";
 
 const EquipmentInventory = () => {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const { id } = useParams();
   const [data, setData] = useState([]);
@@ -155,7 +157,11 @@ const EquipmentInventory = () => {
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete equipment. Please try again.");
+      await alert({
+        title: "Couldn't delete equipment",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -223,6 +229,7 @@ const EquipmentInventory = () => {
         itemName={selectedItem?.name}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 };

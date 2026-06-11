@@ -7,6 +7,7 @@ import TicketComposer from "../../components/tickets/TicketComposer";
 import { useAuth } from "../../hooks/useAuth";
 import ticketService from "../../services/ticketService";
 import { extractUserRoles } from "../../utils/authz";
+import useConfirm from "../../hooks/useConfirm";
 
 const getStatusClassName = (status) => {
   const normalized = String(status || "").trim().toLowerCase();
@@ -124,6 +125,7 @@ const getTicketRoleCandidates = (user) => {
 };
 
 export default function TicketsList() {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const [data, setData] = useState([]);
@@ -205,8 +207,13 @@ export default function TicketsList() {
       setData((prev) => prev.filter((d) => d.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (err) {
-      alert(err?.response?.data?.message || "Failed to delete ticket");
+      await alert({
+        title: "Couldn't delete ticket",
+        message: err?.response?.data?.message || "Please try again.",
+        tone: "danger",
+      });
     } finally {
+      setIsDeleteDialogOpen(false);
       setIsDeleting(false);
       setSelectedItem(null);
     }
@@ -276,6 +283,7 @@ export default function TicketsList() {
         itemName={selectedItem?.request_type}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 }

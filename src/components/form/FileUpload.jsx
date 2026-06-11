@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import useConfirm from "../../hooks/useConfirm";
 
 const ImagePreview = ({ file }) => {
   const [previewUrl, setPreviewUrl] = useState("");
@@ -45,18 +46,23 @@ const FileUpload = ({
   hidePreviewWhenEmpty = false,
   ...props
 }) => {
+  const { alert, dialog } = useConfirm();
   const fileInputRef = useRef(null);
 
-  const handleFileSelect = (files) => {
+  const handleFileSelect = async (files) => {
     if (disabled) return;
 
     const fileList = Array.from(files);
     const validFiles = [];
 
-    fileList.forEach((file) => {
+    for (const file of fileList) {
       if (file.size > maxSize) {
-        alert(`File ${file.name} exceeds maximum size of 25MB`);
-        return;
+        await alert({
+          title: "File too large",
+          message: `File ${file.name} exceeds maximum size of 25MB`,
+          tone: "danger",
+        });
+        continue;
       }
 
       const acceptedTypesArray = acceptedTypes
@@ -76,14 +82,16 @@ const FileUpload = ({
       });
 
       if (!isTypeValid) {
-        alert(
-          `File type not supported for ${file.name}. Accepted types: ${acceptedTypes}`,
-        );
-        return;
+        await alert({
+          title: "File type not supported",
+          message: `File type not supported for ${file.name}. Accepted types: ${acceptedTypes}`,
+          tone: "danger",
+        });
+        continue;
       }
 
       validFiles.push(file);
-    });
+    }
 
     if (validFiles.length > 0) {
       const updatedFiles = multiple
@@ -230,6 +238,7 @@ const FileUpload = ({
           {error}
         </p>
       )}
+      {dialog}
     </div>
   );
 };

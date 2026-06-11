@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { graphicArtistPortalApi } from "../../../../api/graphicArtistPortalApi";
+import useConfirm from "../../../../hooks/useConfirm";
 
 /**
  * Phase 5-H — Sample Uploads.
@@ -8,6 +9,7 @@ import { graphicArtistPortalApi } from "../../../../api/graphicArtistPortalApi";
  * task is complete. Same shape as Cutter / Sewer sample sections.
  */
 const SampleUploadsSection = ({ samples = [], orderId, orderStageId, onChanged }) => {
+  const { confirm, alert, dialog } = useConfirm();
   const [front, setFront] = useState(null);
   const [back, setBack] = useState(null);
   const [remarks, setRemarks] = useState("");
@@ -47,17 +49,28 @@ const SampleUploadsSection = ({ samples = [], orderId, orderStageId, onChanged }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm("I-delete ang sample upload na ito?")) return;
+    const ok = await confirm({
+      title: "I-delete?",
+      message: "I-delete ang sample upload na ito?",
+      confirmLabel: "I-delete",
+      tone: "danger",
+    });
+    if (!ok) return;
     try {
       await graphicArtistPortalApi.deleteSample(id);
       onChanged?.();
     } catch (err) {
-      alert(err?.response?.data?.message || "Hindi na-delete.");
+      await alert({
+        title: "Hindi na-delete",
+        message: err?.response?.data?.message || "Pakisubukan muli.",
+        tone: "danger",
+      });
     }
   };
 
   return (
     <section className="bg-white rounded-lg border border-gray-200 p-5">
+      {dialog}
       <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
         <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">
           8

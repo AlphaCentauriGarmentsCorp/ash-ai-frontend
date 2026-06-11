@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import useConfirm from "../../hooks/useConfirm";
 
 const MassCutting = ({ order }) => {
+  const { alert, dialog } = useConfirm();
   const [formData, setFormData] = useState({
     notes: "",
     fabricUsed: "",
@@ -110,7 +112,10 @@ const MassCutting = ({ order }) => {
     setIsSubmitting(false);
 
     // You can add success notification here
-    alert("Cutting data saved successfully!");
+    await alert({
+      title: "Cutting data saved",
+      message: "Cutting data saved successfully!",
+    });
   };
 
   const sizeQuantities = getSizeQuantities();
@@ -657,6 +662,7 @@ const MassCutting = ({ order }) => {
           {isSubmitting ? "Saving..." : "Save Cutting Data"}
         </button>
       </div>
+      {dialog}
     </section>
   );
 };
