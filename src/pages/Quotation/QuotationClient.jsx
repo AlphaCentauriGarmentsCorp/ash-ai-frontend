@@ -10,6 +10,7 @@ import { publicQuotationApi } from "../../api/publicQuotationApi";
 import { publicApparelTypeApi } from "../../api/publicApparelTypeApi";
 import { publicPatternTypeApi } from "../../api/publicPatternTypeApi";
 import { publicApparelNecklineApi } from "../../api/publicApparelNecklineApi";
+import useConfirm from "../../hooks/useConfirm";
 
 const toStorageUrl = (path) => {
   const rawPath = String(path || "").trim();
@@ -96,6 +97,7 @@ const normalizeComparableParts = (parts) => {
 };
 
 const QuotationClient = () => {
+  const { alert, dialog } = useConfirm();
   const { token } = useParams();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState(quotationClientInitialState);
@@ -286,7 +288,11 @@ const QuotationClient = () => {
     }
 
     if (!token) {
-      alert("Invalid shared link. Please open the quotation using the tokenized share URL.");
+      await alert({
+        title: "Invalid shared link",
+        message: "Please open the quotation using the tokenized share URL.",
+        tone: "danger",
+      });
       return;
     }
 
@@ -414,7 +420,15 @@ const QuotationClient = () => {
           ? Object.values(parsed.fields)[0] || parsed.message
           : parsed.message;
 
-      alert(message);
+      await alert({
+
+        title: "Couldn't submit quotation",
+
+        message,
+
+        tone: "danger",
+
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -470,6 +484,7 @@ const QuotationClient = () => {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50">
+      {dialog}
       {/* Header */}
       <div className="bg-white shadow-sm border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 py-6">

@@ -4,8 +4,10 @@ import Table from "../../../components/table/Table";
 import { fabricTypeApi } from "../../../api/fabricTypeApi";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
 import { useNavigate } from "react-router-dom";
+import useConfirm from "../../../hooks/useConfirm";
 
 const FabricTypePage = () => {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +62,11 @@ const FabricTypePage = () => {
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete fabric type. Please try again.");
+      await alert({
+        title: "Couldn't delete fabric type",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -124,6 +130,7 @@ const FabricTypePage = () => {
         itemName={selectedItem?.name}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 };

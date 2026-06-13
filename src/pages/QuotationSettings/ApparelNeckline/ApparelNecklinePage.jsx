@@ -4,8 +4,10 @@ import Table from "../../../components/table/Table";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
 import { useNavigate } from "react-router-dom";
 import { apparelNecklineApi } from "../../../api/apparelNecklineApi";
+import useConfirm from "../../../hooks/useConfirm";
 
 const ApparelNecklinePage = () => {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -76,7 +78,11 @@ const ApparelNecklinePage = () => {
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete apparel neckline. Please try again.");
+      await alert({
+        title: "Couldn't delete apparel neckline",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -142,6 +148,7 @@ const ApparelNecklinePage = () => {
         itemName={selectedItem?.name}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 };

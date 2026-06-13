@@ -5,8 +5,10 @@ import { ScreenTypeApi } from "../../api/ScreenTypeApi";
 import DeleteConfirmationDialog from "../../components/common/DeleteConfirmationDialog";
 import { useNavigate } from "react-router-dom";
 import { filter } from "jszip";
+import useConfirm from "../../hooks/useConfirm";
 
 const MaterialsPage = () => {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -113,7 +115,11 @@ const MaterialsPage = () => {
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete screen. Please try again.");
+      await alert({
+        title: "Couldn't delete screen",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -176,6 +182,7 @@ const MaterialsPage = () => {
         itemName={selectedItem?.name}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 };

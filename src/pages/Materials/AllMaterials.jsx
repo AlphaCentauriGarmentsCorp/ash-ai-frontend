@@ -4,8 +4,10 @@ import Table from "../../components/table/Table";
 import { materialsApi } from "../../api/materialsApi";
 import DeleteConfirmationDialog from "../../components/common/DeleteConfirmationDialog";
 import { useNavigate } from "react-router-dom";
+import useConfirm from "../../hooks/useConfirm";
 
 const MaterialsPage = () => {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -104,7 +106,11 @@ const MaterialsPage = () => {
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete materials. Please try again.");
+      await alert({
+        title: "Couldn't delete materials",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -171,6 +177,7 @@ const MaterialsPage = () => {
         itemName={selectedItem?.name}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 };

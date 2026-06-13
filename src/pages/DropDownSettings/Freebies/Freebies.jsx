@@ -4,8 +4,10 @@ import Table from "../../../components/table/Table";
 import { freebieApi } from "../../../api/freebieApi";
 import { useNavigate } from "react-router-dom";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
+import useConfirm from "../../../hooks/useConfirm";
 
 const FreebiesPage = () => {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,7 +59,11 @@ const FreebiesPage = () => {
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete freebie. Please try again.");
+      await alert({
+        title: "Couldn't delete freebie",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -121,6 +127,7 @@ const FreebiesPage = () => {
         itemName={selectedItem?.name}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { graphicArtistPortalApi } from "../../../../api/graphicArtistPortalApi";
+import useConfirm from "../../../../hooks/useConfirm";
 
 /**
  * Phase 5-H — Versioned design file vault.
@@ -37,6 +38,7 @@ const humanSize = (bytes) => {
 };
 
 const DesignFilesSection = ({ files = [], orderId, orderStageId, onChanged }) => {
+  const { confirm, alert, dialog } = useConfirm();
   const [uploadKind, setUploadKind] = useState("front_design");
   const [uploadFile, setUploadFile] = useState(null);
   const [uploadNotes, setUploadNotes] = useState("");
@@ -92,20 +94,28 @@ const DesignFilesSection = ({ files = [], orderId, orderStageId, onChanged }) =>
   };
 
   const handleDelete = async (file) => {
-    if (!confirm(`I-delete ang ${KIND_LABELS[file.kind]} v${file.version}? Permanent ito.`)) return;
+    const ok = await confirm({
+      title: "I-delete?",
+      message: `I-delete ang ${KIND_LABELS[file.kind]} v${file.version}? Permanent ito.`,
+      confirmLabel: "I-delete",
+      tone: "danger",
+    });
+    if (!ok) return;
     try {
       await graphicArtistPortalApi.deleteDesignFile(file.id, orderStageId);
       onChanged?.();
     } catch (err) {
-      alert(
-        err?.response?.data?.message ||
-        "Hindi na-delete ang file.",
-      );
+      await alert({
+        title: "Hindi na-delete ang file",
+        message: err?.response?.data?.message || "Pakisubukan muli.",
+        tone: "danger",
+      });
     }
   };
 
   return (
     <section className="bg-white rounded-lg border border-gray-200 p-5">
+      {dialog}
       <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
         <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">
           2

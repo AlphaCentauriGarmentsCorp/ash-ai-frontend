@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { quotationReviewApi } from "../../api/quotationReviewApi";
 import { useAuth } from "../../hooks/useAuth";
 import DesignReviewPanel from "../../components/quotation/DesignReviewPanel";
+import useConfirm from "../../hooks/useConfirm";
 
 /**
  * Issue 8 (Sec. 5) — Graphic Artist design-review page.
@@ -18,6 +19,7 @@ const DesignReviewPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { alert, dialog } = useConfirm();
 
   const [review, setReview] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -51,7 +53,11 @@ const DesignReviewPage = () => {
       setReview(res.data || res);
     } catch (err) {
       console.error("Failed to save review:", err);
-      alert("Could not save the review. Please try again.");
+      await alert({
+        title: "Couldn't save the review",
+        message: "Please try again.",
+        tone: "danger",
+      });
     }
   };
 
@@ -65,6 +71,7 @@ const DesignReviewPage = () => {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
+      {dialog}
       <button
         type="button"
         onClick={() => navigate(-1)}

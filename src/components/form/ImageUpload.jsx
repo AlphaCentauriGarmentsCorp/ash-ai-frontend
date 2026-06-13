@@ -1,4 +1,5 @@
 import React, { useRef, useState } from "react";
+import useConfirm from "../../hooks/useConfirm";
 
 const ImageUpload = ({
   label,
@@ -14,13 +15,14 @@ const ImageUpload = ({
   multiple = false,
   ...props
 }) => {
+  const { alert, dialog } = useConfirm();
   const fileInputRef = useRef(null);
   // Stable, unique id so the <label htmlFor> reliably targets THIS input even
   // when several ImageUpload instances are on the same page.
   const inputId = `image-upload-${name || label?.toLowerCase().replace(/\s+/g, "-") || "field"}`;
   const [selectedNames, setSelectedNames] = useState([]);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -29,14 +31,20 @@ const ImageUpload = ({
       const file = files[i];
 
       if (file.size > maxSize) {
-        alert(
-          `File "${file.name}" exceeds maximum size of ${maxSize / (1024 * 1024)}MB`,
-        );
+        await alert({
+          title: "File too large",
+          message: `File "${file.name}" exceeds maximum size of ${maxSize / (1024 * 1024)}MB`,
+          tone: "danger",
+        });
         continue;
       }
 
       if (!file.type.startsWith("image/")) {
-        alert(`File "${file.name}" is not a valid image file`);
+        await alert({
+          title: "Invalid file type",
+          message: `File "${file.name}" is not a valid image file`,
+          tone: "danger",
+        });
         continue;
       }
 
@@ -125,6 +133,7 @@ const ImageUpload = ({
           {error}
         </p>
       )}
+      {dialog}
     </div>
   );
 };

@@ -4,8 +4,10 @@ import Table from "../../../components/table/Table";
 import { serviceTypeApi } from "../../../api/serviceTypeApi";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
 import { useNavigate } from "react-router-dom";
+import useConfirm from "../../../hooks/useConfirm";
 
 const ServiceTypePage = () => {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -74,7 +76,11 @@ const ServiceTypePage = () => {
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete service type. Please try again.");
+      await alert({
+        title: "Couldn't delete service type",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -138,6 +144,7 @@ const ServiceTypePage = () => {
         itemName={selectedItem?.name}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 };

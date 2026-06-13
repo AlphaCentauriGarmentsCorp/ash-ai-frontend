@@ -4,6 +4,7 @@ import AdminLayout from "../../layouts/Admin/AdminLayout";
 import { purchaseRequestsApi } from "../../api/purchaseRequestsApi";
 import { useAuth } from "../../hooks/useAuth";
 import { hasRequiredPermissions } from "../../utils/authz";
+import useConfirm from "../../hooks/useConfirm";
 
 /**
  * Phase 3 — Purchase Request detail page.
@@ -53,6 +54,7 @@ const formatPHP = (amount) => {
 };
 
 const PurchaseRequestDetail = () => {
+  const { confirm, dialog } = useConfirm();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -98,7 +100,10 @@ const PurchaseRequestDetail = () => {
    * `actionFn` is one of the purchaseRequestsApi methods.
    */
   const runAction = async (label, actionFn, confirmMsg) => {
-    if (confirmMsg && !confirm(confirmMsg)) return;
+    if (confirmMsg) {
+      const ok = await confirm({ message: confirmMsg });
+      if (!ok) return;
+    }
     setActionLoading(true);
     setActionError(null);
     try {
@@ -389,6 +394,7 @@ const PurchaseRequestDetail = () => {
           )}
         </div>
       </div>
+      {dialog}
     </AdminLayout>
   );
 };

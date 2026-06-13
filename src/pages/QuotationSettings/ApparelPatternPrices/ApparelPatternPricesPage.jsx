@@ -4,8 +4,10 @@ import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import Table from "../../../components/table/Table";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
 import { apparelPatternPricesApi } from "../../../api/apparelPatternPricesApi";
+import useConfirm from "../../../hooks/useConfirm";
 
 const ApparelPatternPricesPage = () => {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
 
   const [data, setData] = useState([]);
@@ -94,7 +96,11 @@ const ApparelPatternPricesPage = () => {
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete apparel pattern price. Please try again.");
+      await alert({
+        title: "Couldn't delete apparel pattern price",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -172,6 +178,7 @@ const ApparelPatternPricesPage = () => {
         itemName={selectedItemName}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 };

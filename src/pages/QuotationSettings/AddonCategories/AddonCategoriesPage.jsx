@@ -4,8 +4,10 @@ import Table from "../../../components/table/Table";
 import { addonCategoriesApi } from "../../../api/addonCategoriesApi";
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
 import { useNavigate } from "react-router-dom";
+import useConfirm from "../../../hooks/useConfirm";
 
 const AddonCategoriesPage = () => {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -73,7 +75,11 @@ const AddonCategoriesPage = () => {
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete addon categories. Please try again.");
+      await alert({
+        title: "Couldn't delete addon categories",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -137,6 +143,7 @@ const AddonCategoriesPage = () => {
         itemName={selectedItem?.name}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { graphicArtistPortalApi } from "../../../../api/graphicArtistPortalApi";
+import useConfirm from "../../../../hooks/useConfirm";
 
 /**
  * Phase 5-H — Labels & Tags.
@@ -57,6 +58,7 @@ const LabelsTagsSection = ({ labelAssets = {}, orderId, orderStageId, onChanged 
 };
 
 const LabelCard = ({ kind, label, icon, asset, orderId, orderStageId, onChanged }) => {
+  const { confirm, alert, dialog } = useConfirm();
   const [file, setFile] = useState(null);
   const [form, setForm] = useState({
     width_in: asset?.width_in ?? "",
@@ -107,17 +109,28 @@ const LabelCard = ({ kind, label, icon, asset, orderId, orderStageId, onChanged 
 
   const handleDelete = async () => {
     if (!asset) return;
-    if (!confirm(`I-clear ang ${label}? Permanent ito.`)) return;
+    const ok = await confirm({
+      title: "I-clear?",
+      message: `I-clear ang ${label}? Permanent ito.`,
+      confirmLabel: "I-clear",
+      tone: "danger",
+    });
+    if (!ok) return;
     try {
       await graphicArtistPortalApi.deleteLabelAsset(asset.id, orderStageId);
       onChanged?.();
     } catch (err) {
-      alert(err?.response?.data?.message || "Hindi na-delete.");
+      await alert({
+        title: "Hindi na-delete",
+        message: err?.response?.data?.message || "Pakisubukan muli.",
+        tone: "danger",
+      });
     }
   };
 
   return (
     <div className="border border-gray-200 rounded p-3 bg-gray-50">
+      {dialog}
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-xs font-semibold text-gray-900 inline-flex items-center gap-1.5">
           <i className={`fa-solid ${icon} text-gray-500`} />

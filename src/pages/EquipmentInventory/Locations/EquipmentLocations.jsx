@@ -5,8 +5,10 @@ import EquipmentLocationCardContainer from "../../../components/card/EquipmentLo
 import DeleteConfirmationDialog from "../../../components/common/DeleteConfirmationDialog";
 import { equipmentLocationApi } from "../../../api/equipmentLocationApi";
 import Loader from "../../../components/common/Loader";
+import useConfirm from "../../../hooks/useConfirm";
 
 const EquipmentLocations = () => {
+  const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -47,7 +49,11 @@ const EquipmentLocations = () => {
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete equipment location. Please try again.");
+      await alert({
+        title: "Couldn't delete equipment location",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -118,6 +124,7 @@ const EquipmentLocations = () => {
         itemName={selectedItem?.name}
         isLoading={isDeleting}
       />
+      {dialog}
     </AdminLayout>
   );
 };

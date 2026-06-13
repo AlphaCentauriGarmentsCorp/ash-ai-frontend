@@ -6,6 +6,7 @@ import DeleteConfirmationDialog from "../../components/common/DeleteConfirmation
 import { useNavigate } from "react-router-dom";
 import { firstPartThumbnail } from "../../utils/designImage";
 import DesignThumb from "../../components/common/DesignThumb";
+import useConfirm from "../../hooks/useConfirm";
 
 // Design-review status badge colors (Issue 8 output → shown here per Issue 11).
 const DESIGN_REVIEW_COLORS = {
@@ -16,6 +17,7 @@ const DESIGN_REVIEW_COLORS = {
 
 const AllQuotation = () => {
   const navigate = useNavigate();
+  const { alert, dialog } = useConfirm();
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -164,8 +166,13 @@ const AllQuotation = () => {
       setData((prev) => prev.filter((item) => item.id !== selectedItem.id));
       setIsDeleteDialogOpen(false);
     } catch (error) {
-      alert("Failed to delete quotation. Please try again.");
+      await alert({
+        title: "Couldn't delete quotation",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
+      setIsDeleteDialogOpen(false);
       setIsDeleting(false);
       setSelectedItem(null);
     }
@@ -232,9 +239,11 @@ const AllQuotation = () => {
         isOpen={isDeleteDialogOpen}
         onClose={handleDeleteCancel}
         onConfirm={handleDeleteConfirm}
-        itemName={selectedItem?.quotation_number || selectedItem?.client_name}
+        itemName={selectedItem?.quotation_id || selectedItem?.client_name}
         isLoading={isDeleting}
       />
+
+      {dialog}
     </AdminLayout>
   );
 };

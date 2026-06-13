@@ -8,8 +8,10 @@ import Table from "../../components/table/Table";
 import Loader from "../../components/common/Loader";
 import DeleteConfirmationDialog from "../../components/common/DeleteConfirmationDialog";
 import { materialsApi } from "../../api/materialsApi";
+import useConfirm from "../../hooks/useConfirm";
 
 export default function ViewSupplier() {
+  const { alert, dialog } = useConfirm();
   const { id } = useParams();
   const [supplier, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -100,7 +102,11 @@ export default function ViewSupplier() {
       setIsDeleteDialogOpen(false);
     } catch (error) {
       console.log(error);
-      alert("Failed to delete materials. Please try again.");
+      await alert({
+        title: "Couldn't delete materials",
+        message: "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setIsDeleting(false);
       setSelectedItem(null);
@@ -340,6 +346,7 @@ export default function ViewSupplier() {
           isLoading={isDeleting}
         />
       </div>
+      {dialog}
     </AdminLayout>
   );
 }

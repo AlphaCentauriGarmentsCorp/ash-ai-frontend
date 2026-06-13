@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import ticketService from "../../services/ticketService";
+import useConfirm from "../../hooks/useConfirm";
 
 const getStatusClassName = (status) => {
   const normalized = String(status || "").trim().toLowerCase();
@@ -22,6 +23,7 @@ const getStatusClassName = (status) => {
 };
 
 export default function TicketView() {
+  const { alert, dialog } = useConfirm();
   const { id } = useParams();
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -37,7 +39,11 @@ export default function TicketView() {
       setTicket(res.data || res);
     } catch (err) {
       console.error(err);
-      alert(err?.response?.data?.message || "Failed to load ticket");
+      await alert({
+        title: "Couldn't load ticket",
+        message: err?.response?.data?.message || "Please try again.",
+        tone: "danger",
+      });
     } finally {
       setLoading(false);
     }
@@ -160,6 +166,7 @@ export default function TicketView() {
           </ul>
         </div>
       </div>
+      {dialog}
     </AdminLayout>
   );
 }

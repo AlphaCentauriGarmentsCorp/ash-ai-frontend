@@ -1,8 +1,10 @@
 import React, { useState } from "react";
 import Input from "../../components/form/Input";
 import Select from "../../components/form/Select";
+import useConfirm from "../../hooks/useConfirm";
 
 const MassMaterial = ({ order }) => {
+  const { alert, dialog } = useConfirm();
   // Track expanded sections
   const [expandedSections, setExpandedSections] = useState({
     fabrics: true,
@@ -498,7 +500,11 @@ const MassMaterial = ({ order }) => {
       const newQuantity = updated[existingIndex].selectedQuantity + qty;
 
       if (newQuantity > fabric.available) {
-        alert(`⚠️ Only ${fabric.available} ${fabric.unit} available`);
+        alert({
+          title: "Not enough stock",
+          message: `Only ${fabric.available} ${fabric.unit} available`,
+          tone: "danger",
+        });
         return;
       }
 
@@ -539,7 +545,11 @@ const MassMaterial = ({ order }) => {
       const newQuantity = updated[existingIndex].selectedQuantity + qty;
 
       if (newQuantity > item.available) {
-        alert(`⚠️ Only ${item.available} ${item.unit} available`);
+        alert({
+          title: "Not enough stock",
+          message: `Only ${item.available} ${item.unit} available`,
+          tone: "danger",
+        });
         return;
       }
 
@@ -582,7 +592,11 @@ const MassMaterial = ({ order }) => {
     const numQuantity = parseFloat(newQuantity) || 0;
 
     if (numQuantity > item.available) {
-      alert(`⚠️ Only ${item.available} ${item.unit} available`);
+      alert({
+        title: "Not enough stock",
+        message: `Only ${item.available} ${item.unit} available`,
+        tone: "danger",
+      });
       return;
     }
 
@@ -1638,6 +1652,7 @@ const MassMaterial = ({ order }) => {
           Submit Material Request
         </button>
       </div>
+      {dialog}
     </section>
   );
 };

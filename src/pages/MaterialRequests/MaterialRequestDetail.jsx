@@ -4,6 +4,7 @@ import AdminLayout from "../../layouts/Admin/AdminLayout";
 import { materialRequestsApi } from "../../api/materialRequestsApi";
 import { useAuth } from "../../hooks/useAuth";
 import { hasRequiredPermissions } from "../../utils/authz";
+import useConfirm from "../../hooks/useConfirm";
 
 /**
  * Phase 3 — Material Request detail page.
@@ -39,6 +40,7 @@ const formatDate = (iso) => {
 };
 
 const MaterialRequestDetail = () => {
+  const { confirm, dialog } = useConfirm();
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -80,9 +82,12 @@ const MaterialRequestDetail = () => {
   useEffect(() => { fetchMR(); }, [fetchMR]);
 
   const handleApprove = async () => {
-    if (!confirm("Approve this material request? If stock is short, a Purchase Request will be auto-created.")) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Approve material request?",
+      message: "If stock is short, a Purchase Request will be auto-created.",
+      confirmLabel: "Approve",
+    });
+    if (!ok) return;
     setActionLoading(true);
     setActionError(null);
     try {
@@ -400,6 +405,7 @@ const MaterialRequestDetail = () => {
           </div>
         )}
       </div>
+      {dialog}
     </AdminLayout>
   );
 };
