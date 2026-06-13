@@ -73,13 +73,20 @@ export const options = [
   { value: "batok", label: "Batok", title: "Special pattern or detail" },
 ];
 
+// Issue 21 — canonical size range, aligned with the Quotation form
+// (DEFAULT_SIZE_OPTIONS in Quotation.jsx): XS–XL, 2XL, 3XL. The old list
+// ended at "XXL", which never matched the ApparelPatternPrice size rows
+// ("2XL"), and carried dummy cost prices (₱150–650) that fabricated a
+// cost total on fresh manual orders. Costs start at 0 — real values come
+// from the user or the pricing engine.
 export const defaultSize = [
-  { size: "XS", cost_price: 150 },
-  { size: "S", cost_price: 250 },
-  { size: "M", cost_price: 350 },
-  { size: "L", cost_price: 450 },
-  { size: "XL", cost_price: 550 },
-  { size: "XXL", cost_price: 650 },
+  { size: "XS", cost_price: 0 },
+  { size: "S", cost_price: 0 },
+  { size: "M", cost_price: 0 },
+  { size: "L", cost_price: 0 },
+  { size: "XL", cost_price: 0 },
+  { size: "2XL", cost_price: 0 },
+  { size: "3XL", cost_price: 0 },
 ];
 
 export const brands = [

@@ -29,6 +29,7 @@ import { orderSchema } from "../../validations/orderSchema";
 import { validateForm } from "../../features/order/addOrder/utils/orderValidation";
 import IncompleteOverrideModal from "../../features/order/addOrder/components/IncompleteOverrideModal";
 import { mapOrderEditOverlay } from "../../features/order/addOrder/utils/orderEditMapper";
+import useConfirm from "../../hooks/useConfirm";
 
 // Fields the backend hard-requires (a superadmin override can NOT skip these):
 //   client  -> StoreOrderRequest requires it
@@ -42,10 +43,23 @@ const fieldLabel = (key) => {
   return msg.replace(/\s*(field\s*)?is required\.?$/i, "").trim() || key;
 };
 
+// Issue 2 — the order fields that may write back to the client master
+// (decisions: opt-in confirm at save; address + contact ONLY). Labels feed
+// the confirm dialog.
+const CLIENT_SYNC_FIELDS = [
+  ["contact_number", "Contact Number"],
+  ["street_address", "Street"],
+  ["barangay_address", "Barangay"],
+  ["city_address", "City"],
+  ["province_address", "Province"],
+  ["postal_address", "Postal Code"],
+];
+
 export default function AddNewOrder({ editOrder = null }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { confirm, dialog } = useConfirm();
 
   // Prefill payload: navigate("/orders/new", { state: { prefill: result.order_payload } })
   const isEdit = Boolean(editOrder);
@@ -467,6 +481,33 @@ export default function AddNewOrder({ editOrder = null }) {
           fd.append("incomplete_fields", JSON.stringify(override.incompleteFields));
         }
 
+        // ── Issue 2: opt-in client-master write-back ───────────────────
+        // If this edit changed any client-ish field, ask the CSR whether the
+        // change should also update the client's saved record — one-off
+        // shipping overrides for a single P.O. are legitimate and must NOT
+        // silently rewrite the master.
+        if (isEdit && editOrder?.client_id) {
+          const changed = CLIENT_SYNC_FIELDS.filter(([field]) => {
+            const original =
+              field === "contact_number"
+                ? (editOrder.contact_number ?? editOrder.receiver_contact ?? "")
+                : (editOrder[field] ?? "");
+            return String(formData[field] ?? "").trim() !== String(original).trim();
+          });
+          if (changed.length > 0) {
+            const ok = await confirm({
+              title: "Update the client record too?",
+              message:
+                "You changed: " + changed.map(([, label]) => label).join(", ") +
+                ". Apply these to the client\u2019s saved record as well? " +
+                "Choose \u201CThis order only\u201D if it\u2019s a one-off for this P.O.",
+              confirmLabel: "Update client record",
+              cancelLabel: "This order only",
+            });
+            if (ok) fd.append("sync_client", "1");
+          }
+        }
+
         if (isEdit) {
           await orderApi.update(editOrder.id, fd);
         } else {
@@ -492,7 +533,7 @@ export default function AddNewOrder({ editOrder = null }) {
     [
       formData, selectedOptions, samples,
       rawPrefill, rawClients, summary, setErrors, setServerError,
-      engineTotals, enginePayload, isEdit, editOrder,
+      engineTotals, enginePayload, isEdit, editOrder, confirm,
     ]
   );
 
@@ -660,6 +701,7 @@ export default function AddNewOrder({ editOrder = null }) {
         fields={overrideFields}
         isLoading={isSubmitting}
       />
+      {dialog}
     </AdminLayout>
   );
 }
