@@ -5,8 +5,10 @@ import FormActions from "../../components/form/FormActions";
 import Input from "../../components/form/Input";
 import { supplierInitialState } from "../../constants/formInitialState/supplierInitialState";
 import { supplierSchema } from "../../validations/supplierSchema";
-import { validateForm,   } from "../../utils/validation";
+import { validateForm, hasErrors } from "../../utils/validation";
+import { applyApiError } from "../../utils/applyApiError";
 import { supplierApi } from "../../api/supplierApi";
+import SupplierChannelsEditor from "../../components/supplier/SupplierChannelsEditor";
 
 const AddSupplier = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,6 +25,9 @@ const AddSupplier = () => {
     }));
   };
 
+  const handleChannelsChange = (order_channels) =>
+    setFormData((prev) => ({ ...prev, order_channels }));
+
   const handleSubmit = async () => {
     setIsSubmitting(true);
     setSubmitSuccess(false);
@@ -38,14 +43,21 @@ const AddSupplier = () => {
     }
 
     try {
-      await supplierApi.create(formData);
+      const payload = {
+        ...formData,
+        order_channels: (formData.order_channels || []).filter(
+          (c) => c.url && c.url.trim()
+        ),
+      };
+      await supplierApi.create(payload);
       setSubmitSuccess(true);
 
       setFormData(supplierInitialState);
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
-    } catch {
-      setServerError("Failed to create supplier.");
+    } catch (err) {
+      // Change 13 — structured inline field errors + summary banner.
+      applyApiError(err, { setErrors, setServerError });
     } finally {
       setIsSubmitting(false);
     }
@@ -222,6 +234,15 @@ const AddSupplier = () => {
             placeholder="Enter supplier notes"
           />
         </div>
+
+        <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4 mt-7">
+          Order Channels
+        </h1>
+
+        <SupplierChannelsEditor
+          channels={formData.order_channels}
+          onChange={handleChannelsChange}
+        />
       </div>
 
       <FormActions

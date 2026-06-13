@@ -14,6 +14,7 @@ import {
 import { clientInitialState } from "../../constants/formInitialState/clientInitialState";
 import { clientSchema } from "../../validations/clientSchema";
 import { validateForm, hasErrors } from "../../utils/validation";
+import { applyApiError } from "../../utils/applyApiError";
 
 export default function EditClient() {
   const { id } = useParams();
@@ -171,9 +172,8 @@ export default function EditClient() {
       window.scrollTo({ top: 0, behavior: "smooth" });
       setTimeout(() => navigate(`/clients/view/${id}`), 1500);
     } catch (error) {
-      setServerError(
-        error.response?.data?.message || "Failed to update client",
-      );
+      // Change 13 — structured inline field errors + summary banner.
+      applyApiError(error, { setErrors, setServerError });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setIsSubmitting(false);

@@ -9,4 +9,5 @@ export const supplierInitialState = {
   province: "",
   postal_code: "",
   notes: "",
+  order_channels: [],
 };

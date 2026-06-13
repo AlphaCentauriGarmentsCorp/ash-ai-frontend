@@ -8,6 +8,7 @@ import Select from "../../components/form/Select";
 import { clientInitialState } from "../../constants/formInitialState/clientInitialState";
 import { clientSchema } from "../../validations/clientSchema";
 import { validateForm, hasErrors } from "../../utils/validation";
+import { applyApiError } from "../../utils/applyApiError";
 import { clientService } from "../../services/clientService";
 import {
   courierList,
@@ -124,6 +125,8 @@ export default function AddNewClient() {
       setErrors({});
       window.scrollTo({ top: 0, behavior: "smooth" });
     } catch (err) {
+      // Change 13 — structured inline field errors + summary banner.
+      applyApiError(err, { setErrors, setServerError });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } finally {
       setIsSubmitting(false);

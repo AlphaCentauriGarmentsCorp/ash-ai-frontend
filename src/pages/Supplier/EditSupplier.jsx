@@ -7,8 +7,10 @@ import Input from "../../components/form/Input";
 import { supplierInitialState } from "../../constants/formInitialState/supplierInitialState";
 import { supplierSchema } from "../../validations/supplierSchema";
 import { validateForm, hasErrors } from "../../utils/validation";
+import { applyApiError } from "../../utils/applyApiError";
 import { supplierApi } from "../../api/supplierApi";
 import Loader from "../../components/common/Loader";
+import SupplierChannelsEditor from "../../components/supplier/SupplierChannelsEditor";
 
 const EditSupplier = () => {
   const { id } = useParams();
@@ -35,13 +37,19 @@ const EditSupplier = () => {
   const fetchSupplier = async () => {
     try {
       const response = await supplierApi.show(id);
-      setFormData(response.data);
+      setFormData({
+        ...response.data,
+        order_channels: response.data?.order_channels || [],
+      });
     } catch (error) {
       setServerError("Failed to load supplier.");
     } finally {
       setIsLoading(false);
     }
   };
+
+  const handleChannelsChange = (order_channels) =>
+    setFormData((prev) => ({ ...prev, order_channels }));
 
   const handleSubmit = async () => {
     setIsSubmitting(true);
@@ -58,7 +66,15 @@ const EditSupplier = () => {
     }
 
     try {
-      await supplierApi.update(id, formData);
+      const payload = {
+        ...formData,
+        order_channels: (formData.order_channels || []).filter(
+          (c) => c.url && c.url.trim()
+        ),
+        // Saving the full form completes the supplier → clear the quick-add flag.
+        is_incomplete: false,
+      };
+      await supplierApi.update(id, payload);
       setSubmitSuccess(true);
 
       setFormData(supplierInitialState);
@@ -67,8 +83,8 @@ const EditSupplier = () => {
       setTimeout(() => {
         navigate(`/supplier`);
       }, 1500);
-    } catch {
-      setServerError("Failed to create supplier.");
+    } catch (err) {
+      applyApiError(err, { setErrors, setServerError });
     } finally {
       setIsSubmitting(false);
     }
@@ -257,6 +273,15 @@ const EditSupplier = () => {
             placeholder="Enter supplier notes"
           />
         </div>
+
+        <h1 className="font-semibold text-xl border-b text-primary border-gray-300 pb-2 mb-4 mt-7">
+          Order Channels
+        </h1>
+
+        <SupplierChannelsEditor
+          channels={formData.order_channels}
+          onChange={handleChannelsChange}
+        />
       </div>
 
       <FormActions
