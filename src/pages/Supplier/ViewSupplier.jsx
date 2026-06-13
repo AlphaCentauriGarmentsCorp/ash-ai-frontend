@@ -9,6 +9,7 @@ import Loader from "../../components/common/Loader";
 import DeleteConfirmationDialog from "../../components/common/DeleteConfirmationDialog";
 import { materialsApi } from "../../api/materialsApi";
 import useConfirm from "../../hooks/useConfirm";
+import OrderChannelButtons from "../../components/supplier/OrderChannelButtons";
 
 export default function ViewSupplier() {
   const { alert, dialog } = useConfirm();
@@ -221,6 +222,12 @@ export default function ViewSupplier() {
                     <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 bg-emerald-500 rounded-full"></span>
                     <span className="hidden lg:inline">Active</span>
                   </span>
+                  {supplier.is_incomplete && (
+                    <span className="px-2 sm:px-3 py-1 sm:py-1.5 text-xs font-semibold bg-amber-50 text-amber-700 rounded-full border border-amber-200 shadow-sm flex items-center gap-1.5">
+                      <i className="fa-solid fa-circle-exclamation" />
+                      Incomplete
+                    </span>
+                  )}
                 </div>
 
                 {/* Contact Grid - Responsive layout */}
@@ -328,6 +335,24 @@ export default function ViewSupplier() {
             </div>
           </div>
         </div>
+        <div className="bg-light p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-300">
+          <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+            <i className="fa-solid fa-comments text-secondary" />
+            Order Channels
+          </h2>
+          {supplier.order_channels && supplier.order_channels.length > 0 ? (
+            <OrderChannelButtons channels={supplier.order_channels} />
+          ) : (
+            <p className="text-xs text-gray-400 italic">
+              No order channels yet — add them via{" "}
+              <Link to={`/supplier/${supplier.id}/edit`} className="text-secondary underline">
+                Edit Supplier
+              </Link>
+              .
+            </p>
+          )}
+        </div>
+
         <Table
           data={supplier.materials}
           columns={columns}

@@ -28,6 +28,17 @@ export const materialPrepPortalApi = {
     return data;
   },
 
+  // Issue 20 — quick-add a supplier inline from the PR picker. Saved to the
+  // shared Material Suppliers table, flagged is_incomplete. Returns { data: {...} }.
+  quickAddSupplier: async ({ name, channelType, channelUrl }) => {
+    const { data } = await api.post("/portal/material-prep/suppliers", {
+      name,
+      channel_type: channelType || undefined,
+      channel_url: channelUrl || undefined,
+    });
+    return data;
+  },
+
   // ── Change 18: order material requirements at the Material Prep stage ──
   ordersAtStage: async () => {
     const { data } = await api.get("/portal/material-prep/orders");
@@ -48,4 +59,4 @@ export const materialPrepPortalApi = {
   },
 };
 
-export default materialPrepPortalApi;
+export default materialPrepPortalApi;

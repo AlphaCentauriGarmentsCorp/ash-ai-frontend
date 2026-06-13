@@ -2,10 +2,7 @@ import api from "./axios";
 
 export const supplierApi = {
   create: async (payload) => {
-    console.log(payload);
-    const { data } = await api.post("/supplier", payload, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
+    const { data } = await api.post("/supplier", payload);
     return data;
   },
 
