@@ -66,7 +66,7 @@ const OrderDetailsPage = () => {
     { id: "shipping", label: "Shipping Information", icon: "fa-truck", tab: "order" },
     { id: "product", label: "Product Details", icon: "fa-tshirt", tab: "order" },
     { id: "design", label: "Design Files & Mockups", icon: "fa-image", tab: "order" },
-    { id: "pricing", label: "Pricing", icon: "fa-tag", tab: "order" },
+    { id: "pricing", label: "Pricing Summary", icon: "fa-tag", tab: "order" },
     { id: "items", label: "PO Items", icon: "fa-boxes", tab: "order" },
   ].filter(
     (section) =>
