@@ -53,8 +53,8 @@ const DesignFiles = ({ order }) => {
                 {printParts.map((part, idx) => {
                   const imageUrl = resolveUrl(part?.image_link || part?.image_url || part?.image_path || part?.image);
                   const partName = part?.part || part?.name || `Part ${idx + 1}`;
-                  const unitCount = Number(part?.unit_count ?? part?.colorCount ?? part?.color_count ?? 0);
-                  const pricePerUnit = Number(part?.price_per_unit ?? part?.pricePerUnit ?? part?.price_per_color ?? 0);
+                  const unitCount = Number(part?.num_colors ?? part?.numColors ?? part?.color_count ?? part?.colorCount ?? part?.unit_count ?? part?.unitCount ?? 0);
+                  const pricePerUnit = Number(part?.price_per_unit ?? part?.pricePerUnit ?? part?.price_per_color ?? part?.pricePerColor ?? 0);
                   const fmt = (v) => `₱${(Number(v) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
                   return (

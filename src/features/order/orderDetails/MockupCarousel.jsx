@@ -1,13 +1,24 @@
 import React, { useState } from "react";
 import { parseJsonField } from "../../../utils/formatters";
 import { onImageError } from "../../../utils/placeholderImage";
+import { firstPartThumbnail } from "../../../utils/designImage";
 
 const MockupCarousel = ({ order }) => {
   const baseUrl = import.meta.env.VITE_API_BASE_URL?.replace(/\/$/, "");
   const designMockup = parseJsonField(order?.design_mockup) || [];
   const [currentSlide, setCurrentSlide] = useState(0);
 
-  if (!designMockup || designMockup.length === 0) {
+  const hasMockups = Array.isArray(designMockup) && designMockup.length > 0;
+
+  // Fallback: when no dedicated design mockup is attached, show the first
+  // uploaded print-part image (the "parts apparel"). This reuses the same
+  // helper the Orders / Quotation list thumbnails use, so it resolves the URL
+  // identically. The API does not currently populate `design_mockup`, so this
+  // is what keeps the panel from always showing the empty placeholder.
+  const fallbackImage = !hasMockups ? firstPartThumbnail(order) : "";
+
+  // Nothing to show at all -> placeholder.
+  if (!hasMockups && !fallbackImage) {
     return (
       <div className="w-full aspect-square border border-gray-300 rounded-xl overflow-hidden flex flex-col items-center justify-center bg-white text-gray-400 gap-2">
         <i className="fas fa-image text-3xl"></i>
@@ -16,6 +27,21 @@ const MockupCarousel = ({ order }) => {
     );
   }
 
+  // No dedicated mockup, but a print-part image exists -> show it (static).
+  if (!hasMockups) {
+    return (
+      <div className="w-full aspect-square border border-gray-300 rounded-xl overflow-hidden bg-white relative">
+        <img
+          src={fallbackImage}
+          alt="Design Mockup"
+          className="w-full h-full object-contain"
+          onError={onImageError}
+        />
+      </div>
+    );
+  }
+
+  // Dedicated design mockups -> carousel.
   return (
     <div className="w-full aspect-square border border-gray-300 rounded-xl overflow-hidden bg-white relative">
       <div className="relative h-full w-full">

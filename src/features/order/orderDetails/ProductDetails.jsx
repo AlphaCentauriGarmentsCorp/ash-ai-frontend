@@ -11,10 +11,8 @@ const fmt = (v) =>
   `₱${(Number(v) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const ProductDetails = ({ order }) => {
-  const breakdown = order?.breakdown_json || {};
   const items = order?.items_json || [];
   const addons = order?.addons_json || [];
-  const samples = breakdown?.sample_breakdown;
 
   return (
     <>
@@ -111,19 +109,6 @@ const ProductDetails = ({ order }) => {
                 </tbody>
               </table>
             </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── Sample Breakdown ─────────────────────────────────────────────── */}
-      {samples && (
-        <section className="flex-col flex gap-y-2 sm:gap-y-3">
-          <h1 className="font-semibold text-base sm:text-lg">Sample</h1>
-          <div className="border border-gray-200 sm:border-gray-300 p-2 sm:p-3 rounded-lg sm:rounded-xl">
-            <Row label="Sample Apparel" value={samples.sample_apparel} />
-            <Row label="Unit Price" value={fmt(samples.unit_price)} />
-            <Row label="Quantity" value={samples.quantity} />
-            <Row label="Price/Pc" value={fmt(samples.price_per_piece)} />
           </div>
         </section>
       )}
