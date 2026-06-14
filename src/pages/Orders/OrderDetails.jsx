@@ -7,7 +7,6 @@ import {
   hasSectionAccess,
   hasWorkPageAccess,
 } from "../../utils/roleAccess";
-import { WorkPages } from "../../constants/formOptions/workPages";
 import { getStatusMeta } from "../../constants/formOptions/orderStages";
 import { hasRequiredPermissions } from "../../utils/authz";
 import RoleProtected from "../../features/order/orderDetails/RoleProtected";
@@ -24,17 +23,7 @@ import Loader from "../../components/common/Loader";
 
 import OrderStage from "../../features/orderStages/OrderStage";
 import ReviewHub from "../../features/order/reviewHub/ReviewHub";
-import GraphicEditing from "../../features/graphicEditing/GraphicEditing";
-import ScreenMaking from "../../features/screenMaking/ScreenMaking";
-import ScreenChecking from "../../features/screenChecking/ScreenChecking";
-import SampleMaterials from "../../features/order/productionSection/SampleMaterials";
-import SampleCutting from "../../features/sampleCutting/SampleCutting";
-import SamplePrinting from "../../features/samplePrinting/SamplePrinting";
-import SampleSewing from "../../features/sampleSewing/SampleSewing";
 
-import MassMaterials from "../../features/massMaterials/MassMaterials";
-import MassCutting from "../../features/massCutting/MassCutting";
-import MassPrinting from "../../features/massPrinting/MassPrinting";
 
 /**
  * OrderDetailsPage
@@ -97,16 +86,6 @@ const OrderDetailsPage = () => {
       });
     }
 
-    WorkPages.forEach((page) => {
-      if (hasWorkPageAccess(userRoles, page.id)) {
-        sections.push({
-          id: page.id,
-          label: page.label,
-          icon: `fa-solid ${page.icon}`,
-          rollupStage: page.rollupStage,
-        });
-      }
-    });
 
     return sections;
   }, [userRoles, user]);
@@ -144,14 +123,6 @@ const OrderDetailsPage = () => {
       return anyInProgress ? "in_progress" : "pending";
     }
 
-    // For work pages – look up by their roll-up stage on the workflow.
-    const page = WorkPages.find((p) => p.id === sectionId);
-    if (page) {
-      const matching = order.orderStages.find(
-        (s) => s.stage === page.rollupStage,
-      );
-      return matching?.status || "pending";
-    }
 
     return "pending";
   };
@@ -316,48 +287,6 @@ const OrderDetailsPage = () => {
             <ReviewHub order={order} onChanged={fetchOrderDetails} />
           )}
 
-        {activeSection === "graphic_editing" &&
-          hasWorkPageAccess(userRoles, "graphic_editing") && (
-            <GraphicEditing order={order} onSuccess={fetchOrderDetails} />
-          )}
-        {activeSection === "screen_making" &&
-          hasWorkPageAccess(userRoles, "screen_making") && (
-            <ScreenMaking order={order} onSuccess={fetchOrderDetails} />
-          )}
-        {activeSection === "screen_checking" &&
-          hasWorkPageAccess(userRoles, "screen_checking") && (
-            <ScreenChecking order={order} onSuccess={fetchOrderDetails} />
-          )}
-
-        {activeSection === "sample_material_preparation" &&
-          hasWorkPageAccess(userRoles, "sample_material_preparation") && (
-            <SampleMaterials order={order} />
-          )}
-        {activeSection === "sample_cutting" &&
-          hasWorkPageAccess(userRoles, "sample_cutting") && (
-            <SampleCutting order={order} />
-          )}
-        {activeSection === "sample_printing" &&
-          hasWorkPageAccess(userRoles, "sample_printing") && (
-            <SamplePrinting order={order} />
-          )}
-        {activeSection === "sample_sewing" &&
-          hasWorkPageAccess(userRoles, "sample_sewing") && (
-            <SampleSewing order={order} />
-          )}
-
-        {activeSection === "production_material_preparation" &&
-          hasWorkPageAccess(userRoles, "production_material_preparation") && (
-            <MassMaterials order={order} />
-          )}
-        {activeSection === "production_cutting" &&
-          hasWorkPageAccess(userRoles, "production_cutting") && (
-            <MassCutting order={order} />
-          )}
-        {activeSection === "production_printing" &&
-          hasWorkPageAccess(userRoles, "production_printing") && (
-            <MassPrinting order={order} />
-          )}
       </div>
     );
   };

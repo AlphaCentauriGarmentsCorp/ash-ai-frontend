@@ -13,9 +13,6 @@
  */
 export const OrderStages = [
   // ---------- Pre-Production ----------
-  { group: "Pre-Production", value: "inquiry", label: "Inquiry", role: "csr", seq: 1, icon: "fa-comments" },
-  { group: "Pre-Production", value: "quotation", label: "Quotation", role: "csr", seq: 2, icon: "fa-file-invoice-dollar" },
-  { group: "Pre-Production", value: "quotation_approval", label: "Quotation Approval", role: "csr", seq: 3, icon: "fa-circle-check" },
   { group: "Pre-Production", value: "payment_verification_sample", label: "Payment Verification (Sample)", role: "finance", seq: 4, gate: true, icon: "fa-money-bill-wave" },
 
   // ---------- Sample Production ----------

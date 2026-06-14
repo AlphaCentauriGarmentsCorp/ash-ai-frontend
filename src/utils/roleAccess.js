@@ -96,31 +96,6 @@ export const WORK_PAGE_ACCESS = {
     "finance",
   ],
 
-  graphic_editing: ["admin", "general_manager", "graphic_artist"],
-  screen_making: ["admin", "general_manager", "screen_maker", "graphic_artist"],
-  screen_checking: ["admin", "general_manager", "quality_assurance"],
-
-  sample_material_preparation: [
-    "admin",
-    "general_manager",
-    "warehouse_manager",
-    "purchasing",
-  ],
-  sample_cutting: ["admin", "general_manager", "cutter", "sample_maker", "quality_assurance"],
-  sample_printing: ["admin", "general_manager", "printer", "sample_maker", "graphic_artist"],
-  sample_sewing: ["admin", "general_manager", "sewer", "sample_maker", "quality_assurance"],
-
-  production_material_preparation: [
-    "admin",
-    "general_manager",
-    "warehouse_manager",
-    "purchasing",
-  ],
-  production_cutting: ["admin", "general_manager", "cutter", "quality_assurance"],
-  production_printing: ["admin", "general_manager", "printer", "graphic_artist"],
-  production_sewing: ["admin", "general_manager", "sewer", "quality_assurance"],
-  production_quality_assurance: ["admin", "general_manager", "quality_assurance"],
-  packing: ["admin", "general_manager", "packer", "quality_assurance"],
 };
 
 /**
