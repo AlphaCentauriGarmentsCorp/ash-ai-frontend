@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { portalApi } from "../../../api/portalApi";
 import { screenMakerPortalApi } from "../../../api/screenMakerPortalApi";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
 import StageRejectionBanner from "../../../components/portals/StageRejectionBanner";
+import MyActiveTasksList from "../../../components/portals/MyActiveTasksList";
 import StageUploadSection from "../../../components/portals/StageUploadSection";
 import ServiceTypeToggle from "../../../components/portals/ServiceTypeToggle";
 import SubcontractModeView from "../../../components/portals/SubcontractModeView";
@@ -37,12 +37,11 @@ const STATUS_FLOW = [
 ];
 
 const ScreenMakerPortalPage = () => {
-  const navigate = useNavigate();
 
   const [resolving, setResolving] = useState(true);
   const [resolveError, setResolveError] = useState(null);
-  const [activeStatus, setActiveStatus] = useState(null);
-  const [assignmentList, setAssignmentList] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [listRefreshKey, setListRefreshKey] = useState(0);
   const [currentStageId, setCurrentStageId] = useState(null);
 
   const [context, setContext] = useState(null);
@@ -57,14 +56,9 @@ const ScreenMakerPortalPage = () => {
       setResolving(true);
       setResolveError(null);
       try {
-        const result = await portalApi.myActive("screen-maker");
+        const result = await portalApi.myActiveTasks("screen-maker");
         if (cancelled) return;
-        setActiveStatus(result.status);
-        if (result.status === "single") {
-          setCurrentStageId(result.assignment.order_stage_id);
-        } else if (result.status === "multiple") {
-          setAssignmentList(result.assignments || []);
-        }
+        setTasks(result.tasks || []);
       } catch (err) {
         if (cancelled) return;
         setResolveError(
@@ -76,7 +70,7 @@ const ScreenMakerPortalPage = () => {
       }
     })();
     return () => { cancelled = true; };
-  }, []);
+  }, [listRefreshKey]);
 
   // Fetch context whenever stage changes or refresh triggered
   useEffect(() => {
@@ -102,92 +96,32 @@ const ScreenMakerPortalPage = () => {
     return () => { cancelled = true; };
   }, [currentStageId, refreshKey]);
 
-  const handleRefresh = () => setRefreshKey((k) => k + 1);
+  const handleRefresh = () => {
+    setRefreshKey((k) => k + 1);
+    setListRefreshKey((k) => k + 1);
+  };
+  const refreshList = () => setListRefreshKey((k) => k + 1);
 
   // ── Loading / error states ────────────────────────────────────
 
-  if (resolving) {
+  // Landing: the worker's full "My Active Tasks" queue (Bundle 1).
+  // Shows every task queued at their station (incl. pending) so it
+  // matches the sidebar badge; tapping one opens its detail below.
+  if (!currentStageId) {
     return (
-      <RolePortalLayout roleTitle="Screen Making Portal">
-        <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
-          <i className="fa-solid fa-spinner fa-spin mr-2" />
-          Hinahanap ang assignment mo…
-        </div>
-      </RolePortalLayout>
-    );
-  }
-
-  if (resolveError) {
-    return (
-      <RolePortalLayout roleTitle="Screen Making Portal">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700">
-          <i className="fa-solid fa-triangle-exclamation mr-2" />
-          {resolveError}
-        </div>
-      </RolePortalLayout>
-    );
-  }
-
-  if (activeStatus === "none") {
-    return (
-      <RolePortalLayout roleTitle="Screen Making Portal">
-        <div className="bg-white border border-gray-200 rounded-lg p-8 text-center">
-          <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-gray-100 flex items-center justify-center">
-            <i className="fa-solid fa-inbox text-2xl text-gray-400" />
-          </div>
-          <h3 className="text-base font-semibold text-gray-900 mb-1">
-            Walang active na assignment
-          </h3>
-          <p className="text-sm text-gray-500 mb-4 max-w-md mx-auto">
-            Wala ka pang in-progress na screen-making task. Tatawagin ka ng
-            manager mo kapag may bagong design na kailangan ng screen.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate("/")}
-            className="text-xs text-primary hover:underline"
-          >
-            ← Bumalik sa Dashboard
-          </button>
-        </div>
-      </RolePortalLayout>
-    );
-  }
-
-  if (activeStatus === "multiple" && !currentStageId) {
-    return (
-      <RolePortalLayout roleTitle="Screen Making Portal">
-        <div className="bg-white border border-gray-200 rounded-lg p-5">
-          <h3 className="text-sm font-semibold text-gray-900 mb-1">
-            Pumili ng assignment
-          </h3>
-          <p className="text-xs text-gray-500 mb-4">
-            Marami kang active na screen-making task. Piliin kung saan ka
-            unang magtatrabaho.
-          </p>
-          <div className="flex flex-col gap-2">
-            {assignmentList.map((a) => (
-              <button
-                key={a.order_stage_id}
-                type="button"
-                onClick={() => setCurrentStageId(a.order_stage_id)}
-                className="text-left bg-gray-50 hover:bg-primary/5 border border-gray-200 hover:border-primary rounded-md p-3 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      {a.order?.po_code || `Order #${a.order_id}`}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {a.order?.client_brand || a.order?.client_name || "—"}
-                    </p>
-                  </div>
-                  <i className="fa-solid fa-chevron-right text-gray-400 text-xs" />
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
+      <RolePortalLayout
+        roleTitle="Screen Making Portal"
+        breadcrumbLinks={[{ name: "Screen Maker Portal", path: "/portal/screen-maker" }]}
+      >
+        <MyActiveTasksList
+          tasks={tasks}
+          loading={resolving}
+          error={resolveError}
+          onSelect={(id) => setCurrentStageId(id)}
+          onRefresh={refreshList}
+          title="My Active Tasks"
+          emptyText="Wala ka pang screen-making task. Awtomatikong lalabas dito ang trabaho mo kapag handa na ang order."
+        />
       </RolePortalLayout>
     );
   }
@@ -202,16 +136,19 @@ const ScreenMakerPortalPage = () => {
       currentStageSlug={currentStageSlug}
       tipText="Linisin ang screen pagkatapos gamitin at itago sa tamang lugar."
     >
-      {activeStatus === "multiple" && (
-        <button
-          type="button"
-          onClick={() => setCurrentStageId(null)}
-          className="text-xs text-gray-600 hover:text-primary mb-3 inline-flex items-center"
-        >
-          <i className="fa-solid fa-arrow-left mr-1" />
-          Bumalik sa picker
-        </button>
-      )}
+      {/* Back to the My Active Tasks queue */}
+      <button
+        type="button"
+        onClick={() => {
+          setCurrentStageId(null);
+          setContext(null);
+          refreshList();
+        }}
+        className="text-xs text-gray-600 hover:text-primary mb-3 inline-flex items-center"
+      >
+        <i className="fa-solid fa-arrow-left mr-1" />
+        My Active Tasks
+      </button>
 
       {contextLoading && !context && (
         <div className="flex items-center justify-center py-16 text-gray-400 text-sm">
