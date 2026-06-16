@@ -1,4 +1,4 @@
-import { useState, useContext, useEffect, useCallback } from "react";
+import { useState, useContext, useEffect, useCallback, useRef, useLayoutEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getMenuByPermissions } from "../../config/menuConfig";
 import { portalApi } from "../../api/portalApi";
@@ -12,6 +12,11 @@ const portalRoleFromPath = (path) =>
     ? path.slice("/portal/".length).replace(/-/g, "_")
     : null;
 
+// Remember the sidebar's scroll position across route changes. Each page
+// re-wraps <AdminLayout>, so <Sidebar/> unmounts/remounts on every nav —
+// module scope survives that; component state would reset to the top.
+let savedScrollTop = 0;
+
 export default function Sidebar({
   user,
   isOpen,
@@ -21,6 +26,14 @@ export default function Sidebar({
   isMobileView,
 }) {
   const location = useLocation();
+  const scrollRef = useRef(null);
+
+  // Restore the remembered scroll position before the browser paints, so
+  // navigating between pages doesn't snap the menu back to the top.
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = savedScrollTop;
+  }, []);
   const menu = getMenuByPermissions(user);
   const { activeLink, setActiveLink, openSubMenu, setOpenSubMenu } =
     useContext(SidebarContext);
@@ -183,6 +196,10 @@ export default function Sidebar({
           overflow-y-auto transition-all duration-300
           ${showContent ? "h-[calc(100%-80px)] opacity-100" : "h-0 opacity-0"}
         `}
+          ref={scrollRef}
+          onScroll={(e) => {
+            savedScrollTop = e.currentTarget.scrollTop;
+          }}
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {menu.map((section, sIdx) => (

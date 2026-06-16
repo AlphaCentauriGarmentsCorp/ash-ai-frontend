@@ -219,7 +219,7 @@ const SupplierDetailsSection = ({
     <section className="bg-white rounded-lg border border-gray-200 p-5">
       <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
         <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">
-          3
+          <i className="fa-solid fa-store text-[11px]" />
         </span>
         Supplier &amp; Contact Details
       </h2>

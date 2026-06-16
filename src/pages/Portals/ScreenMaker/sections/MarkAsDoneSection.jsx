@@ -39,7 +39,7 @@ const MarkAsDoneSection = ({ stageId, currentStatus, onChanged }) => {
     <section className="bg-white rounded-lg border border-gray-200 p-5">
       <h2 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
         <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">
-          5
+          <i className="fa-solid fa-bolt text-[11px]" />
         </span>
         Quick Actions
       </h2>
