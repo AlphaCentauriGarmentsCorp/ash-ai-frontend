@@ -78,7 +78,7 @@ const InkTrackingSection = ({
     <section className="bg-white rounded-lg border border-gray-200 p-5">
       <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
         <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">
-          4
+          <i className="fa-solid fa-fill-drip text-[11px]" />
         </span>
         Ink / Paint Usage &amp; Waste Tracking
       </h2>

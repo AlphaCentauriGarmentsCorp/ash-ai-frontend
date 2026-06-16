@@ -118,7 +118,7 @@ const DesignFilesSection = ({ files = [], orderId, orderStageId, onChanged }) =>
       {dialog}
       <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
         <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">
-          2
+          <i className="fa-solid fa-image text-[11px]" />
         </span>
         Design Files
       </h2>

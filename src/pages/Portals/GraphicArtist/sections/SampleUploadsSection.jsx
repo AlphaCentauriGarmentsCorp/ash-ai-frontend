@@ -73,7 +73,7 @@ const SampleUploadsSection = ({ samples = [], orderId, orderStageId, onChanged }
       {dialog}
       <h2 className="text-sm font-semibold text-gray-900 mb-1 flex items-center gap-2">
         <span className="w-6 h-6 rounded-full bg-primary text-white text-xs flex items-center justify-center">
-          8
+          <i className="fa-solid fa-cloud-arrow-up text-[11px]" />
         </span>
         Sample Uploads
       </h2>
