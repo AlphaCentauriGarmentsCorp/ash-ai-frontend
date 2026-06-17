@@ -4,6 +4,7 @@ import { printerPortalApi } from "../../../api/printerPortalApi";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
 import StageRejectionBanner from "../../../components/portals/StageRejectionBanner";
 import MyActiveTasksList from "../../../components/portals/MyActiveTasksList";
+import StageDoneButton from "../../../components/portals/StageDoneButton";
 import StageUploadSection from "../../../components/portals/StageUploadSection";
 import ServiceTypeToggle from "../../../components/portals/ServiceTypeToggle";
 import SubcontractModeView from "../../../components/portals/SubcontractModeView";
@@ -234,6 +235,13 @@ const PrinterPortalPage = () => {
           />
 
           <ActivityLogSection activityLog={context.activity_log} />
+
+          {/* Bundle 3 — production "Done": advances the workflow server-side. */}
+          <StageDoneButton
+            role="printer"
+            orderStageId={currentStageId}
+            onDone={() => { setCurrentStageId(null); setContext(null); refreshList(); }}
+          />
         </div>
       )}
     </RolePortalLayout>

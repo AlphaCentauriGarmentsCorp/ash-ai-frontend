@@ -38,6 +38,15 @@ export const portalApi = {
     const { data } = await api.get(`/portal/badge-counts`);
     return data;
   },
+
+  /**
+   * Bundle 3 — production "Done": completes the worker's current stage and
+   * auto-advances the workflow. POST /portal/{role}/stages/{orderStageId}/done.
+   */
+  markDone: async (role, orderStageId) => {
+    const { data } = await api.post(`/portal/${role}/stages/${orderStageId}/done`);
+    return data;
+  },
 };
 
 export default portalApi;

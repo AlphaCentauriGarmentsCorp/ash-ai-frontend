@@ -4,6 +4,7 @@ import { cutterPortalApi } from "../../../api/cutterPortalApi";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
 import StageRejectionBanner from "../../../components/portals/StageRejectionBanner";
 import MyActiveTasksList from "../../../components/portals/MyActiveTasksList";
+import StageDoneButton from "../../../components/portals/StageDoneButton";
 import StageUploadSection from "../../../components/portals/StageUploadSection";
 import ServiceTypeToggle from "../../../components/portals/ServiceTypeToggle";
 import SubcontractModeView from "../../../components/portals/SubcontractModeView";
@@ -250,6 +251,13 @@ const CutterPortalPage = () => {
 
           {/* Section 6: Activity Log — shown in both modes */}
           <ActivityLogSection activityLog={context.activity_log} />
+
+          {/* Bundle 3 — production "Done": advances the workflow server-side. */}
+          <StageDoneButton
+            role="cutter"
+            orderStageId={currentStageId}
+            onDone={() => { setCurrentStageId(null); setContext(null); refreshList(); }}
+          />
         </div>
       )}
     </RolePortalLayout>

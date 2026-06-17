@@ -12,7 +12,7 @@ import MaterialRequestsSection from "../Cutter/sections/MaterialRequestsSection"
 import ActivityLogSection from "../Cutter/sections/ActivityLogSection";
 import DesignsToMakeSection from "./sections/DesignsToMakeSection";
 import StageNotesSection from "./sections/StageNotesSection";
-import MarkAsDoneSection from "./sections/MarkAsDoneSection";
+import StageDoneButton from "../../../components/portals/StageDoneButton";
 
 /**
  * Phase 5-F — Screen Maker Portal landing page.
@@ -209,13 +209,6 @@ const ScreenMakerPortalPage = () => {
                 initialNotes={context.stage.notes}
                 onChanged={handleRefresh}
               />
-
-              {/* Section 5: Quick Actions — Mark as Done */}
-              <MarkAsDoneSection
-                stageId={context.stage.id}
-                currentStatus={context.stage.status}
-                onChanged={handleRefresh}
-              />
             </>
           )}
 
@@ -228,6 +221,13 @@ const ScreenMakerPortalPage = () => {
 
           {/* Section 7: Activity Log — shown in both modes */}
           <ActivityLogSection activityLog={context.activity_log} />
+
+          {/* Bundle 3 — production "Done": advances the workflow server-side. */}
+          <StageDoneButton
+            role="screen-maker"
+            orderStageId={currentStageId}
+            onDone={() => { setCurrentStageId(null); setContext(null); refreshList(); }}
+          />
         </div>
       )}
     </RolePortalLayout>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { materialPrepPortalApi } from "../../../../api/materialPrepPortalApi";
 import MaterialRequirementsPanel from "../MaterialRequirementsPanel";
+import StageDoneButton from "../../../../components/portals/StageDoneButton";
 
 /**
  * Change 18 — orders currently at the Material Prep stage.
@@ -125,7 +126,17 @@ const OrdersNeedingPrepSection = () => {
                   </div>
                 </button>
                 {isOpen && (
-                  <div className="border-t border-gray-100 p-3">
+                  <div className="border-t border-gray-100 p-3 space-y-3">
+                    {o.requirement_set && !o.purchase_needed && (
+                      <StageDoneButton
+                        label="Prep Done"
+                        confirmTitle="Tapos na ang prep?"
+                        confirmMessage="Walang bibilhin para sa order na ito (nasa stock na ang materials). Markahan ang Material Prep bilang tapos para magpatuloy ang order."
+                        hint="Nasa stock na ang materials — walang PR na hihintayin. Pindutin ang Prep Done para ipasa sa susunod."
+                        action={() => materialPrepPortalApi.markPrepDone(id)}
+                        onDone={refetch}
+                      />
+                    )}
                     <MaterialRequirementsPanel orderId={id} onSaved={refetch} />
                   </div>
                 )}
