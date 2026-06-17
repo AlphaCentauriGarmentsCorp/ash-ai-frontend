@@ -42,6 +42,23 @@ function StatusBadge({ status }) {
   );
 }
 
+// Bundle 3 — Sample vs Production (mass) phase tag, derived from the stage slug.
+// Mass-phase slugs all contain "mass" (mass_cutting, material_prep_mass, …);
+// everything else a production portal sees is sample-phase.
+function PhaseTag({ stage }) {
+  if (!stage) return null;
+  const isMass = String(stage).includes("mass");
+  const label = isMass ? "Production" : "Sample";
+  const cls = isMass
+    ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+    : "bg-teal-50 text-teal-700 border-teal-200";
+  return (
+    <span className={`text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded border ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
 function relativeAge(iso) {
   if (!iso) return null;
   const then = new Date(iso.replace(" ", "T"));
@@ -136,6 +153,7 @@ const MyActiveTasksList = ({
                       <span className="text-sm font-semibold text-gray-900">
                         {t.project_no || `Order #${t.order_id}`}
                       </span>
+                      <PhaseTag stage={t.stage} />
                       {t.rush && (
                         <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded bg-red-600 text-white inline-flex items-center gap-1">
                           <i className="fa-solid fa-bolt" /> Rush

@@ -150,8 +150,8 @@ const PrinterSampleUploadSection = ({
         >
           {submitting ? "Sini-save…" : (
             <>
-              <i className="fa-solid fa-check mr-1" />
-              Mark as Done
+              <i className="fa-solid fa-paper-plane mr-1" />
+              I-submit ang Sample
             </>
           )}
         </button>

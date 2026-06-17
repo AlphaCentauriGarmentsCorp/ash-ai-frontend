@@ -20,7 +20,7 @@ import SampleUploadsSection from "./sections/SampleUploadsSection";
 // The originals (under Cutter/ and ScreenMaker/) keep their own numbers
 // for those portals.
 import StageNotesSectionGA from "./sections/StageNotesSectionGA";
-import MarkAsDoneSectionGA from "./sections/MarkAsDoneSectionGA";
+import StageDoneButton from "../../../components/portals/StageDoneButton";
 import MaterialRequestsSectionGA from "./sections/MaterialRequestsSectionGA";
 import ActivityLogSectionGA from "./sections/ActivityLogSectionGA";
 
@@ -239,13 +239,6 @@ const GraphicArtistPortalPage = () => {
             onChanged={handleRefresh}
           />
 
-          {/* 10. Mark as Done */}
-          <MarkAsDoneSectionGA
-            stageId={context.stage.id}
-            currentStatus={context.stage.status}
-            onChanged={handleRefresh}
-          />
-
           {/* 11. Material Requests */}
           <MaterialRequestsSectionGA
             materialRequests={context.material_requests}
@@ -255,6 +248,13 @@ const GraphicArtistPortalPage = () => {
 
           {/* 12. Activity Log */}
           <ActivityLogSectionGA activityLog={context.activity_log} />
+
+          {/* Bundle 3 — production "Done": advances the workflow server-side. */}
+          <StageDoneButton
+            role="graphic-artist"
+            orderStageId={currentStageId}
+            onDone={() => { setCurrentStageId(null); setContext(null); refreshList(); }}
+          />
         </div>
       )}
     </RolePortalLayout>

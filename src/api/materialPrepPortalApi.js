@@ -57,6 +57,14 @@ export const materialPrepPortalApi = {
     );
     return data;
   },
+
+  // Bundle 3 — manual "Prep Done" fallback for an order with no PRs to receive
+  // (nothing to buy / already in stock).
+  // POST /portal/material-prep/order/{orderId}/prep-done.
+  markPrepDone: async (orderId) => {
+    const { data } = await api.post(`/portal/material-prep/order/${orderId}/prep-done`);
+    return data;
+  },
 };
 
-export default materialPrepPortalApi;
+export default materialPrepPortalApi;
