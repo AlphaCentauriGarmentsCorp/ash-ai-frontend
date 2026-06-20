@@ -71,6 +71,15 @@ export const csrPortalApi = {
   },
 
   /**
+   * Awaiting-payment list - orders at a payment gate that still need the
+   * client payment recorded (waiting / rejected). Returns { data, count }.
+   */
+  getAwaiting: async () => {
+    const { data } = await api.get("/csr/payments/awaiting");
+    return data;
+  },
+
+  /**
    * Upload payment proof.
    *
    * Required: order_id, payment_type, amount.
@@ -129,6 +138,38 @@ export const csrPortalApi = {
       if (v !== undefined && v !== null && v !== "") form.append(k, v);
     });
     const { data } = await api.patch(`/csr/approvals/${id}/respond`, form, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return data;
+  },
+
+  // ── Sample Approvals (Phase 3) ───────────────────
+
+  /**
+   * Samples-for-approval list — orders sitting at the sample_approval stage,
+   * awaiting CSR's verdict on a packed sample. Returns { data, count }.
+   */
+  getSampleApprovals: async () => {
+    const { data } = await api.get("/csr/sample-approvals");
+    return data;
+  },
+
+  /**
+   * Record the client's verdict on a packed sample.
+   *
+   * Required: order_id, decision ('approved' | 'rejected').
+   * A reason (client_response_notes) is required when decision === 'rejected'.
+   * Optional: internal_notes, screenshot (File).
+   *
+   * approve → advances the order to Payment Verification (Mass);
+   * reject  → loops the sample sub-flow back to Graphic Artwork.
+   */
+  decideSampleApproval: async (payload) => {
+    const form = new FormData();
+    Object.entries(payload).forEach(([k, v]) => {
+      if (v !== undefined && v !== null && v !== "") form.append(k, v);
+    });
+    const { data } = await api.post("/csr/sample-approvals", form, {
       headers: { "Content-Type": "multipart/form-data" },
     });
     return data;

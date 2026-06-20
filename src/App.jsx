@@ -14,8 +14,9 @@ import EditClient from "./pages/Clients/EditClient";
 import AddNewOrder from "./pages/Orders/AddNewOrder";
 import EditOrder from "./pages/Orders/EditOrder";
 import AllOrders from "./pages/Orders/AllOrders";
-import FinancePaymentsPage from "./pages/Portals/Finance/FinancePaymentsPage";
 import OrderDetails from "./pages/Orders/OrderDetails";
+import AwaitingPaymentsPage from "./pages/Portals/CSR/AwaitingPaymentsPage";
+import SampleApprovalsPage from "./pages/Portals/CSR/SampleApprovalsPage";
 import PatternType from "./pages/DropDownSettings/PatternType/PatternType";
 import AddPatternType from "./pages/DropDownSettings/PatternType/AddPatternType";
 import EditPatternType from "./pages/DropDownSettings/PatternType/EditPatternType";
@@ -242,10 +243,18 @@ function App() {
           }
         />
         <Route
-          path="/finance/payments"
+          path="/payments/awaiting"
           element={
-            <ProtectedRoute requiredPermissions={["action.verify-payment"]}>
-              <FinancePaymentsPage />
+            <ProtectedRoute requiredPermissions={["portal.csr"]}>
+              <AwaitingPaymentsPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/samples/approval"
+          element={
+            <ProtectedRoute requiredPermissions={["portal.csr"]}>
+              <SampleApprovalsPage />
             </ProtectedRoute>
           }
         />

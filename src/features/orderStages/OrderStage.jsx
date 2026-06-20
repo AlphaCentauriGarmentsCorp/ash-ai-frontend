@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from "react";
 import {
+  advancesFromPortal,
+  findStage,
   getStageGroups,
   getStatusMeta,
   isPaymentGate,
+  stageOrdinal,
   STAGE_STATUS,
 } from "../../constants/formOptions/orderStages";
 import { getRoleDisplayName } from "../../config/roleConfig";
@@ -29,6 +32,16 @@ const SUBCONTRACT_ELIGIBLE_STAGES = [
 
 // Reject logging is QA-only and only meaningful on the mass QA stage.
 const REJECT_ELIGIBLE_STAGES = ["mass_qa"];
+
+// Friendly "who finishes this" label for the auto-advance note on production
+// stage cards (CR Auto-Advance §1). Reads the stage's canonical role from the
+// workflow mirror, then the role display map; title-cased so the unmapped
+// "material prep" fallback matches the mapped names ("Cutter", "Screen Maker").
+const portalRoleLabel = (stageValue) => {
+  const role = findStage(stageValue)?.role;
+  if (!role) return "the assigned worker";
+  return getRoleDisplayName(role).replace(/\b\w/g, (c) => c.toUpperCase());
+};
 
 /**
  * OrderStage – sequential workflow timeline view.
@@ -152,7 +165,7 @@ const OrderStage = ({ order, onStagesUpdated }) => {
     const isDelayed = stage.status === STAGE_STATUS.DELAYED;
     const isOnHold = stage.status === STAGE_STATUS.ON_HOLD;
     // On a payment gate, only Finance (verify-payment) may act; others read-only.
-    const gateLocked = isPaymentGate(stage.stage) && !canVerifyPayment;
+    const gateLocked = isPaymentGate(stage.stage);
 
     return (
       <div key={stage.id} className="relative flex gap-4">
@@ -189,7 +202,7 @@ const OrderStage = ({ order, onStagesUpdated }) => {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-mono bg-white border border-gray-200 rounded px-2 py-0.5 text-gray-600">
-                  #{stage.sequence}
+                  #{stageOrdinal(stage.stage) ?? stage.sequence}
                 </span>
                 {parallelSeqs.has(stage.sequence) && (
                   <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200 inline-flex items-center gap-1">
@@ -257,26 +270,42 @@ const OrderStage = ({ order, onStagesUpdated }) => {
                     {gateLocked ? (
                       <p className="text-xs text-gray-500 italic inline-flex items-center gap-1.5">
                         <i className="fas fa-lock text-[10px]"></i>
-                        Payment verification is handled by Finance.
+                        {canVerifyPayment
+                          ? "Payment verification is done on the Dashboard (Pending Approvals)."
+                          : "Awaiting payment verification (handled by Finance)."}
                       </p>
                     ) : (
                       <>
-                        <button
-                          type="button"
-                          onClick={() => openAction(stage.id, "complete")}
-                          disabled={isLoading}
-                          className="text-xs px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors inline-flex items-center"
-                        >
-                          <i className="fas fa-check mr-1"></i> Complete
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openAction(stage.id, "approval")}
-                          disabled={isLoading}
-                          className="text-xs px-3 py-1.5 rounded bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors inline-flex items-center"
-                        >
-                          <i className="fas fa-hourglass-half mr-1"></i> For Approval
-                        </button>
+                        {stage.stage === "sample_approval" ? (
+                          <p className="text-xs text-gray-500 italic inline-flex items-center gap-1.5">
+                            <i className="fas fa-clipboard-check text-[10px]"></i>
+                            Decided by CSR in the Samples for Approval worklist (Approve / Reject).
+                          </p>
+                        ) : advancesFromPortal(stage.stage) ? (
+                          <p className="text-xs text-gray-500 italic inline-flex items-center gap-1.5">
+                            <i className="fas fa-arrow-right text-[10px]"></i>
+                            Advances automatically when {portalRoleLabel(stage.stage)} marks this Done in their portal.
+                          </p>
+                        ) : (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => openAction(stage.id, "complete")}
+                              disabled={isLoading}
+                              className="text-xs px-3 py-1.5 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors inline-flex items-center"
+                            >
+                              <i className="fas fa-check mr-1"></i> Complete
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => openAction(stage.id, "approval")}
+                              disabled={isLoading}
+                              className="text-xs px-3 py-1.5 rounded bg-amber-500 text-white hover:bg-amber-600 disabled:opacity-50 transition-colors inline-flex items-center"
+                            >
+                              <i className="fas fa-hourglass-half mr-1"></i> For Approval
+                            </button>
+                          </>
+                        )}
                         <button
                           type="button"
                           onClick={() => openAction(stage.id, "delay")}
@@ -297,7 +326,7 @@ const OrderStage = ({ order, onStagesUpdated }) => {
                     )}
 
                     {/* ── Phase 4 inputs ─────────────────────────────────── */}
-                    {canLogWaste && (
+                    {!isPaymentGate(stage.stage) && stage.stage !== "sample_approval" && canLogWaste && (
                       <button
                         type="button"
                         onClick={() => setWasteModalStage(stage)}

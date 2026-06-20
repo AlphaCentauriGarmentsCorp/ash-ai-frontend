@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { csrPortalApi } from "../../../../api/csrPortalApi";
 import RecordApprovalModal from "../modals/RecordApprovalModal";
 import RespondApprovalModal from "../modals/RespondApprovalModal";
+import SampleApprovalBanner from "../../../../components/sampleApprovals/SampleApprovalBanner";
 
 /**
  * Phase 6-A Bundle 2 — Approvals tab.
@@ -87,6 +88,7 @@ const ApprovalsTab = ({ initialFilter = null }) => {
   return (
     <>
       <div className="space-y-4">
+        <SampleApprovalBanner />
         <section className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-3">
             <div className="flex flex-wrap gap-1">
