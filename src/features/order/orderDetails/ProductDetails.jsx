@@ -1,4 +1,5 @@
 import React from "react";
+import POItemsSizeBreakdown from "./POItemsSizeBreakdown";
 
 const Row = ({ label, value }) => (
   <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2 last:border-b-0">
@@ -11,7 +12,6 @@ const fmt = (v) =>
   `₱${(Number(v) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const ProductDetails = ({ order }) => {
-  const items = order?.items_json || [];
   const addons = order?.addons_json || [];
 
   return (
@@ -47,40 +47,8 @@ const ProductDetails = ({ order }) => {
         </div>
       </section>
 
-      {/* ── Size Breakdown ───────────────────────────────────────────────── */}
-      {items.length > 0 && (
-        <section className="flex-col flex gap-y-2 sm:gap-y-3">
-          <h1 className="font-semibold text-base sm:text-lg">Size Breakdown</h1>
-          <div className="border border-gray-200 sm:border-gray-300 rounded-lg sm:rounded-xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-xs sm:text-sm">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="px-3 py-2 text-left font-semibold text-gray-600">Size</th>
-                    <th className="px-3 py-2 text-right font-semibold text-gray-600">Qty</th>
-                    <th className="px-3 py-2 text-right font-semibold text-gray-600">Unit Price</th>
-                    <th className="px-3 py-2 text-right font-semibold text-gray-600">Price/Pc</th>
-                    <th className="px-3 py-2 text-right font-semibold text-gray-600">Total</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {items.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 font-semibold text-primary">{item.size_label || item.size || "—"}</td>
-                      <td className="px-3 py-2 text-right">{item.quantity ?? 0}</td>
-                      <td className="px-3 py-2 text-right">{fmt(item.unit_price)}</td>
-                      <td className="px-3 py-2 text-right">{fmt(item.price_per_piece)}</td>
-                      <td className="px-3 py-2 text-right font-semibold text-primary">
-                        {fmt(item.total_amount ?? item.total ?? (item.price_per_piece ?? 0) * (item.quantity ?? 0))}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </section>
-      )}
+      {/* ── PO Items & Size Breakdown (shared component) ───────── */}
+      <POItemsSizeBreakdown order={order} />
 
       {/* ── Addons ───────────────────────────────────────────────────────── */}
       {addons.length > 0 && (

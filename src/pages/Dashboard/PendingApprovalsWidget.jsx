@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { pendingApprovalsApi } from "../../api/pendingApprovalsApi";
+import OrderPaymentDetailModal from "../../components/payments/OrderPaymentDetailModal";
 
 const POLL_MS = 45000; // 30–60s polling (no WebSockets on Hostinger)
 
@@ -43,6 +44,7 @@ export default function PendingApprovalsWidget() {
   const [hidden, setHidden] = useState(false);
   const [busyId, setBusyId] = useState(null);
   const [error, setError] = useState(null);
+  const [detailRow, setDetailRow] = useState(null);
   const timer = useRef(null);
 
   const load = useCallback(async () => {
@@ -160,19 +162,6 @@ export default function PendingApprovalsWidget() {
                   {row.reference_number && ` · ref ${row.reference_number}`}
                   {" · waiting "}
                   {waitingLabel(row.waiting_seconds)}
-                  {row.proof_url && (
-                    <>
-                      {" · "}
-                      <a
-                        href={row.proof_url}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-blue-600 underline"
-                      >
-                        proof
-                      </a>
-                    </>
-                  )}
                 </div>
                 {(row.payer || row.paid_at) && (
                   <div className="mt-0.5 text-sm text-gray-500">
@@ -185,6 +174,13 @@ export default function PendingApprovalsWidget() {
               </div>
 
               <div className="flex shrink-0 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setDetailRow(row)}
+                  className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-gray-700 ring-1 ring-gray-300 hover:bg-gray-50"
+                >
+                  Detail
+                </button>
                 <button
                   type="button"
                   disabled={busyId === row.payment_id}
@@ -213,6 +209,13 @@ export default function PendingApprovalsWidget() {
             </li>
           ))}
         </ul>
+      )}
+      {detailRow && (
+        <OrderPaymentDetailModal
+          row={detailRow}
+          showPayment={true}
+          onClose={() => setDetailRow(null)}
+        />
       )}
     </section>
   );

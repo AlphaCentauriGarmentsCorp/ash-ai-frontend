@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import AdminLayout from "../../../layouts/Admin/AdminLayout";
 import { csrPortalApi } from "../../../api/csrPortalApi";
 import EnterPaymentModal from "../../../components/payments/EnterPaymentModal";
+import OrderPaymentDetailModal from "../../../components/payments/OrderPaymentDetailModal";
 import Loader from "../../../components/common/Loader";
 
 /**
@@ -27,6 +28,7 @@ const AwaitingPaymentsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [active, setActive] = useState(null);
+  const [detailRow, setDetailRow] = useState(null);
 
   const fetchAwaiting = async () => {
     try {
@@ -98,7 +100,7 @@ const AwaitingPaymentsPage = () => {
         )}
 
         {loading ? (
-          <Loader />
+          <Loader inline />
         ) : rows.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-xl p-10 text-center">
             <i className="fa-solid fa-circle-check text-green-400 text-4xl mb-3"></i>
@@ -141,14 +143,24 @@ const AwaitingPaymentsPage = () => {
                       <p className="text-xs text-gray-400">{row.qty} pcs</p>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => setActive(row)}
-                    className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center gap-2"
-                  >
-                    <i className="fa-solid fa-money-bill-wave"></i>
-                    Record Payment
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setDetailRow(row)}
+                      className="px-3 py-2 text-sm rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors flex items-center gap-2"
+                    >
+                      <i className="fa-solid fa-circle-info"></i>
+                      Order Detail
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActive(row)}
+                      className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center gap-2"
+                    >
+                      <i className="fa-solid fa-money-bill-wave"></i>
+                      Record Payment
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -168,6 +180,14 @@ const AwaitingPaymentsPage = () => {
           }}
         />
       )}
+      {detailRow && (
+        <OrderPaymentDetailModal
+          row={detailRow}
+          showPayment={false}
+          onClose={() => setDetailRow(null)}
+        />
+      )}
+
     </AdminLayout>
   );
 };

@@ -101,7 +101,7 @@ const SampleApprovalsPage = () => {
         )}
 
         {loading ? (
-          <Loader />
+          <Loader inline />
         ) : rows.length === 0 ? (
           <div className="bg-white border border-gray-200 rounded-xl p-10 text-center">
             <i className="fa-solid fa-circle-check text-green-400 text-4xl mb-3"></i>
