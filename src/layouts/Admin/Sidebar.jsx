@@ -2,6 +2,7 @@ import { useState, useContext, useEffect, useCallback, useRef, useLayoutEffect }
 import { Link, useLocation } from "react-router-dom";
 import { getMenuByPermissions } from "../../config/menuConfig";
 import { portalApi } from "../../api/portalApi";
+import { csrPortalApi } from "../../api/csrPortalApi";
 import { SidebarContext } from "../../context/SidebarContext";
 import Logo from "../../assets/images/logo/Logo.png";
 
@@ -42,6 +43,37 @@ export default function Sidebar({
   // self-scopes (oversight roles see every station; others see only their own),
   // so we render whatever it returns. Polled ~45s (no WebSockets on Hostinger).
   const [badgeCounts, setBadgeCounts] = useState({});
+  const [awaitingCount, setAwaitingCount] = useState(0);
+
+  // Awaiting-Payment nav badge — how many orders the client still owes on.
+  // Only fetched when the menu actually surfaces the item (CSR / oversight),
+  // so non-CSR sidebars never call the CSR-scoped endpoint. Polled ~45s, same
+  // cadence as the portal badge counts (no WebSockets on Hostinger).
+  const showsAwaitingPayment = menu.some((s) =>
+    s.items.some((it) => it.path === "/payments/awaiting"),
+  );
+
+  useEffect(() => {
+    if (!showsAwaitingPayment) {
+      setAwaitingCount(0);
+      return;
+    }
+    let active = true;
+    const load = async () => {
+      try {
+        const res = await csrPortalApi.getAwaiting();
+        if (active) setAwaitingCount(res?.count ?? 0);
+      } catch {
+        /* badge is non-critical — ignore transient failures */
+      }
+    };
+    load();
+    const id = setInterval(load, 45000);
+    return () => {
+      active = false;
+      clearInterval(id);
+    };
+  }, [showsAwaitingPayment]);
 
   useEffect(() => {
     let active = true;
@@ -251,7 +283,11 @@ export default function Sidebar({
                           </div>
                           {(() => {
                             const role = portalRoleFromPath(item.path);
-                            const c = role ? badgeCounts[role] : undefined;
+                            const c = role
+                              ? badgeCounts[role]
+                              : item.path === "/payments/awaiting"
+                                ? awaitingCount
+                                : undefined;
                             if (!c || c <= 0) return null;
                             return (
                               <span className="ml-auto shrink-0 min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center rounded-full bg-red-600 text-white text-[11px] font-semibold leading-none">

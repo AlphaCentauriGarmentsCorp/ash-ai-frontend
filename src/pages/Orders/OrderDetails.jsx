@@ -15,7 +15,6 @@ import ShippingInformation from "../../features/order/orderDetails/ShippingInfor
 import ProductDetails from "../../features/order/orderDetails/ProductDetails";
 import DesignFiles from "../../features/order/orderDetails/DesignFiles";
 import Pricing from "../../features/order/orderDetails/Pricing";
-import POItems from "../../features/order/orderDetails/POItems";
 import ActivityLog from "../../features/order/orderDetails/ActivityLog";
 import MockupCarousel from "../../features/order/orderDetails/MockupCarousel";
 import { useAuth } from "../../hooks/useAuth";
@@ -23,7 +22,6 @@ import Loader from "../../components/common/Loader";
 
 import OrderStage from "../../features/orderStages/OrderStage";
 import ReviewHub from "../../features/order/reviewHub/ReviewHub";
-import EnterPaymentModal from "../../components/payments/EnterPaymentModal";
 
 
 /**
@@ -41,7 +39,6 @@ import EnterPaymentModal from "../../components/payments/EnterPaymentModal";
 const OrderDetailsPage = () => {
   const { po_code } = useParams();
   const { user } = useAuth();
-  const [showEnterPayment, setShowEnterPayment] = useState(false);
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -58,7 +55,6 @@ const OrderDetailsPage = () => {
     { id: "product", label: "Product Details", icon: "fa-tshirt", tab: "order" },
     { id: "design", label: "Design Files & Mockups", icon: "fa-image", tab: "order" },
     { id: "pricing", label: "Pricing Summary", icon: "fa-tag", tab: "order" },
-    { id: "items", label: "PO Items", icon: "fa-boxes", tab: "order" },
   ].filter(
     (section) =>
       section.id === "all" || hasSectionAccess(userRoles, section.id),
@@ -240,12 +236,6 @@ const OrderDetailsPage = () => {
               <Pricing order={order} />
             </RoleProtected>
 
-            <RoleProtected
-              userRoles={userRoles}
-              requiredRoles={SECTION_ACCESS.items}
-            >
-              <POItems order={order} />
-            </RoleProtected>
           </div>
         );
       }
@@ -270,8 +260,6 @@ const OrderDetailsPage = () => {
             )}
           {activeSection === "pricing" &&
             hasSectionAccess(userRoles, "pricing") && <Pricing order={order} />}
-          {activeSection === "items" &&
-            hasSectionAccess(userRoles, "items") && <POItems order={order} />}
         </div>
       );
     }
@@ -377,19 +365,6 @@ const OrderDetailsPage = () => {
           </div>
         )}
 
-        {/* Enter Payment (Phase 2) - per-order recording, gated to CSR */}
-        {hasRequiredPermissions(user, ["portal.csr"], "any") && (
-          <div className="flex justify-end mb-3">
-            <button
-              type="button"
-              onClick={() => setShowEnterPayment(true)}
-              className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center gap-2"
-            >
-              <i className="fas fa-money-bill-wave"></i>
-              Enter Payment
-            </button>
-          </div>
-        )}
 
         {/* Tab Navigation */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 mb-4 sm:mb-5 border-b border-gray-200 pb-2">
@@ -560,16 +535,6 @@ const OrderDetailsPage = () => {
         )}
       </div>
 
-      {showEnterPayment && (
-        <EnterPaymentModal
-          order={order}
-          onClose={() => setShowEnterPayment(false)}
-          onSaved={() => {
-            setShowEnterPayment(false);
-            fetchOrderDetails();
-          }}
-        />
-      )}
     </AdminLayout>
   );
 };
