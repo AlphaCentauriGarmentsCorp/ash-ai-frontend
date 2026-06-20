@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
 import DashboardTab from "./DashboardTab";
 import InquiriesTab from "./tabs/InquiriesTab";
-import PaymentsTab from "./tabs/PaymentsTab";
 import ApprovalsTab from "./tabs/ApprovalsTab";
 import SwatchesTab from "./tabs/SwatchesTab";
 
@@ -11,18 +10,16 @@ import SwatchesTab from "./tabs/SwatchesTab";
  * Phase 6-A / 6-B — CSR Hub portal landing.
  *
  * Bundle 3 update: replaces the final Fabric Swatches placeholder with
- * the real SwatchesTab. All 5 tabs are now live:
+ * the real SwatchesTab. All 4 tabs are now live:
  *
  *   - Dashboard       (Bundle 1)
  *   - Inquiries       (Bundle 2)
- *   - Payments        (Bundle 2)
- *   - Approvals       (Bundle 2)
+ *  *   - Approvals       (Bundle 2)
  *   - Fabric Swatches (Bundle 3 / Phase 6-B)
  */
 const TABS = [
   { key: "dashboard", label: "Dashboard", icon: "fa-chart-line" },
   { key: "inquiries", label: "Inquiries", icon: "fa-envelope" },
-  { key: "payments", label: "Payments", icon: "fa-money-check-dollar" },
   { key: "approvals", label: "Approvals", icon: "fa-hand" },
   { key: "swatches", label: "Fabric Swatches", icon: "fa-palette" },
 ];
@@ -35,7 +32,7 @@ const CARD_TARGETS = {
   pending_inquiries: { tab: "inquiries", filter: "new" },
   pending_quotations: { tab: "inquiries", filter: "quoted" },
   client_approvals_needed: { tab: "approvals", filter: "waiting" },
-  pending_payments: { tab: "payments", filter: "for_verification" },
+  pending_payments: { route: "/payments/awaiting" },
   in_production_orders: { route: "/orders?state=in_production" },
   delayed_orders: { route: "/orders?state=delayed" },
   ready_for_delivery: { route: "/orders?state=ready_for_delivery" },
@@ -49,7 +46,6 @@ const CsrPortalPage = () => {
   // on mount. Cleared on a manual tab click so tabs default to "All".
   const [initialFilters, setInitialFilters] = useState({
     inquiries: null,
-    payments: null,
     approvals: null,
   });
 
@@ -101,7 +97,6 @@ const CsrPortalPage = () => {
 
       {activeTab === "dashboard" && <DashboardTab onCardNavigate={handleCardNavigate} />}
       {activeTab === "inquiries" && <InquiriesTab initialFilter={initialFilters.inquiries} />}
-      {activeTab === "payments" && <PaymentsTab initialFilter={initialFilters.payments} />}
       {activeTab === "approvals" && <ApprovalsTab initialFilter={initialFilters.approvals} />}
       {activeTab === "swatches" && <SwatchesTab />}
     </RolePortalLayout>

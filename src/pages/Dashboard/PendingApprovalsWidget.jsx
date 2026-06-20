@@ -13,6 +13,19 @@ function waitingLabel(seconds) {
   return `${d}d ${h % 24}h`;
 }
 
+function fmtPaid(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return iso;
+  return d.toLocaleString("en-PH", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 function peso(n) {
   if (n == null) return "—";
   return `₱${Number(n).toLocaleString("en-PH", { minimumFractionDigits: 2 })}`;
@@ -143,6 +156,7 @@ export default function PendingApprovalsWidget() {
                 </div>
                 <div className="mt-0.5 text-sm text-gray-600">
                   {peso(row.amount)}
+                  {row.method && ` \u00b7 ${row.method}`}
                   {row.reference_number && ` · ref ${row.reference_number}`}
                   {" · waiting "}
                   {waitingLabel(row.waiting_seconds)}
@@ -160,6 +174,14 @@ export default function PendingApprovalsWidget() {
                     </>
                   )}
                 </div>
+                {(row.payer || row.paid_at) && (
+                  <div className="mt-0.5 text-sm text-gray-500">
+                    {row.payer && (
+                      <>Paid by <span className="font-medium text-gray-700">{row.payer}</span></>
+                    )}
+                    {row.paid_at && `${row.payer ? " \u00b7 " : ""}on ${fmtPaid(row.paid_at)}`}
+                  </div>
+                )}
               </div>
 
               <div className="flex shrink-0 gap-2">

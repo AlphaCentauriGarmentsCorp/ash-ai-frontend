@@ -57,6 +57,16 @@ export const getStageGroups = () => {
 export const findStage = (value) =>
   OrderStages.find((s) => s.value === value) || null;
 
+// 1-based display position of a stage in the canonical pipeline (1..N).
+// Use this for the "#N" badge in the UI -- NOT `seq` / `sequence`, which is the
+// internal dependency tier: it starts at 4 (the 3 pre-production stages were
+// pruned from the in-order workflow) and reuses a number for the parallel fork.
+// The engine relies on `seq`; humans should see this ordinal.
+export const stageOrdinal = (value) => {
+  const i = OrderStages.findIndex((s) => s.value === value);
+  return i < 0 ? null : i + 1;
+};
+
 // Tier (dependency level) for a stage value
 export const tierOf = (value) => findStage(value)?.seq ?? null;
 
@@ -74,6 +84,38 @@ export const getParallelTiers = () => {
 
 // Is this stage a blocking payment-verification gate?
 export const isPaymentGate = (value) => !!findStage(value)?.gate;
+
+// Production stages whose advancement is driven by a worker's portal "Done"
+// (CR Auto-Advance §1). On the admin Order Workflow timeline these no longer
+// show manual Complete / For Approval - the worker finishes them from their
+// portal and the server auto-advances the workflow.
+//
+// This is the set with a LIVE portal "Done" path today. It deliberately
+// EXCLUDES:
+//   - payment gates    -> verified on the Dashboard (see isPaymentGate)
+//   - sample_approval  -> CSR's client sign-off gate (manual for now)
+//   - delivery / order_completed / client_notification -> closeout (auto path
+//     not built yet; keep a manual advance so orders don't strand)
+// Add stages here as their portal / auto paths ship.
+const PORTAL_ADVANCED_STAGES = new Set([
+  "graphic_artwork",
+  "screen_making",
+  "material_prep_sample",
+  "sample_cutting",
+  "sample_printing",
+  "sample_sewing",
+  "sample_packing",
+  "material_prep_mass",
+  "mass_cutting",
+  "mass_printing",
+  "mass_sewing",
+  "mass_qa",
+  "mass_packing",
+]);
+
+// Does this stage advance from its worker's portal "Done" (i.e. no manual
+// Complete / For Approval on the admin timeline)? (CR Auto-Advance §1)
+export const advancesFromPortal = (value) => PORTAL_ADVANCED_STAGES.has(value);
 
 // Status constants – mirror backend OrderStage::STATUS_*
 export const STAGE_STATUS = {

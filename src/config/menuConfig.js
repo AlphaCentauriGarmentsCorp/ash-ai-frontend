@@ -66,10 +66,10 @@ export const getMenuByPermissions = (user = null) => {
           ],
         },
         {
-          name: "Payments",
-          icon: "fa-solid fa-money-check-dollar",
-          path: "/finance/payments",
-          requiredPermissions: ["action.verify-payment"],
+          name: "Awaiting Payment",
+          icon: "fa-solid fa-money-bill-wave",
+          path: "/payments/awaiting",
+          requiredPermissions: ["portal.csr"],
         },
         {
           name: "Quotation",

@@ -23,6 +23,7 @@ import Loader from "../../components/common/Loader";
 
 import OrderStage from "../../features/orderStages/OrderStage";
 import ReviewHub from "../../features/order/reviewHub/ReviewHub";
+import EnterPaymentModal from "../../components/payments/EnterPaymentModal";
 
 
 /**
@@ -40,6 +41,7 @@ import ReviewHub from "../../features/order/reviewHub/ReviewHub";
 const OrderDetailsPage = () => {
   const { po_code } = useParams();
   const { user } = useAuth();
+  const [showEnterPayment, setShowEnterPayment] = useState(false);
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -375,6 +377,20 @@ const OrderDetailsPage = () => {
           </div>
         )}
 
+        {/* Enter Payment (Phase 2) - per-order recording, gated to CSR */}
+        {hasRequiredPermissions(user, ["portal.csr"], "any") && (
+          <div className="flex justify-end mb-3">
+            <button
+              type="button"
+              onClick={() => setShowEnterPayment(true)}
+              className="px-4 py-2 text-sm rounded-lg bg-primary text-white hover:bg-primary/90 transition-colors flex items-center gap-2"
+            >
+              <i className="fas fa-money-bill-wave"></i>
+              Enter Payment
+            </button>
+          </div>
+        )}
+
         {/* Tab Navigation */}
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-1 mb-4 sm:mb-5 border-b border-gray-200 pb-2">
           <button
@@ -543,6 +559,17 @@ const OrderDetailsPage = () => {
           </div>
         )}
       </div>
+
+      {showEnterPayment && (
+        <EnterPaymentModal
+          order={order}
+          onClose={() => setShowEnterPayment(false)}
+          onSaved={() => {
+            setShowEnterPayment(false);
+            fetchOrderDetails();
+          }}
+        />
+      )}
     </AdminLayout>
   );
 };
