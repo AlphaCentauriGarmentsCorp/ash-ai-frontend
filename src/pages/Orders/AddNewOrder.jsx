@@ -59,7 +59,7 @@ export default function AddNewOrder({ editOrder = null }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { confirm, dialog } = useConfirm();
+  const { confirm, alert, dialog } = useConfirm();
 
   // Prefill payload: navigate("/orders/new", { state: { prefill: result.order_payload } })
   const isEdit = Boolean(editOrder);
@@ -570,10 +570,19 @@ export default function AddNewOrder({ editOrder = null }) {
         }
       }
 
-      // Everyone else (or hard-floor / sample problems): block and scroll up.
+      // Everyone else (or hard-floor / sample problems): warn, then block + scroll up.
+      const missing = Object.keys(formErrors).map(fieldLabel);
+      if (!samplesValid) missing.push("Sample size details");
       window.scrollTo({ top: 0, behavior: "smooth" });
+      await alert({
+        title: "Missing required information",
+        message: missing.length
+          ? `Please complete the following before saving: ${missing.join(", ")}.`
+          : "Please complete the required fields before saving.",
+        tone: "danger",
+      });
     },
-    [formData, validateSamples, submitOrder, user, setErrors]
+    [formData, validateSamples, submitOrder, user, setErrors, alert]
   );
 
   // Confirm the override -> resubmit with the incomplete flag + field list.

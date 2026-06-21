@@ -947,10 +947,21 @@ const EditQuotation = () => {
   };
 
   const updateColorCount = (colorId, count) => {
+    // Keep the raw input so the field can be cleared/retyped on mobile without
+    // snapping back to 1. Pricing reads via toNumber() (blank -> 0);
+    // normalizeColorCount() clamps to a valid count on blur.
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId) ? { ...c, colorCount: count } : c,
+      ),
+    );
+  };
+
+  const normalizeColorCount = (colorId) => {
     setSelectedColors((prev) =>
       prev.map((c) =>
         Number(c.colorId) === Number(colorId)
-          ? { ...c, colorCount: Math.max(1, parseInt(count, 10) || 1) }
+          ? { ...c, colorCount: Math.max(1, parseInt(c.colorCount, 10) || 1) }
           : c,
       ),
     );
@@ -967,10 +978,21 @@ const EditQuotation = () => {
   };
 
   const updateFullColorCount = (colorId, count) => {
+    // Keep the raw input so the field can be cleared/retyped on mobile without
+    // snapping back to 1. Pricing reads via toNumber() (blank -> 0);
+    // normalizeFullColorCount() clamps to a valid count on blur.
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId) ? { ...c, fullColorCount: count } : c,
+      ),
+    );
+  };
+
+  const normalizeFullColorCount = (colorId) => {
     setSelectedColors((prev) =>
       prev.map((c) =>
         Number(c.colorId) === Number(colorId)
-          ? { ...c, fullColorCount: Math.max(1, parseInt(count, 10) || 1) }
+          ? { ...c, fullColorCount: Math.max(1, parseInt(c.fullColorCount, 10) || 1) }
           : c,
       ),
     );
@@ -2000,8 +2022,9 @@ const EditQuotation = () => {
                                   type="number"
                                   min="1"
                                   max="10"
-                                  value={part.colorCount || 1}
+                                  value={part.colorCount ?? ""}
                                   onChange={(e) => updateColorCount(part.colorId, e.target.value)}
+                                  onBlur={() => normalizeColorCount(part.colorId)}
                                   className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                                 />
 
@@ -2027,8 +2050,9 @@ const EditQuotation = () => {
                                     type="number"
                                     min="1"
                                     max="10"
-                                    value={part.fullColorCount || 1}
+                                    value={part.fullColorCount ?? ""}
                                     onChange={(e) => updateFullColorCount(part.colorId, e.target.value)}
+                                    onBlur={() => normalizeFullColorCount(part.colorId)}
                                     className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                                   />
                                 </div>
@@ -2133,7 +2157,7 @@ const EditQuotation = () => {
                       key={group.id}
                       className="rounded-lg border border-gray-200 overflow-hidden"
                     >
-                      <div className="px-3 py-2 bg-light/40 flex items-center gap-2">
+                      <div className="px-3 py-2 bg-light/40 flex flex-wrap items-center gap-2">
                         <span className="text-[11px] font-semibold text-gray-500 whitespace-nowrap">
                           Color {gIdx + 1}
                         </span>
@@ -2142,32 +2166,35 @@ const EditQuotation = () => {
                           value={group.color || ""}
                           onChange={(e) => updateColorName(group.id, e.target.value)}
                           placeholder="e.g. Black"
-                          className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                          className="flex-1 min-w-[7rem] px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setSwatchPickerGroupId(group.id)}
-                          title="Pick from fabric swatches"
-                          className="px-2 py-1 text-xs rounded bg-light/60 text-primary border border-gray-200 hover:bg-primary/10 whitespace-nowrap"
-                        >
-                          <i className="fas fa-palette"></i>
-                        </button>
-                        <span className="text-[11px] text-gray-500 whitespace-nowrap">
-                          {groupQty} pcs
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeColorGroup(group.id)}
-                          disabled={colorBreakdowns.length <= 1}
-                          title={
-                            colorBreakdowns.length <= 1
-                              ? "At least one color is required"
-                              : "Remove this color"
-                          }
-                          className="px-2 py-1 text-xs rounded bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSwatchPickerGroupId(group.id)}
+                            title="Pick from fabric swatches"
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs rounded bg-light/60 text-primary border border-gray-200 hover:bg-primary/10 whitespace-nowrap"
+                          >
+                            <i className="fas fa-palette"></i>
+                            <span className="sm:hidden">Pick</span>
+                          </button>
+                          <span className="text-[11px] text-gray-500 whitespace-nowrap">
+                            {groupQty} pcs
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeColorGroup(group.id)}
+                            disabled={colorBreakdowns.length <= 1}
+                            title={
+                              colorBreakdowns.length <= 1
+                                ? "At least one color is required"
+                                : "Remove this color"
+                            }
+                            className="px-2.5 py-1.5 text-xs rounded bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </div>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
