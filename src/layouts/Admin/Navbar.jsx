@@ -354,7 +354,7 @@ const Navbar = ({
 
           {/* Notifications Dropdown */}
           {notificationOpen && (
-            <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white rounded-lg shadow-xl border border-gray-200 z-50 animate-fadeIn">
+            <div className="fixed inset-x-2 top-16 z-50 md:absolute md:inset-x-auto md:top-full md:right-0 md:mt-2 md:w-96 bg-white rounded-lg shadow-xl border border-gray-200 animate-fadeIn">
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
                 <h3 className="text-sm font-semibold text-gray-800">
                   Notifications

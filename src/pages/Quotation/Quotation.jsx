@@ -616,10 +616,21 @@ const Quotation = () => {
   };
 
   const updateUnitCount = (colorId, count) => {
+    // Keep the raw input so the field can be cleared/retyped on mobile without
+    // snapping back to 1. Pricing reads via toNumber() (blank -> 0);
+    // normalizeUnitCount() clamps to a valid count on blur.
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId) ? { ...c, unitCount: count } : c,
+      ),
+    );
+  };
+
+  const normalizeUnitCount = (colorId) => {
     setSelectedColors((prev) =>
       prev.map((c) =>
         Number(c.colorId) === Number(colorId)
-          ? { ...c, unitCount: Math.max(1, parseInt(count, 10) || 1) }
+          ? { ...c, unitCount: Math.max(1, parseInt(c.unitCount, 10) || 1) }
           : c,
       ),
     );
@@ -636,10 +647,21 @@ const Quotation = () => {
   };
 
   const updateFullUnitCount = (colorId, count) => {
+    // Keep the raw input so the field can be cleared/retyped on mobile without
+    // snapping back to 1. Pricing reads via toNumber() (blank -> 0);
+    // normalizeFullUnitCount() clamps to a valid count on blur.
+    setSelectedColors((prev) =>
+      prev.map((c) =>
+        Number(c.colorId) === Number(colorId) ? { ...c, fullUnitCount: count } : c,
+      ),
+    );
+  };
+
+  const normalizeFullUnitCount = (colorId) => {
     setSelectedColors((prev) =>
       prev.map((c) =>
         Number(c.colorId) === Number(colorId)
-          ? { ...c, fullUnitCount: Math.max(1, parseInt(count, 10) || 1) }
+          ? { ...c, fullUnitCount: Math.max(1, parseInt(c.fullUnitCount, 10) || 1) }
           : c,
       ),
     );
@@ -1019,6 +1041,27 @@ const Quotation = () => {
       await alert({
         title: "Add at least one item",
         message: "Please add at least one item to the quotation before saving.",
+        tone: "danger",
+      });
+      return;
+    }
+
+    // Per-Color Quantity Breakdown must carry at least one piece — a quotation
+    // with zero total quantity is meaningless (it prices to zero). Hard-block.
+    const totalBreakdownQty = colorBreakdowns.reduce(
+      (sum, g) =>
+        sum +
+        (g.sizes || []).reduce(
+          (s, row) => s + (parseInt(row.quantity, 10) || 0),
+          0,
+        ),
+      0,
+    );
+    if (totalBreakdownQty <= 0) {
+      await alert({
+        title: "Add quantities first",
+        message:
+          "Please enter at least one quantity in the Per-Color Quantity Breakdown before creating the quotation.",
         tone: "danger",
       });
       return;
@@ -1714,8 +1757,9 @@ const Quotation = () => {
                                   type="number"
                                   min="1"
                                   max="10"
-                                  value={part.unitCount || 1}
+                                  value={part.unitCount ?? ""}
                                   onChange={(e) => updateUnitCount(part.colorId, e.target.value)}
+                                  onBlur={() => normalizeUnitCount(part.colorId)}
                                   className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                                 />
 
@@ -1741,8 +1785,9 @@ const Quotation = () => {
                                     type="number"
                                     min="1"
                                     max="10"
-                                    value={part.fullUnitCount || 1}
+                                    value={part.fullUnitCount ?? ""}
                                     onChange={(e) => updateFullUnitCount(part.colorId, e.target.value)}
+                                    onBlur={() => normalizeFullUnitCount(part.colorId)}
                                     className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                                   />
                                 </div>
@@ -1847,7 +1892,7 @@ const Quotation = () => {
                       key={group.id}
                       className="rounded-lg border border-gray-200 overflow-hidden"
                     >
-                      <div className="px-3 py-2 bg-light/40 flex items-center gap-2">
+                      <div className="px-3 py-2 bg-light/40 flex flex-wrap items-center gap-2">
                         <span className="text-[11px] font-semibold text-gray-500 whitespace-nowrap">
                           Color {gIdx + 1}
                         </span>
@@ -1856,32 +1901,35 @@ const Quotation = () => {
                           value={group.color || ""}
                           onChange={(e) => updateColorName(group.id, e.target.value)}
                           placeholder="e.g. Black"
-                          className="flex-1 px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+                          className="flex-1 min-w-[7rem] px-2 py-1 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setSwatchPickerGroupId(group.id)}
-                          title="Pick from fabric swatches"
-                          className="px-2 py-1 text-xs rounded bg-light/60 text-primary border border-gray-200 hover:bg-primary/10 whitespace-nowrap"
-                        >
-                          <i className="fas fa-palette"></i>
-                        </button>
-                        <span className="text-[11px] text-gray-500 whitespace-nowrap">
-                          {groupQty} pcs
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeColorGroup(group.id)}
-                          disabled={colorBreakdowns.length <= 1}
-                          title={
-                            colorBreakdowns.length <= 1
-                              ? "At least one color is required"
-                              : "Remove this color"
-                          }
-                          className="px-2 py-1 text-xs rounded bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setSwatchPickerGroupId(group.id)}
+                            title="Pick from fabric swatches"
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-xs rounded bg-light/60 text-primary border border-gray-200 hover:bg-primary/10 whitespace-nowrap"
+                          >
+                            <i className="fas fa-palette"></i>
+                            <span className="sm:hidden">Pick</span>
+                          </button>
+                          <span className="text-[11px] text-gray-500 whitespace-nowrap">
+                            {groupQty} pcs
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => removeColorGroup(group.id)}
+                            disabled={colorBreakdowns.length <= 1}
+                            title={
+                              colorBreakdowns.length <= 1
+                                ? "At least one color is required"
+                                : "Remove this color"
+                            }
+                            className="px-2.5 py-1.5 text-xs rounded bg-gray-200 text-gray-600 hover:bg-red-100 hover:text-red-600 disabled:opacity-40 disabled:cursor-not-allowed"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </div>
                       </div>
                       <div className="overflow-x-auto">
                         <table className="w-full text-xs">
