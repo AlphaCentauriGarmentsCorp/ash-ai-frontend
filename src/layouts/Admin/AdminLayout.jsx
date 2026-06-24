@@ -14,7 +14,9 @@ export default function AdminLayout({
   const { user } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [isMobileView, setIsMobileView] = useState(false);
+  const [isMobileView, setIsMobileView] = useState(
+    () => typeof window !== "undefined" && window.innerWidth < 768,
+  );
 
   useEffect(() => {
     const checkMobile = () => {
