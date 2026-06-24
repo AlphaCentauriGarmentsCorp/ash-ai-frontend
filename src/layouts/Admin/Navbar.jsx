@@ -63,6 +63,7 @@ const Navbar = ({
   sidebarOpen,
   toggleMobileSidebar,
   isMobileOpen,
+  isMobileView,
 }) => {
   const { user, setUser } = useAuth();
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -220,18 +221,19 @@ const Navbar = ({
       <div className="flex items-center flex-1">
         <button
           onClick={() => {
-            if (window.innerWidth < 768) {
+            if (isMobileView) {
               toggleMobileSidebar();
             } else {
               toggleSidebar();
             }
           }}
-          className="relative w-8 h-8 p-1 transition-colors rounded-md hover:bg-gray-100"
+          type="button"
+          className="flex items-center justify-start shrink-0 h-12 min-w-20 -my-2 -ml-3 pl-3 pr-6 md:h-16 md:min-w-0 md:-my-4 md:-ml-6 md:pl-6 md:pr-4 transition-colors hover:bg-white/10"
           aria-label="Toggle sidebar"
         >
-          <div className="absolute inset-0 flex flex-col items-center justify-center space-y-1">
+          <div className="pointer-events-none flex flex-col items-center justify-center space-y-1">
             { }
-            {window.innerWidth < 768 ? (
+            {isMobileView ? (
               <>
                 <span
                   className={`block w-6 h-0.5 bg-gray-700 transition-all duration-300 ${isMobileOpen ? "rotate-45 translate-y-1.5" : ""}`}

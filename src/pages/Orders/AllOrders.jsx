@@ -31,6 +31,30 @@ const STATE_FILTERS = {
   },
 };
 
+const humanizeStatus = (value) => {
+  if (!value) return "";
+  return String(value)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+const relativeTime = (value) => {
+  if (!value) return "—";
+  const then = new Date(String(value).replace(" ", "T")).getTime();
+  if (Number.isNaN(then)) return "—";
+  const sec = Math.floor((Date.now() - then) / 1000);
+  if (sec < 60) return "just now";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  if (day < 30) return `${day}d ago`;
+  const mo = Math.floor(day / 30);
+  if (mo < 12) return `${mo}mo ago`;
+  return `${Math.floor(day / 365)}y ago`;
+};
+
 const AllOrders = () => {
   const { confirm, alert, dialog } = useConfirm();
   const navigate = useNavigate();
@@ -150,6 +174,46 @@ const AllOrders = () => {
       render: (item) => getStatusBadge(item.status),
     },
     {
+      key: "current_stage",
+      label: "Current Stage",
+      sortable: false,
+      render: (item) => (
+        <span className="text-sm whitespace-nowrap">
+          {item.current_stage || humanizeStatus(item.workflow_status) || "—"}
+        </span>
+      ),
+    },
+    {
+      key: "progress_pct",
+      label: "Progress",
+      sortable: true,
+      render: (item) => {
+        const pct = item.progress_pct;
+        if (pct === null || pct === undefined) {
+          return <span className="text-gray-400">—</span>;
+        }
+        return (
+          <div className="flex items-center gap-2 min-w-25">
+            <div className="flex-1 h-2 overflow-hidden rounded-full bg-gray-200">
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{ width: `${Math.min(100, Math.max(0, pct))}%` }}
+              />
+            </div>
+            <span className="w-9 text-right text-xs font-medium text-gray-600">{pct}%</span>
+          </div>
+        );
+      },
+    },
+    {
+      key: "assigned_to",
+      label: "Assigned To",
+      sortable: true,
+      render: (item) => (
+        <span className="text-sm whitespace-nowrap">{item.assigned_to || "—"}</span>
+      ),
+    },
+    {
       key: "created_at",
       label: "Created",
       sortable: true,
@@ -158,6 +222,22 @@ const AllOrders = () => {
         return new Date(item.created_at).toLocaleDateString("en-PH", {
           month: "short", day: "2-digit", year: "numeric",
         });
+      },
+    },
+    {
+      key: "updated_at",
+      label: "Last Updated",
+      sortable: true,
+      render: (item) => {
+        if (!item.updated_at) return "—";
+        return (
+          <span
+            className="whitespace-nowrap text-sm text-gray-600"
+            title={new Date(String(item.updated_at).replace(" ", "T")).toLocaleString("en-PH")}
+          >
+            {relativeTime(item.updated_at)}
+          </span>
+        );
       },
     },
   ];

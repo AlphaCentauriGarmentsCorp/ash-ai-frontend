@@ -359,20 +359,17 @@ const EditQuotation = () => {
     if (methodName.includes("dtf")) {
       return {
         colorLabel: "Meters",
-        priceLabel: "Price/m",
       };
     }
 
     if (methodName.includes("embroidery")) {
       return {
         colorLabel: "Size",
-        priceLabel: "Price/size",
       };
     }
 
     return {
       colorLabel: "Number of Colors",
-      priceLabel: "Price/Color",
     };
   }, [selectedPrintMethod]);
 
@@ -967,16 +964,6 @@ const EditQuotation = () => {
     );
   };
 
-  const updateColorPrice = (colorId, price) => {
-    setSelectedColors((prev) =>
-      prev.map((c) =>
-        Number(c.colorId) === Number(colorId)
-          ? { ...c, pricePerColor: Math.max(0, parseFloat(price) || 0) }
-          : c,
-      ),
-    );
-  };
-
   const updateFullColorCount = (colorId, count) => {
     // Keep the raw input so the field can be cleared/retyped on mobile without
     // snapping back to 1. Pricing reads via toNumber() (blank -> 0);
@@ -993,16 +980,6 @@ const EditQuotation = () => {
       prev.map((c) =>
         Number(c.colorId) === Number(colorId)
           ? { ...c, fullColorCount: Math.max(1, parseInt(c.fullColorCount, 10) || 1) }
-          : c,
-      ),
-    );
-  };
-
-  const updateFullColorPrice = (colorId, price) => {
-    setSelectedColors((prev) =>
-      prev.map((c) =>
-        Number(c.colorId) === Number(colorId)
-          ? { ...c, pricePerFullColor: Math.max(0, parseFloat(price) || 0) }
           : c,
       ),
     );
@@ -2027,18 +2004,6 @@ const EditQuotation = () => {
                                   onBlur={() => normalizeColorCount(part.colorId)}
                                   className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                                 />
-
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">{printMethodLabels.priceLabel}</label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={part.pricePerColor ?? 0}
-                                    onChange={(e) => updateColorPrice(part.colorId, e.target.value)}
-                                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                                  />
-                                </div>
                               </>
                             )}
 
@@ -2053,18 +2018,6 @@ const EditQuotation = () => {
                                     value={part.fullColorCount ?? ""}
                                     onChange={(e) => updateFullColorCount(part.colorId, e.target.value)}
                                     onBlur={() => normalizeFullColorCount(part.colorId)}
-                                    className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
-                                  />
-                                </div>
-
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">Price/Full Color</label>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    step="0.01"
-                                    value={part.pricePerFullColor ?? 0}
-                                    onChange={(e) => updateFullColorPrice(part.colorId, e.target.value)}
                                     className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
                                   />
                                 </div>

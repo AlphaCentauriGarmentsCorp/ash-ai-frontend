@@ -196,7 +196,7 @@ const FileUpload = ({
                   key={`${file.name}-${index}`}
                   className="flex items-center justify-between p-2 border border-gray-200 rounded hover:bg-gray-50"
                 >
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-3 min-w-0 flex-1">
                     <div className="h-12 w-12 flex items-center justify-center overflow-hidden rounded-md border border-gray-200 bg-gray-50 text-gray-400 shrink-0">
                       {file.type?.startsWith("image/") ? (
                         <ImagePreview file={file} />
@@ -204,8 +204,8 @@ const FileUpload = ({
                         getFileIcon(file)
                       )}
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-800 truncate max-w-xs">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-medium text-gray-800 truncate">
                         {file.name}
                       </p>
                       <p className="text-xs text-gray-500">
@@ -215,7 +215,7 @@ const FileUpload = ({
                   </div>
                   <button
                     type="button"
-                    className="text-red-500 hover:text-red-700"
+                    className="shrink-0 ml-2 p-2 text-red-500 hover:text-red-700"
                     onClick={(e) => handleRemoveFile(index, e)}
                     title="Remove file"
                   >
