@@ -298,6 +298,7 @@ const AllOrders = () => {
     // backend enforces this too with ORDER_LOCKED_FOR_EDIT.
     rowActions: (item) =>
       item?.is_editable ? ["view", "edit", "delete"] : ["view", "delete"],
+    rowClickAction: "view",
     pageSize: pageSize,
     pageSizeOptions: [10, 20, 50, 100, "All"],
     emptyMessage: "No orders found",

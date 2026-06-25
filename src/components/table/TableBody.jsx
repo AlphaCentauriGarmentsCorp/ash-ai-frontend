@@ -11,6 +11,24 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
   const { columns, selectedItems, onSelectItem, onAction, config } =
     useTableContext();
 
+  // Opt-in whole-row click: when a table sets config.rowClickAction (e.g.
+  // "view"), clicking anywhere on a row that isn't an interactive control
+  // fires that action via onAction. Tables that don't set it are unaffected.
+  const rowClickAction = config?.rowClickAction || null;
+
+  const handleRowClick = (item) => (e) => {
+    // Let inner controls (action buttons, the design-thumbnail anchor,
+    // checkboxes, links) keep their own behavior instead of navigating.
+    if (
+      e.target.closest(
+        "a, button, input, select, textarea, label, [data-no-row-click]"
+      )
+    ) {
+      return;
+    }
+    onAction?.(rowClickAction, item);
+  };
+
   const getAlignmentClass = (position) => {
     switch (position) {
       case "start":
@@ -110,7 +128,11 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
   return (
     <tbody className="bg-white divide-y divide-gray-200">
       {data.map((item, index) => (
-        <tr key={item.id || index} className="hover:bg-gray-50">
+        <tr
+          key={item.id || index}
+          className={`hover:bg-gray-50${rowClickAction ? " cursor-pointer" : ""}`}
+          onClick={rowClickAction ? handleRowClick(item) : undefined}
+        >
           {config.showCheckbox && (
             <td className="px-6 py-2 w-2">
               <div className="flex justify-center">
