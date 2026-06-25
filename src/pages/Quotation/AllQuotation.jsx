@@ -207,6 +207,7 @@ const AllQuotation = () => {
     search: true,
     filters: true,
     actions: ["view", "edit", "delete"],
+    rowClickAction: "view",
     pageSize: 10,
     emptyMessage: "No quotations found",
     searchPlaceholder: "Search quotations by client name, email, or quotation #...",
