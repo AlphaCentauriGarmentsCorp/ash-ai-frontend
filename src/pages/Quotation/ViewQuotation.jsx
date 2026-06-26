@@ -9,7 +9,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import TicketComposer from "../../components/tickets/TicketComposer"; // eslint-disable-line no-unused-vars
 import QuotationStatusActions from "../../components/quotation/QuotationStatusActions";
 import DesignReviewPanel from "../../components/quotation/DesignReviewPanel";
-import { partImage } from "../../utils/designImage";
+import { partImage, resolveImageUrl as resolveStorageUrl } from "../../utils/designImage";
 import DesignThumb from "../../components/common/DesignThumb";
 
 const ViewQuotation = () => {
@@ -280,6 +280,73 @@ const ViewQuotation = () => {
     quotation.apparel_neckline_id || quotation.neckline_id,
   );
 
+  // ── Print Information (mirrors pdf.blade.php + the Add form's method-key
+  // logic, QuotationService::resolvePrintMethodKey). print_method_name lives
+  // in item_config_json; special_print / print_area are top-level fields.
+  const printMethodName = itemConfig.print_method_name || null;
+  const pmKey = String(printMethodName || "").toLowerCase();
+  const methodKey =
+    pmKey.includes("dtf") || pmKey.includes("direct-to-film") ? "dtf"
+      : pmKey.includes("embroid") ? "embroidery"
+        : pmKey.includes("subli") ? "sublimation"
+          : pmKey.includes("silk") || pmKey.includes("screen") ? "silkscreen"
+            : (pmKey || "silkscreen");
+  const specialPrint = quotation.special_print || itemConfig.special_print || null;
+  const printArea = quotation.print_area || null;
+
+  let methodHeading = null;
+  let methodLabel = null;
+  let methodPrice = null;
+  if (methodKey === "embroidery") {
+    methodHeading = "Embroidery";
+    if ((itemConfig.embroidery_size || "small") === "large") {
+      methodLabel = "Large — manual";
+      methodPrice = itemConfig.embroidery_manual_price ?? 0;
+    } else {
+      methodLabel = "Small (pocket / left chest) — flat rate";
+    }
+  } else if (methodKey === "sublimation") {
+    methodHeading = "Sublimation";
+    const st = itemConfig.sublimation_type || "partial";
+    if (st === "jersey_full") methodLabel = "Full Jersey — flat rate";
+    else if (st === "mesh_shorts_full") methodLabel = "Full Mesh Shorts — flat rate";
+    else {
+      methodLabel = "Partial / Other — manual";
+      methodPrice = itemConfig.sublimation_manual_price ?? 0;
+    }
+  } else if (methodKey === "dtf") {
+    methodHeading = "DTF";
+    methodLabel = "Priced per sq. inch";
+  }
+
+  // DTF per-placement dimensions live on each print part. round(·*100)/100
+  // trims trailing zeros naturally (12.50 → "12.5", 12.00 → "12").
+  const fmtDim = (n) => (Math.round((Number(n) || 0) * 100) / 100).toString();
+  const dtfDims = methodKey === "dtf"
+    ? printParts
+      .filter((p) => p.width || p.height)
+      .map((p) => {
+        const lbl = p.part || (p.part_id ? `Part #${p.part_id}` : "Placement");
+        const pc = p.pieces;
+        return `${lbl}: ${fmtDim(p.width)} × ${fmtDim(p.height)} in${pc ? `, ${parseInt(pc, 10)} pc` : ""}`;
+      })
+    : [];
+
+  // ── Labels (mirrors pdf.blade.php $fmtLabel). Specs store display strings.
+  const brandLabel = parseJsonField(quotation.brand_label, {}) || {};
+  const careLabel = parseJsonField(quotation.care_label, {}) || {};
+  const fmtLabel = (l) => {
+    if (!l || !l.enabled) return null;
+    const parts = [l.material, l.method, l.placement, l.measurement ? `(${l.measurement})` : null].filter(Boolean);
+    return parts.length ? parts.join(" · ") : "Enabled";
+  };
+  const brandText = fmtLabel(brandLabel);
+  const careText = fmtLabel(careLabel);
+  const labelDesignUrl = quotation.label_design_path ? resolveStorageUrl(quotation.label_design_path) : "";
+
+  // Detailed Cost Breakdown: show only sizes that carry a quantity.
+  const visibleItems = items.filter((it) => (Number(it.quantity) || 0) > 0);
+
   const itemsSubtotal = items.length > 0
     ? items.reduce((sum, item) =>
       sum + (Number(item.total_amount) || Number(item.total)
@@ -363,22 +430,17 @@ const ViewQuotation = () => {
                   <span className="text-sm text-gray-600">Email:</span>
                   <span className="text-sm font-medium text-gray-800">{quotation.client_email || "N/A"}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <i className="fas fa-tag text-xs text-gray-400 w-4"></i>
-                  <span className="text-sm text-gray-600">Brand:</span>
-                  <span className="text-sm font-medium text-gray-800">{quotation.client_brand || "N/A"}</span>
-                </div>
               </div>
               <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <i className="fas fa-palette text-xs text-gray-400 w-4"></i>
-                  <span className="text-sm text-gray-600">Shirt Color:</span>
-                  <span className="text-sm font-medium text-gray-800">{quotation.shirt_color || "N/A"}</span>
-                </div>
                 <div className="flex items-center gap-2">
                   <i className="fas fa-gift text-xs text-gray-400 w-4"></i>
                   <span className="text-sm text-gray-600">Free Items:</span>
                   <span className="text-sm font-medium text-gray-800">{quotation.free_items || "None"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <i className="fas fa-tag text-xs text-gray-400 w-4"></i>
+                  <span className="text-sm text-gray-600">Brand:</span>
+                  <span className="text-sm font-medium text-gray-800">{quotation.client_brand || "N/A"}</span>
                 </div>
               </div>
             </div>
@@ -389,7 +451,7 @@ const ViewQuotation = () => {
             <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
               <i className="fas fa-tshirt"></i>Apparel Information
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
               <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
                 <p className="text-[11px] text-gray-500 uppercase tracking-wide">Apparel</p>
                 <p className="text-sm font-semibold text-gray-800 mt-1">{apparelName}</p>
@@ -401,6 +463,10 @@ const ViewQuotation = () => {
               <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
                 <p className="text-[11px] text-gray-500 uppercase tracking-wide">Neckline</p>
                 <p className="text-sm font-semibold text-gray-800 mt-1">{necklineName}</p>
+              </div>
+              <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
+                <p className="text-[11px] text-gray-500 uppercase tracking-wide">Shirt Color</p>
+                <p className="text-sm font-semibold text-gray-800 mt-1">{quotation.shirt_color || "N/A"}</p>
               </div>
             </div>
 
@@ -450,6 +516,90 @@ const ViewQuotation = () => {
               </table>
             </div>
           </div>
+
+          {/* Print Information */}
+          {printMethodName && (
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                <i className="fas fa-print"></i>Print Information
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
+                  <p className="text-[11px] text-gray-500 uppercase tracking-wide">Print Method</p>
+                  <p className="text-sm font-semibold text-gray-800 mt-1">{printMethodName}</p>
+                </div>
+                {methodKey === "silkscreen" && specialPrint && (
+                  <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wide">Special Print</p>
+                    <p className="text-sm font-semibold text-gray-800 mt-1">{specialPrint}</p>
+                  </div>
+                )}
+                {methodKey === "silkscreen" && printArea && (
+                  <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wide">Print Area</p>
+                    <p className="text-sm font-semibold text-gray-800 mt-1">{printArea}</p>
+                  </div>
+                )}
+                {methodLabel && (
+                  <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wide">{methodHeading}</p>
+                    <p className="text-sm font-semibold text-gray-800 mt-1">
+                      {methodLabel}
+                      {methodPrice !== null && methodPrice !== undefined ? ` ${formatCurrency(methodPrice)}` : ""}
+                    </p>
+                  </div>
+                )}
+              </div>
+              {dtfDims.length > 0 && (
+                <div className="mt-3 rounded-lg border border-gray-200 bg-light/20 p-3">
+                  <p className="text-[11px] text-gray-500 uppercase tracking-wide mb-1">Placement Sizes</p>
+                  <ul className="text-sm text-gray-800 space-y-0.5 list-disc list-inside">
+                    {dtfDims.map((d, i) => (
+                      <li key={i}>{d}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Labels */}
+          {(brandText || careText || labelDesignUrl) && (
+            <div className="p-6 border-b border-gray-200">
+              <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
+                <i className="fas fa-tags"></i>Labels
+              </h2>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {brandText && (
+                  <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wide">Brand Label</p>
+                    <p className="text-sm font-medium text-gray-800 mt-1">{brandText}</p>
+                    {brandLabel.notes ? (
+                      <p className="text-xs text-gray-500 mt-1">{brandLabel.notes}</p>
+                    ) : null}
+                  </div>
+                )}
+                {careText && (
+                  <div className="rounded-lg border border-gray-200 bg-light/20 p-3">
+                    <p className="text-[11px] text-gray-500 uppercase tracking-wide">Care / Size Label</p>
+                    <p className="text-sm font-medium text-gray-800 mt-1">{careText}</p>
+                    {careLabel.notes ? (
+                      <p className="text-xs text-gray-500 mt-1">{careLabel.notes}</p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+              {labelDesignUrl && (
+                <div className="mt-3 flex items-center gap-3">
+                  <span className="text-sm text-gray-600">Label Design:</span>
+                  <DesignThumb url={labelDesignUrl} alt="Label Design" />
+                  <a href={labelDesignUrl} target="_blank" rel="noreferrer" className="text-xs text-primary hover:underline">
+                    View file
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Issue 8 — Design review (read-only here; the GA edits it on the
               dedicated review surface). CSR can send / re-send to the GA. */}
@@ -555,7 +705,7 @@ const ViewQuotation = () => {
             )}
 
           {/* Detailed Cost Breakdown */}
-          {items.length > 0 && (
+          {visibleItems.length > 0 && (
             <div className="p-6 border-b border-gray-200 bg-light/10">
               <h2 className="text-sm font-semibold text-primary mb-3 flex items-center gap-2">
                 <i className="fas fa-receipt"></i>Detailed Cost Breakdown
@@ -575,7 +725,7 @@ const ViewQuotation = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {items.map((item, idx) => {
+                    {visibleItems.map((item, idx) => {
                       // Authoritative per-piece figures come from items_json
                       // (the engine's output), not the stale local breakdown.
                       const base = Number(item.base_price) || 0;
