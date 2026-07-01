@@ -2,10 +2,6 @@ import React from "react";
 import { Section } from "../common/Section";
 import Input from "../../../../../components/form/Input";
 import Select from "../../../../../components/form/Select";
-import {
-  brands,
-  priorityList,
-} from "../../../../../constants/formOptions/orderOptions";
 
 export const OrderInformationSection = ({
   formData,
@@ -41,7 +37,7 @@ export const OrderInformationSection = ({
       />
 
       <Select
-        label="Clothing / Company"
+        label="Brand"
         name="company"
         options={clientBrands}
         value={formData.company || ""}
@@ -58,32 +54,6 @@ export const OrderInformationSection = ({
         required
         disabled={!formData.client || clientsLoading}
       />
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Select
-          label="Brand"
-          name="brand"
-          options={brands}
-          value={formData.brand || ""}
-          onChange={handleChange}
-          placeholder="Select brand"
-          searchable
-          error={errors.brand}
-          required
-        />
-
-        <Select
-          label="Priority"
-          name="priority"
-          options={priorityList}
-          value={formData.priority || ""}
-          onChange={handleChange}
-          placeholder="Select Priority"
-          searchable
-          error={errors.priority}
-          required
-        />
-      </div>
     </div>
   </Section>
 );

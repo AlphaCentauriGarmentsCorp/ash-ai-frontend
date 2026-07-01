@@ -22,9 +22,6 @@ const toDateInput = (value) => {
 export const mapOrderEditOverlay = (order) => {
   if (!order) return {};
   return {
-    // Apparel brand (Sorbetes / Reefer / …) — distinct from client_brand/company.
-    brand: order.brand ?? "",
-    priority: order.priority ?? "",
     deadline: toDateInput(order.deadline),
 
     // Shipping / courier
@@ -61,6 +58,14 @@ export const mapOrderEditOverlay = (order) => {
     fabric_color: order.fabric_color ?? "",
     thread_color: order.thread_color ?? "",
     ribbing_color: order.ribbing_color ?? "",
+    // "Keep the same color for other": on only when Thread and Ribbing
+    // both already match Fabric Color. Spread after the quotation prefill,
+    // so this overrides the prefill default in Edit mode.
+    same_fabric_color: Boolean(
+      (order.fabric_color ?? "") &&
+        (order.thread_color ?? "") === (order.fabric_color ?? "") &&
+        (order.ribbing_color ?? "") === (order.fabric_color ?? "")
+    ),
 
     // Freebies
     freebie_items: order.freebie_items ?? "",

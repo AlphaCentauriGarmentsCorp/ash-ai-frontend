@@ -130,6 +130,21 @@ export const useQuotationPrefill = (prefill) => {
             print_area: prefill.print_area ?? "",
             notes: prefill.notes ?? "",
 
+            // Fabric colours — the garment colour picked on the quotation
+            // (shirt_color) seeds Fabric Color, and Thread + Ribbing follow
+            // it with the "same colour" toggle ON, so the Add Order fabric
+            // section mirrors the quotation. Only when a colour was carried;
+            // on Edit the saved order's own fabric colours override this
+            // (see mapOrderEditOverlay, spread after the prefill).
+            ...(prefill.shirt_color
+              ? {
+                  fabric_color: prefill.shirt_color,
+                  thread_color: prefill.shirt_color,
+                  ribbing_color: prefill.shirt_color,
+                  same_fabric_color: true,
+                }
+              : {}),
+
             // Print configuration → drives engine re-pricing + configurator UI
             print_parts: prefillPrintParts,
             print_method_config: prefillPrintMethodConfig,

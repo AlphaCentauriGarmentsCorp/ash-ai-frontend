@@ -7,8 +7,6 @@ export const orderInitialState = {
   client: "",
   deadline: "", // will be set dynamically to default +14 days in the component
   company: "",
-  brand: "",
-  priority: "",
 
   // Courier Information
   courier: "",
