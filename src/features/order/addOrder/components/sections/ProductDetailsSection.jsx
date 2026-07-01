@@ -2,18 +2,18 @@ import React from "react";
 import { Section } from "../common/Section";
 import Input from "../../../../../components/form/Input";
 import Select from "../../../../../components/form/Select";
+import LabelSpecSection from "../../../../../components/quotation/LabelSpecSection";
 import { printServiceList } from "../../../../../constants/formOptions/orderOptions";
 
 export const ProductDetailsSection = ({
   formData,
+  setFormData,
   handleChange,
   errors,
   apparelTypeOptions,
   patternTypeOptions,
   serviceTypeOptions,
   printMethodOptions,
-  sizeLabelOptions,
-  printLabelPlacementOptions,
   optionsLoading,
 }) => {
   // "High Density" is a silkscreen Special Print, not a standalone print
@@ -108,32 +108,20 @@ export const ProductDetailsSection = ({
         />
       </div>
 
-      <Select
-        label="Size Label"
-        name="size_label"
-        options={sizeLabelOptions}
-        value={formData.size_label || ""}
-        onChange={handleChange}
-        placeholder="Select size label"
-        searchable
-        error={errors.size_label}
-        required
-        loading={optionsLoading}
-      />
-
-      <Select
-        label="Print Label Placement"
-        name="print_label_placement"
-        options={printLabelPlacementOptions}
-        value={formData.print_label_placement || ""}
-        onChange={handleChange}
-        placeholder="Select print label placement"
-        searchable
-        error={errors.print_label_placement}
-        required
-        loading={optionsLoading}
-      />
     </div>
+
+    {/* Labels (Brand + Care/Size + shared design) — SAME shared component the
+        Quotation form uses, so a converted quotation prefills 1:1. */}
+    <LabelSpecSection
+      brandLabel={formData.brandLabel}
+      careLabel={formData.careLabel}
+      onBrandLabelChange={(next) => setFormData((p) => ({ ...p, brandLabel: next }))}
+      onCareLabelChange={(next) => setFormData((p) => ({ ...p, careLabel: next }))}
+      labelDesign={formData.labelDesign}
+      onLabelDesignChange={(next) => setFormData((p) => ({ ...p, labelDesign: next }))}
+      brandLabelErrors={errors.brandLabel || {}}
+      careLabelErrors={errors.careLabel || {}}
+    />
   </Section>
   );
 };

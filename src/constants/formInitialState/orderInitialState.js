@@ -1,5 +1,6 @@
 import { options } from "../formOptions/orderOptions";
 import { defaultSize } from "../formOptions/orderOptions";
+import { EMPTY_LABEL, EMPTY_LABEL_DESIGN } from "../../components/quotation/LabelSpecSection";
 
 export const orderInitialState = {
   // Order Information
@@ -43,8 +44,9 @@ export const orderInitialState = {
   // colour count per placement). DTF: { part, width, height, pieces }. Empty
   // for embroidery/sublimation (flat/manual).
   print_parts: [],
-  size_label: "",
-  print_label_placement: "",
+  brandLabel: EMPTY_LABEL,
+  careLabel: EMPTY_LABEL,
+  labelDesign: EMPTY_LABEL_DESIGN,
 
   // Fabric Details
   fabric_type: "",
@@ -73,7 +75,6 @@ export const orderInitialState = {
   // Design Files & Mockups
   design_files: [],
   design_mockup: [],
-  size_label_files: [],
   placement_measurements: "",
   notes: "",
 

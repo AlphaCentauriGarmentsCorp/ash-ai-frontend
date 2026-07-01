@@ -117,14 +117,6 @@ export const DesignFilesSection = ({
         acceptedTypes=".jpg,.jpeg,.png,.webp"
       />
 
-      <FileUploadSection
-        label="Size Label"
-        name="size_label_files"
-        value={formData.size_label_files || []}
-        onChange={handleFileChange}
-        error={errors.size_label_files}
-      />
-
       <div className="px-6 py-4">
         <Select
           label="Placement Measurements"

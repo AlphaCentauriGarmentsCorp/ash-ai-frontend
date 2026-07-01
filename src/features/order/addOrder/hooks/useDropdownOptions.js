@@ -7,10 +7,6 @@ export const useDropdownOptions = () => {
   const [patternTypeOptions, setPatternTypeOptions] = useState([]);
   const [serviceTypeOptions, setServiceTypeOptions] = useState([]);
   const [printMethodOptions, setPrintMethodOptions] = useState([]);
-  const [sizeLabelOptions, setSizeLabelOptions] = useState([]);
-  const [printLabelPlacementOptions, setPrintLabelPlacementOptions] = useState(
-    [],
-  );
   const [specialPrintOptions, setSpecialPrintOptions] = useState([]);
   const [apparelPatternPrices, setApparelPatternPrices] = useState([]);
   const [serverError, setServerError] = useState("");
@@ -24,8 +20,6 @@ export const useDropdownOptions = () => {
       setPatternTypeOptions(options.patternTypes);
       setServiceTypeOptions(options.serviceTypes);
       setPrintMethodOptions(options.printMethods);
-      setSizeLabelOptions(options.sizeLabels);
-      setPrintLabelPlacementOptions(options.printLabelPlacements);
       setSpecialPrintOptions(options.specialPrints);
       setApparelPatternPrices(options.apparelPatternPrices);
     } catch (err) {
@@ -41,8 +35,6 @@ export const useDropdownOptions = () => {
     patternTypeOptions,
     serviceTypeOptions,
     printMethodOptions,
-    sizeLabelOptions,
-    printLabelPlacementOptions,
     specialPrintOptions,
     apparelPatternPrices,
     serverError,

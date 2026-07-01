@@ -9,6 +9,8 @@
  * client-master brand defaults) so the order's own saved values win.
  */
 
+import { EMPTY_LABEL, EMPTY_LABEL_DESIGN } from "../../../../components/quotation/LabelSpecSection";
+
 // Accepts "2026-07-01", "2026-07-01 00:00:00", or ISO "2026-07-01T00:00:00Z"
 // and returns the YYYY-MM-DD a <input type="date"> expects.
 const toDateInput = (value) => {
@@ -40,8 +42,20 @@ export const mapOrderEditOverlay = (order) => {
     design_name: order.design_name ?? "",
     service_type: order.service_type ?? "",
     print_service: order.print_service ?? "",
-    size_label: order.size_label ?? "",
-    print_label_placement: order.print_label_placement ?? "",
+    // Labels — seed the shared LabelSpecSection state from the saved order
+    // (mirrors EditQuotation). brand_label / care_label come back as objects;
+    // the shared design is surfaced via existingPath.
+    brandLabel:
+      order.brand_label && typeof order.brand_label === "object"
+        ? { ...EMPTY_LABEL, ...order.brand_label }
+        : EMPTY_LABEL,
+    careLabel:
+      order.care_label && typeof order.care_label === "object"
+        ? { ...EMPTY_LABEL, ...order.care_label }
+        : EMPTY_LABEL,
+    labelDesign: order.label_design_path
+      ? { ...EMPTY_LABEL_DESIGN, existingPath: order.label_design_path }
+      : EMPTY_LABEL_DESIGN,
     fabric_type: order.fabric_type ?? "",
     fabric_supplier: order.fabric_supplier ?? "",
     fabric_color: order.fabric_color ?? "",
