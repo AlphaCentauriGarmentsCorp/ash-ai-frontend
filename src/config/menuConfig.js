@@ -311,6 +311,24 @@ export const getMenuByPermissions = (user = null) => {
       section: "Production Portals",
       items: [
         {
+          name: "Graphic Artist Portal",
+          icon: "fa-solid fa-pen-ruler",
+          path: "/portal/graphic-artist",
+          requiredPermissions: ["portal.graphic-artist"],
+        },
+        {
+          name: "Screen Maker Portal",
+          icon: "fa-solid fa-stamp",
+          path: "/portal/screen-maker",
+          requiredPermissions: ["portal.screen-maker"],
+        },
+        {
+          name: "Material Prep Portal",
+          icon: "fa-solid fa-cart-shopping",
+          path: "/portal/material-prep",
+          requiredPermissions: ["portal.material-prep"],
+        },
+        {
           name: "Cutter Portal",
           icon: "fa-solid fa-scissors",
           path: "/portal/cutter",
@@ -328,36 +346,18 @@ export const getMenuByPermissions = (user = null) => {
           path: "/portal/sewer",
           requiredPermissions: ["portal.sewer"],
         },
-        {
-          name: "Screen Maker Portal",
-          icon: "fa-solid fa-stamp",
-          path: "/portal/screen-maker",
-          requiredPermissions: ["portal.screen-maker"],
-        },
-        {
-          name: "Material Prep Portal",
-          icon: "fa-solid fa-cart-shopping",
-          path: "/portal/material-prep",
-          requiredPermissions: ["portal.material-prep"],
-        },
-        {
-          name: "Graphic Artist Portal",
-          icon: "fa-solid fa-pen-ruler",
-          path: "/portal/graphic-artist",
-          requiredPermissions: ["portal.graphic-artist"],
-        },
-        {
-          name: "Logistics Portal",
-          icon: "fa-solid fa-truck-fast",
-          path: "/portal/logistics",
-          requiredPermissions: ["portal.logistics"],
-        },
         // ── Phase 7-B: QA / Packer Portal ─────────────────────────────
         {
           name: "QA / Packer Portal",
           icon: "fa-solid fa-clipboard-check",
           path: "/portal/qa-packer",
           requiredPermissions: ["portal.qa-packer"],
+        },
+        {
+          name: "Logistics Portal",
+          icon: "fa-solid fa-truck-fast",
+          path: "/portal/logistics",
+          requiredPermissions: ["portal.logistics"],
         },
         // ── Phase 6-A: CSR Hub ────────────────────────────────────────
         {

@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { stageOrdinal, findStage, getParallelTiers } from "../../../constants/formOptions/orderStages";
+import { getRoleDisplayName } from "../../../config/roleConfig";
 import { reportsApi } from "../../../api/reportsApi";
 import { stageInputsApi } from "../../../api/stageInputsApi";
 import { subcontractApi } from "../../../api/subcontractApi";
@@ -22,6 +24,10 @@ import { subcontractApi } from "../../../api/subcontractApi";
  *
  * The page is read-only — actions live in the workflow controls.
  */
+
+// Tiers shared by >1 stage (the sample-phase fork). Used to badge parallel
+// stages, mirroring the Workflow Timeline and Review Hub.
+const PARALLEL_TIERS = new Set(getParallelTiers());
 
 const formatDateTime = (s) => {
   if (!s) return "—";
@@ -193,10 +199,12 @@ const ActivityLog = ({ order }) => {
 
   // Attach the matching DB stage_id from the order.orderStages prop, since
   // production-timeline doesn't include the OrderStage primary key directly.
-  // Match by stage slug + sequence.
-  const stageIdBySequence = {};
+  // Match by the unique stage slug — NOT sequence: the two sample-phase fork
+  // stages share sequence 6, so a sequence key collides and would attach a
+  // stage's waste/reject/subcontract rows to its parallel sibling.
+  const stageIdBySlug = {};
   (order?.orderStages || []).forEach((s) => {
-    stageIdBySequence[s.sequence] = s.id;
+    stageIdBySlug[s.stage] = s.id;
   });
 
   const stageTotals = timeline.reduce(
@@ -255,7 +263,7 @@ const ActivityLog = ({ order }) => {
       {/* Stage list */}
       <div className="flex flex-col gap-y-3">
         {timeline.map((t, idx) => {
-          const stageDbId = stageIdBySequence[t.sequence];
+          const stageDbId = stageIdBySlug[t.stage];
           const details = stageDbId ? detailsByStageId[stageDbId] : null;
           const wasteEntries = details?.waste ?? [];
           const rejectEntries = details?.reject ?? [];
@@ -278,19 +286,24 @@ const ActivityLog = ({ order }) => {
               {/* Header row */}
               <div className="flex items-start gap-3 flex-wrap">
                 <span className="text-xs font-mono bg-gray-50 border border-gray-200 rounded px-2 py-0.5 text-gray-600 mt-0.5">
-                  #{t.sequence}
+                  #{stageOrdinal(t.stage) ?? t.sequence}
                 </span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <h4 className="text-sm font-semibold text-gray-900 capitalize">
-                      {String(t.stage).replace(/_/g, " ")}
+                      {findStage(t.stage)?.label || String(t.stage).replace(/_/g, " ")}
                     </h4>
                     <PhaseChip phase={t.phase} />
                     <StatusBadge status={t.status} />
+                    {PARALLEL_TIERS.has(t.sequence) && (
+                      <span className="text-[10px] uppercase tracking-wide px-2 py-0.5 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 inline-flex items-center gap-1">
+                        <i className="fa-solid fa-code-branch" /> Parallel
+                      </span>
+                    )}
                     {t.assigned_role && (
                       <span className="text-[10px] text-gray-500 inline-flex items-center gap-1">
                         <i className="fa-solid fa-user-tag" />
-                        {String(t.assigned_role).replace(/_/g, " ")}
+                        {getRoleDisplayName(t.assigned_role)}
                       </span>
                     )}
                   </div>
