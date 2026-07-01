@@ -1,6 +1,5 @@
 import React from "react";
 import { Section } from "../common/Section";
-import { FileUploadSection } from "../common/FileUploadSection";
 import Input from "../../../../../components/form/Input";
 import Select from "../../../../../components/form/Select";
 import {
@@ -12,7 +11,6 @@ export const PaymentSection = ({
   formData,
   handleChange,
   handleDepositPercentageChange,
-  handleFileChange,
   errors,
   summary,
 }) => (
@@ -75,16 +73,6 @@ export const PaymentSection = ({
           readOnly
         />
       </div>
-    </div>
-
-    <div className="p-4 lg:px-25">
-      <FileUploadSection
-        label="Receipt and Bank Account Details"
-        name="payments"
-        value={formData.payments || []}
-        onChange={handleFileChange}
-        error={errors.payments}
-      />
     </div>
   </Section>
 );

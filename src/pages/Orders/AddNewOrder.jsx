@@ -359,8 +359,6 @@ export default function AddNewOrder({ editOrder = null }) {
           client_id: formData.client || "",
           client_name: clientName,
           client_brand: formData.company || "",
-          // Apparel brand (Sorbetes / Reefer / etc)
-          brand: formData.brand || "",
           // Apparel + pattern + print method (the form has dropdowns
           // bound to these — submit them so the validator + service
           // can persist them on the order row).
@@ -392,7 +390,6 @@ export default function AddNewOrder({ editOrder = null }) {
             : (rawPrefill?.grand_total ?? summary.estimatedTotal),
           // Order form fields
           deadline: formData.deadline || "",
-          priority: formData.priority || "",
           courier: formData.courier || "",
           method: formData.method || "",
           receiver_name: formData.receiver_name || "",

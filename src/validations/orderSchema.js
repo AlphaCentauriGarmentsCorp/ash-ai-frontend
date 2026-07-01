@@ -12,27 +12,17 @@ export const orderSchema = {
 
   company: {
     required: true,
-    message: "Company is required.",
-  },
-
-  brand: {
-    required: true,
     message: "Brand is required.",
-  },
-
-  priority: {
-    required: true,
-    message: "Priority is required.",
   },
 
   // Courier Information
   courier: {
-    required: false,
+    required: true,
     message: "Preferred courier is required.",
   },
 
   method: {
-    required: false,
+    required: true,
     message: "Shipping method is required.",
   },
 
