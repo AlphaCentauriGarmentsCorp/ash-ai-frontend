@@ -35,6 +35,7 @@ export const roleDisplayNames = {
   packer: "Packer",
   warehouse_manager: "Warehouse Manager",
   screen_maker: "Screen Maker",
+  material_prep: "Material Prep",
   sample_maker: "Sample Maker",
   logistics: "Logistics",
   subcontract: "Subcontract",

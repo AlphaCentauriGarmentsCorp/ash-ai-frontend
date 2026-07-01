@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { OrderStages, isPaymentGate } from "../../../constants/formOptions/orderStages";
+import { OrderStages, isPaymentGate, stageOrdinal, getStatusMeta, findStage, getParallelTiers } from "../../../constants/formOptions/orderStages";
+import { getRoleDisplayName } from "../../../config/roleConfig";
 import { stageReviewApi } from "../../../api/stageReviewApi";
 import { useAuth } from "../../../hooks/useAuth";
 import { hasRequiredPermissions } from "../../../utils/authz";
@@ -38,6 +39,10 @@ const labelFor = (slug) =>
   OrderStages.find((d) => d.value === slug)?.label || slug;
 const iconFor = (slug) =>
   OrderStages.find((d) => d.value === slug)?.icon || "fa-circle";
+
+// Tiers shared by >1 stage (the sample-phase fork). Used to badge parallel
+// stages, mirroring the Workflow Timeline.
+const PARALLEL_TIERS = new Set(getParallelTiers());
 
 const RejectModal = ({ stage, onClose, onSubmit, busy }) => {
   const [comment, setComment] = useState("");
@@ -113,6 +118,8 @@ const StageCard = ({ stage, state, history, uploads, canReview, onApprove, onRej
   const badge = STATE_BADGE[state?.review_state || "none"];
   const busy = busyId === stage.id;
   const paymentGate = isPaymentGate(stage.stage);
+  const statusMeta = getStatusMeta(stage.status);
+  const isParallel = PARALLEL_TIERS.has(stage.sequence);
   // Whether THIS viewer can act on the stage. For a payment gate the backend
   // returns can_approve/can_reject false unless the viewer has verify-payment,
   // so a CSR ends up with no actionable buttons here (read-only).
@@ -121,22 +128,32 @@ const StageCard = ({ stage, state, history, uploads, canReview, onApprove, onRej
   return (
     <div className="rounded-xl border border-gray-200 p-4">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <i className={`fa-solid ${iconFor(stage.stage)} text-gray-400`} />
+        <div className="flex items-start gap-3">
+          <i className={`fa-solid ${iconFor(stage.stage)} mt-1 text-gray-400`} />
           <div>
-            <p className="font-semibold text-gray-800">
-              <span className="text-gray-400">#{stage.sequence}</span>{" "}
-              {labelFor(stage.stage)}
-            </p>
-            <p className="text-xs text-gray-500">
-              {stage.assigned_role
-                ? stage.assigned_role.replace(/_/g, " ")
-                : "—"}{" "}
-              · workflow status: {stage.status}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded border border-gray-200 bg-gray-50 px-2 py-0.5 font-mono text-xs text-gray-600">
+                #{stageOrdinal(stage.stage) ?? stage.sequence}
+              </span>
+              <p className="font-semibold text-gray-800">{labelFor(stage.stage)}</p>
+              {isParallel && (
+                <span className="inline-flex items-center gap-1 rounded-full border border-indigo-200 bg-indigo-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-indigo-700">
+                  <i className="fa-solid fa-code-branch" /> Parallel
+                </span>
+              )}
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-gray-500">
+              <span className="inline-flex items-center gap-1">
+                <i className="fa-solid fa-user-tag text-gray-400" />
+                {getRoleDisplayName(stage.assigned_role || findStage(stage.stage)?.role)}
+              </span>
+              <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide ${statusMeta.bg} ${statusMeta.text} ${statusMeta.border}`}>
+                {statusMeta.label}
+              </span>
+            </div>
           </div>
         </div>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${badge.cls}`}>
+        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${badge.cls}`}>
           {badge.label}
         </span>
       </div>
@@ -274,9 +291,12 @@ const ReviewHub = ({ order, onChanged }) => {
   // stages have no output yet. Sorted by sequence (already is, defensively).
   const stages = useMemo(() => {
     const list = Array.isArray(order?.orderStages) ? order.orderStages : [];
+    // Order by the human ordinal (1..N) so on-screen order matches the "#N"
+    // badges — not the raw dependency tier, which reuses a number at the fork.
+    const ord = (s) => stageOrdinal(s.stage) ?? s.sequence ?? 0;
     return [...list]
       .filter((s) => s.status && s.status !== "pending")
-      .sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+      .sort((a, b) => ord(a) - ord(b));
   }, [order]);
 
   const load = useCallback(async () => {
