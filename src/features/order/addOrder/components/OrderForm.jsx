@@ -16,6 +16,7 @@ import { SampleSizesSection } from "./sections/SampleSizesSection";
 
 export const OrderForm = ({
   formData,
+  setFormData,
   errors,
   serverError,
   handleChange,
@@ -39,8 +40,6 @@ export const OrderForm = ({
   patternTypeOptions,
   serviceTypeOptions,
   printMethodOptions,
-  sizeLabelOptions,
-  printLabelPlacementOptions,
   specialPrintOptions,
   onPrintConfigChange,
   onPrintPartsChange,
@@ -117,14 +116,13 @@ export const OrderForm = ({
 
         <ProductDetailsSection
           formData={formData}
+          setFormData={setFormData}
           handleChange={handleChange}
           errors={errors}
           apparelTypeOptions={apparelTypeOptions}
           patternTypeOptions={patternTypeOptions}
           serviceTypeOptions={serviceTypeOptions}
           printMethodOptions={printMethodOptions}
-          sizeLabelOptions={sizeLabelOptions}
-          printLabelPlacementOptions={printLabelPlacementOptions}
           optionsLoading={optionsLoading}
         />
 
@@ -170,7 +168,6 @@ export const OrderForm = ({
           onAddSample={onAddSample}
           onRemoveSample={onRemoveSample}
           errors={{ ...errors, samples: sampleErrors }}
-          sizeLabelOptions={sizeLabelOptions}
         />
 
         <DesignFilesSection

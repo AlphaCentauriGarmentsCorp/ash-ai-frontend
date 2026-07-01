@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import FileUpload from "../form/FileUpload";
 import { quotationLabelApi } from "../../api/quotationLabelApi";
+import { resolveImageUrl } from "../../utils/designImage";
 
 /**
  * Issue 7 — Brand Label + Care/Size Label spec (SHARED component).
@@ -46,13 +47,15 @@ export const EMPTY_LABEL_DESIGN = {
   existingPath: null,
 };
 
-const SelectField = ({ label, value, options, onChange, placeholder }) => (
+const SelectField = ({ label, value, options, onChange, placeholder, error }) => (
   <div>
     <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
     <select
       value={value || ""}
       onChange={(e) => onChange(e.target.value)}
-      className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary"
+      className={`w-full px-2 py-1.5 text-xs border rounded-lg focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary ${
+        error ? "border-red-400" : "border-gray-200"
+      }`}
     >
       <option value="">{placeholder}</option>
       {options.map((opt) => (
@@ -61,6 +64,7 @@ const SelectField = ({ label, value, options, onChange, placeholder }) => (
         </option>
       ))}
     </select>
+    {error ? <p className="mt-0.5 text-[11px] text-red-500">{error}</p> : null}
   </div>
 );
 
@@ -68,7 +72,7 @@ const SelectField = ({ label, value, options, onChange, placeholder }) => (
  * One label spec card (Brand or Care/Size). Both labels share the exact same
  * structure (material + method + placement), per the confirmed spec.
  */
-const LabelCard = ({ title, hint, spec, onChange, options }) => {
+const LabelCard = ({ title, hint, spec, onChange, options, errors = {} }) => {
   const set = (patch) => onChange({ ...spec, ...patch });
 
   return (
@@ -92,6 +96,7 @@ const LabelCard = ({ title, hint, spec, onChange, options }) => {
             options={options.materials}
             onChange={(v) => set({ material: v })}
             placeholder="Select material"
+            error={errors.material}
           />
           <SelectField
             label="Method"
@@ -99,6 +104,7 @@ const LabelCard = ({ title, hint, spec, onChange, options }) => {
             options={options.methods}
             onChange={(v) => set({ method: v })}
             placeholder="Select method"
+            error={errors.method}
           />
           <SelectField
             label="Placement"
@@ -106,6 +112,7 @@ const LabelCard = ({ title, hint, spec, onChange, options }) => {
             options={options.placements}
             onChange={(v) => set({ placement: v })}
             placeholder="Select placement"
+            error={errors.placement}
           />
           <SelectField
             label="Measurement (optional)"
@@ -137,6 +144,8 @@ const LabelSpecSection = ({
   onCareLabelChange,
   labelDesign,
   onLabelDesignChange,
+  brandLabelErrors = {},
+  careLabelErrors = {},
 }) => {
   const [options, setOptions] = useState({
     materials: [],
@@ -197,6 +206,7 @@ const LabelSpecSection = ({
             spec={brandLabel || EMPTY_LABEL}
             onChange={onBrandLabelChange}
             options={options}
+            errors={brandLabelErrors}
           />
 
           <LabelCard
@@ -205,6 +215,7 @@ const LabelSpecSection = ({
             spec={careLabel || EMPTY_LABEL}
             onChange={onCareLabelChange}
             options={options}
+            errors={careLabelErrors}
           />
 
           {/* ONE shared label-design upload (covers both labels). Mirrors the
@@ -265,11 +276,34 @@ const LabelSpecSection = ({
                 />
               )}
 
-              {/* Show the currently-saved design (Edit) when no new one is staged. */}
+              {/* Show the currently-saved design (Edit / converted from quotation)
+                  when no new one is staged — with a thumbnail preview. A freshly
+                  picked File is previewed by FileUpload itself; this covers the
+                  existingPath case, which has no File to preview. */}
               {design.existingPath && !design.file && (design.inputType !== "link" || !design.link) ? (
-                <p className="text-[11px] text-gray-500 break-all">
-                  Current: {design.existingPath}
-                </p>
+                <div className="flex items-start gap-2">
+                  <img
+                    src={resolveImageUrl(design.existingPath)}
+                    alt="Current label design"
+                    className="h-12 w-12 shrink-0 rounded border border-gray-200 object-cover bg-white"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                    }}
+                  />
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-gray-500 break-all">
+                      Current: {design.existingPath}
+                    </p>
+                    <a
+                      href={resolveImageUrl(design.existingPath)}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-[11px] text-primary hover:underline"
+                    >
+                      View file
+                    </a>
+                  </div>
+                </div>
               ) : null}
             </div>
           )}

@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { getDefaultDeadline } from "../utils/orderHelpers";
+import { EMPTY_LABEL, EMPTY_LABEL_DESIGN } from "../../../../components/quotation/LabelSpecSection";
 
 /**
  * useQuotationPrefill
@@ -109,6 +110,10 @@ export const useQuotationPrefill = (prefill) => {
             sublimation_manual_price: Number(itemConfig.sublimation_manual_price ?? 0),
         };
 
+        // Labels carried from the quotation (safeJson tolerates object OR string).
+        const brandLabelRaw = safeJson(prefill.brand_label, null);
+        const careLabelRaw = safeJson(prefill.care_label, null);
+
         return {
             // Client
             client: prefill.client_id ?? "",
@@ -141,6 +146,20 @@ export const useQuotationPrefill = (prefill) => {
             // Addons mapped to selectedOptions shape (name + color placeholder)
             _prefillAddons: addons,
             _prefillSamples: prefillSamples,
+
+            // Labels — carried from the quotation so the shared LabelSpecSection
+            // renders the same spec (brand/care objects; design via existingPath).
+            brandLabel:
+              brandLabelRaw && typeof brandLabelRaw === "object"
+                ? { ...EMPTY_LABEL, ...brandLabelRaw }
+                : EMPTY_LABEL,
+            careLabel:
+              careLabelRaw && typeof careLabelRaw === "object"
+                ? { ...EMPTY_LABEL, ...careLabelRaw }
+                : EMPTY_LABEL,
+            labelDesign: prefill.label_design_path
+              ? { ...EMPTY_LABEL_DESIGN, existingPath: prefill.label_design_path }
+              : EMPTY_LABEL_DESIGN,
 
             // Quotation linkage
             quotation_id: prefill.quotation_id ?? "",

@@ -108,8 +108,6 @@ export default function AddNewOrder({ editOrder = null }) {
     patternTypeOptions,
     serviceTypeOptions,
     printMethodOptions,
-    sizeLabelOptions,
-    printLabelPlacementOptions,
     specialPrintOptions,
     apparelPatternPrices,
     fetchDropdownOptions,
@@ -407,8 +405,6 @@ export default function AddNewOrder({ editOrder = null }) {
           design_name: formData.design_name || "",
           service_type: formData.service_type || "",
           print_service: formData.print_service || "",
-          size_label: formData.size_label || "",
-          print_label_placement: formData.print_label_placement || "",
           fabric_type: formData.fabric_type || "",
           fabric_supplier: formData.fabric_supplier || "",
           fabric_color: formData.fabric_color || "",
@@ -466,8 +462,23 @@ export default function AddNewOrder({ editOrder = null }) {
           engineTotals ? enginePayload?.item_config_json : rawPrefill?.item_config_json
         );
 
+        // ── Labels (Brand + Care/Size spec + one shared design) ───────────
+        // Same wire shape as the Quotation form, so convert-from-quotation is
+        // a 1:1 round-trip. Blobs are JSON strings; the design is a file OR a
+        // link OR the echoed existing path (preserved on edit).
+        fd.append("brand_label_json", JSON.stringify(formData.brandLabel || {}));
+        fd.append("care_label_json", JSON.stringify(formData.careLabel || {}));
+        const ld = formData.labelDesign || {};
+        if (ld.inputType === "file" && ld.file) {
+          fd.append("label_design_file", ld.file);
+        } else if (ld.inputType === "link" && ld.link?.trim()) {
+          fd.append("label_design_path", ld.link.trim());
+        } else if (ld.existingPath) {
+          fd.append("label_design_path", ld.existingPath);
+        }
+
         // ── File arrays ───────────────────────────────────────────────────
-        ["design_files", "design_mockup", "size_label_files", "freebies_files", "payments"].forEach((key) => {
+        ["design_files", "design_mockup", "freebies_files", "payments"].forEach((key) => {
           (formData[key] || []).forEach((file) => {
             if (file instanceof File) fd.append(`${key}[]`, file);
           });
@@ -667,6 +678,7 @@ export default function AddNewOrder({ editOrder = null }) {
         handleChange={handleFormChange}
         handleDepositPercentageChange={handleDepositPercentageChange}
         handleFileChange={handleFileChange}
+        setFormData={setFormData}
         handleSizeChange={handleSizeChange}
         handleAddSize={handleAddSize}
         handleRemoveSize={handleRemoveSize}
@@ -685,8 +697,6 @@ export default function AddNewOrder({ editOrder = null }) {
         patternTypeOptions={patternTypeOptions}
         serviceTypeOptions={serviceTypeOptions}
         printMethodOptions={printMethodOptions}
-        sizeLabelOptions={sizeLabelOptions}
-        printLabelPlacementOptions={printLabelPlacementOptions}
         specialPrintOptions={specialPrintOptions}
         onPrintConfigChange={handlePrintConfigChange}
         onPrintPartsChange={handlePrintPartsChange}

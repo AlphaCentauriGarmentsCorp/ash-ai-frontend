@@ -1,5 +1,6 @@
 import React from "react";
 import POItemsSizeBreakdown from "./POItemsSizeBreakdown";
+import { resolveImageUrl } from "../../../utils/designImage";
 
 const Row = ({ label, value }) => (
   <div className="flex justify-between border-b border-b-gray-100 p-1.5 sm:p-2 last:border-b-0">
@@ -7,6 +8,22 @@ const Row = ({ label, value }) => (
     <p className="text-xs sm:text-sm font-medium text-right max-w-[60%] break-words">{value || "N/A"}</p>
   </div>
 );
+
+// One label spec card (Brand or Care/Size). Renders only when the label is
+// enabled, matching the new structured label spec shared with the quotation.
+const LabelBlock = ({ title, spec }) => {
+  if (!spec || !spec.enabled) return null;
+  return (
+    <div className="rounded-lg border border-gray-200 sm:border-gray-300 p-2 sm:p-3">
+      <p className="text-xs sm:text-sm font-semibold text-primary mb-1">{title}</p>
+      <Row label="Material" value={spec.material} />
+      <Row label="Method" value={spec.method} />
+      <Row label="Placement" value={spec.placement} />
+      {spec.measurement ? <Row label="Measurement" value={spec.measurement} /> : null}
+      {spec.notes ? <Row label="Notes" value={spec.notes} /> : null}
+    </div>
+  );
+};
 
 const fmt = (v) =>
   `₱${(Number(v) || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -37,8 +54,6 @@ const ProductDetails = ({ order }) => {
           <Row label="Design Name" value={order?.design_name} />
           <Row label="Service Type" value={order?.service_type} />
           <Row label="Print Service" value={order?.print_service} />
-          <Row label="Size Label" value={order?.size_label} />
-          <Row label="Print Label Placement" value={order?.print_label_placement} />
           <Row label="Fabric Type" value={order?.fabric_type} />
           <Row label="Fabric Supplier" value={order?.fabric_supplier} />
           <Row label="Fabric Color" value={order?.fabric_color} />
@@ -46,6 +61,42 @@ const ProductDetails = ({ order }) => {
           <Row label="Ribbing Color" value={order?.ribbing_color} />
         </div>
       </section>
+
+      {/* ── Labels ───────────────────────────────────────────────────────── */}
+      {(() => {
+        const brand = order?.brand_label;
+        const care = order?.care_label;
+        const designUrl = order?.label_design_path ? resolveImageUrl(order.label_design_path) : "";
+        const anyEnabled = !!(brand?.enabled || care?.enabled);
+        if (!anyEnabled && !designUrl) return null;
+        return (
+          <section className="flex-col flex gap-y-2 sm:gap-y-3">
+            <h1 className="font-semibold text-base sm:text-lg">Labels</h1>
+            <div className="flex flex-col gap-2 sm:gap-3">
+              <LabelBlock title="Brand Label" spec={brand} />
+              <LabelBlock title="Care / Size Label" spec={care} />
+              {designUrl && (
+                <div className="rounded-lg border border-gray-200 sm:border-gray-300 p-2 sm:p-3 flex items-center gap-3">
+                  <span className="text-xs sm:text-sm text-gray-500">Label Design</span>
+                  <img
+                    src={designUrl}
+                    alt="Label Design"
+                    className="h-10 w-10 object-cover rounded border border-gray-200"
+                  />
+                  <a
+                    href={designUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs sm:text-sm text-primary hover:underline break-all"
+                  >
+                    View file
+                  </a>
+                </div>
+              )}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ── PO Items & Size Breakdown (shared component) ───────── */}
       <POItemsSizeBreakdown order={order} />

@@ -50,7 +50,6 @@ export const validateForm = (formData) => {
         "design_mockup",
         "payments",
         "freebies_files",
-        "size_label_files",
       ].includes(fieldName)
     ) {
       return;
@@ -60,6 +59,23 @@ export const validateForm = (formData) => {
     const error = validateField(fieldName, value, formData);
     if (error) newErrors[fieldName] = error;
   });
+
+  // Labels: optional to enable, but an ENABLED label must have material,
+  // method and placement (measurement / notes stay optional). Produces a
+  // nested error object per label that the shared LabelSpecSection renders
+  // inline (errors.brandLabel / errors.careLabel).
+  const labelErrors = (spec) => {
+    if (!spec?.enabled) return null;
+    const e = {};
+    if (!spec.material) e.material = "Required";
+    if (!spec.method) e.method = "Required";
+    if (!spec.placement) e.placement = "Required";
+    return Object.keys(e).length ? e : null;
+  };
+  const brandErr = labelErrors(formData.brandLabel);
+  if (brandErr) newErrors.brandLabel = brandErr;
+  const careErr = labelErrors(formData.careLabel);
+  if (careErr) newErrors.careLabel = careErr;
 
   return newErrors;
 };

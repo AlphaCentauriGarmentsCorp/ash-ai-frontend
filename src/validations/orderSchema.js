@@ -106,16 +106,6 @@ export const orderSchema = {
     message: "Print service is required.",
   },
 
-  size_label: {
-    required: true,
-    message: "Size label is required.",
-  },
-
-  print_label_placement: {
-    required: true,
-    message: "Print label placement is required.",
-  },
-
   // Fabric Details
   fabric_type: {
     required: true,
