@@ -221,9 +221,15 @@ export const OrderForm = ({
               </div>
               {engineTotals.downpayment != null && (
                 <div>
-                  <p className="text-xs text-emerald-700">Downpayment</p>
+                  <p className="text-xs text-emerald-700">
+                    {formData.payment_plan === "full_payment" ? "Full Payment" : "Downpayment"}
+                  </p>
                   <p className="font-semibold text-emerald-900">
-                    ₱{Number(engineTotals.downpayment ?? 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    ₱{Number(
+                      formData.payment_plan === "full_payment"
+                        ? engineTotals.grand_total ?? 0
+                        : engineTotals.downpayment ?? 0,
+                    ).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                   </p>
                 </div>
               )}
