@@ -113,9 +113,207 @@ const NoteComposer = ({ stage, onSubmit, busy }) => {
   );
 };
 
-const StageCard = ({ stage, history, uploads, payment, onAddNote, busyId }) => {
+// GA Portal CP4 — rich Graphic Artwork detail block.
+// Renders the artist's saved output (placements + Pantones + labels +
+// design notes) from the hub payload's stage_details map. Only rendered
+// when there is actual saved content; otherwise the card falls through
+// to the usual "No artifact uploaded" state. Soft completion warnings
+// ride along so the reviewer sees what's still missing at a glance.
+const gaDetailsHasContent = (d) => {
+  if (!d || d.kind !== "graphic_artwork") return false;
+  // GA-AUTHORED output only — label specs / the label design can be set
+  // at order creation, so they must not make an untouched stage look
+  // "worked". They render as context once the block is shown.
+  return (
+    (Array.isArray(d.placements) && d.placements.length > 0) ||
+    (Array.isArray(d.pantones_used) && d.pantones_used.length > 0) ||
+    Boolean(d.design?.notes) ||
+    Boolean(d.stage_notes)
+  );
+};
+
+// CP8 — one read-only label spec line for the hub card.
+const HubLabelSpec = ({ title, spec }) => {
+  if (!spec || !spec.enabled) return null;
+  const bits = [spec.material, spec.method, spec.placement, spec.measurement]
+    .filter((v) => v && String(v).trim() !== "")
+    .join(" · ");
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-2 text-[11px]">
+      <p className="font-semibold text-gray-700">{title}</p>
+      <p className="text-gray-500">{bits || "—"}</p>
+      {spec.notes && <p className="italic text-gray-400">{spec.notes}</p>}
+    </div>
+  );
+};
+
+const GaDetailsBlock = ({ details }) => {
+  const placements = Array.isArray(details.placements) ? details.placements : [];
+  const pantones = Array.isArray(details.pantones_used) ? details.pantones_used : [];
+  const labels = details.labels || {};
+  const hasLabelSpecs = Boolean(
+    labels.brand_label?.enabled || labels.care_label?.enabled,
+  );
+  const warnings = Array.isArray(details.completion_warnings)
+    ? details.completion_warnings
+    : [];
+
+  return (
+    <div className="mt-3 border-t border-gray-100 pt-3">
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+        Graphic Artwork Output
+      </p>
+
+      {/* Placements — artwork + Color# + Pantone chips per location */}
+      {placements.length > 0 && (
+        <div className="grid gap-2 sm:grid-cols-2">
+          {placements.map((p) => (
+            <div
+              key={p.id}
+              className="rounded-lg border border-gray-200 bg-gray-50 p-2.5"
+            >
+              <div className="flex gap-2.5">
+                <div className="h-16 w-16 shrink-0 overflow-hidden rounded border border-gray-200 bg-white">
+                  {p.mockup_url ? (
+                    <a href={p.mockup_url} target="_blank" rel="noreferrer">
+                      <img
+                        src={p.mockup_url}
+                        alt={p.type}
+                        className="h-full w-full object-contain"
+                      />
+                    </a>
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[9px] text-gray-300">
+                      no artwork
+                    </div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold capitalize text-gray-800">
+                    {p.type}
+                  </p>
+                  <p className="text-[10px] text-gray-500">
+                    Color#: {p.color_count ?? (p.pantones?.length || 0)}
+                    {" · "}
+                    {p.pantones?.length || 0} Pantone
+                    {(p.pantones?.length || 0) === 1 ? "" : "s"} set
+                  </p>
+                  {Array.isArray(p.pantones) && p.pantones.length > 0 && (
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {p.pantones.map((pc, i) => (
+                        <span
+                          key={i}
+                          className="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 py-0.5 text-[10px] text-gray-700"
+                          title={pc.pantone_code || pc.name}
+                        >
+                          {pc.hexcolor && (
+                            <span
+                              className="inline-block h-2 w-2 rounded-sm border border-gray-300"
+                              style={{ background: pc.hexcolor }}
+                            />
+                          )}
+                          {pc.pantone_code || pc.name || "\u2014"}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Aggregated Pantone palette */}
+      {pantones.length > 0 && (
+        <div className="mt-2">
+          <p className="mb-1 text-[10px] uppercase tracking-wide text-gray-400">
+            Pantone Palette ({pantones.length})
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {pantones.map((pc, i) => (
+              <span
+                key={pc.id ?? `inline-${i}`}
+                className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2 py-0.5 text-[11px] text-gray-700"
+              >
+                <span
+                  className="inline-block h-3 w-3 rounded-full border border-gray-300"
+                  style={{ background: pc.hexcolor || "#e5e7eb" }}
+                />
+                {pc.pantone_code || pc.name || "\u2014"}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Labels — aligned with the order structure (CP8): Brand +
+          Care/Size specs and the ONE shared Label Design */}
+      {(hasLabelSpecs || labels.label_design_url) && (
+        <div className="mt-2">
+          {hasLabelSpecs && (
+            <div className="grid gap-2 sm:grid-cols-2">
+              <HubLabelSpec title="Brand Label" spec={labels.brand_label} />
+              <HubLabelSpec
+                title="Care / Size Label"
+                spec={labels.care_label}
+              />
+            </div>
+          )}
+          {labels.label_design_url && (
+            <a
+              href={labels.label_design_url}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2"
+              title="Open label design"
+            >
+              <img
+                src={labels.label_design_url}
+                alt="Label design"
+                className="h-10 w-10 rounded border border-gray-200 bg-white object-contain"
+              />
+              <span className="text-[11px] text-gray-600">Label Design</span>
+            </a>
+          )}
+        </div>
+      )}
+
+      {/* GA stage notes (CP8) */}
+      {details.stage_notes && (
+        <p className="mt-2 text-xs text-gray-600">
+          <i className="fa-solid fa-comment-dots mr-1 text-gray-400" />
+          {details.stage_notes}
+        </p>
+      )}
+
+      {/* Design notes */}
+      {details.design?.notes && (
+        <p className="mt-2 text-xs italic text-gray-500">
+          <i className="fa-solid fa-note-sticky mr-1 text-gray-400" />
+          {details.design.notes}
+        </p>
+      )}
+
+      {/* Soft completion warnings — review context, never blocking */}
+      {warnings.length > 0 && (
+        <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-2">
+          {warnings.map((w, i) => (
+            <p key={w.code + i} className="text-[11px] text-amber-700">
+              <i className="fa-solid fa-triangle-exclamation mr-1" />
+              {w.message}
+            </p>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyId }) => {
   const busy = busyId === stage.id;
   const paymentGate = isPaymentGate(stage.stage);
+  const hasGaDetails = gaDetailsHasContent(details);
   const statusMeta = getStatusMeta(stage.status);
   const isParallel = PARALLEL_TIERS.has(stage.sequence);
 
@@ -236,6 +434,9 @@ const StageCard = ({ stage, history, uploads, payment, onAddNote, busyId }) => {
         </div>
       )}
 
+      {/* GA Portal CP4 — the Graphic Artist's saved output in full. */}
+      {hasGaDetails && <GaDetailsBlock details={details} />}
+
       {/* Artifacts — proof-of-work uploads for this stage (Phase 3). Lets the
           reviewer see what they're approving. */}
       {Array.isArray(uploads) && uploads.length > 0 ? (
@@ -271,7 +472,7 @@ const StageCard = ({ stage, history, uploads, payment, onAddNote, busyId }) => {
             ))}
           </div>
         </div>
-      ) : paymentGate && payment ? null : (
+      ) : paymentGate && payment ? null : hasGaDetails ? null : (
         <div className="mt-3 border-t border-gray-100 pt-3">
           <p className="text-xs italic text-gray-400">
             No artifact uploaded for this stage yet.
@@ -321,7 +522,7 @@ const StageCard = ({ stage, history, uploads, payment, onAddNote, busyId }) => {
 };
 
 const ReviewHub = ({ order }) => {
-  const [data, setData] = useState({ history: {}, uploads: {}, payments: {} });
+  const [data, setData] = useState({ history: {}, uploads: {}, payments: {}, stage_details: {} });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
@@ -348,6 +549,7 @@ const ReviewHub = ({ order }) => {
         history: res.history || {},
         uploads: res.uploads || {},
         payments: res.payments || {},
+        stage_details: res.stage_details || {},
       });
     } catch (e) {
       setError(
@@ -411,6 +613,7 @@ const ReviewHub = ({ order }) => {
             history={data.history?.[stage.id]}
             uploads={data.uploads?.[stage.id]}
             payment={data.payments?.[stage.id]}
+            details={data.stage_details?.[stage.id]}
             onAddNote={addNote}
             busyId={busyId}
           />

@@ -100,6 +100,71 @@ export const graphicArtistPortalApi = {
     return data;
   },
 
+  // ── Shared Label Design (GA Portal CP8) ───────────────────────
+
+  /**
+   * Upload/replace the order's ONE shared label design (covers Brand +
+   * Care/Size labels — same orders.label_design_path Add Order writes).
+   */
+  uploadLabelDesign: async ({ order_id, order_stage_id, file }) => {
+    const form = new FormData();
+    form.append("order_id", order_id);
+    form.append("order_stage_id", order_stage_id);
+    form.append("file", file);
+
+    const { data } = await api.post("/portal/graphic-artist/label-design", form, {
+      headers: { "Content-Type": undefined },
+    });
+    return data;
+  },
+
+  // ── Placements (GA Portal CP2) ───────────────────────────────────
+
+  /**
+   * Upsert a print placement (create when `id` is null, update otherwise).
+   * multipart/form-data — POST + _method=PUT spoof (same as label-assets).
+   *
+   * @param {Object} payload
+   * @param {number}  payload.order_id
+   * @param {number}  payload.order_stage_id
+   * @param {number}  [payload.id]           - placement id (update only)
+   * @param {string}  payload.type           - placement name (e.g. "Body Front")
+   * @param {number}  [payload.color_count]  - Color# slot count
+   * @param {Array}   [payload.pantones]     - entries: {id} refs or code strings
+   * @param {File}    [payload.artwork]      - per-location artwork image
+   */
+  upsertPlacement: async ({
+    order_id,
+    order_stage_id,
+    id,
+    type,
+    color_count,
+    pantones,
+    artwork,
+  }) => {
+    const form = new FormData();
+    form.append("_method", "PUT");
+    form.append("order_id", order_id);
+    form.append("order_stage_id", order_stage_id);
+    if (id != null) form.append("id", id);
+    form.append("type", type);
+    if (color_count != null) form.append("color_count", color_count);
+    if (pantones != null) form.append("pantones", JSON.stringify(pantones));
+    if (artwork) form.append("artwork", artwork);
+
+    const { data } = await api.post("/portal/graphic-artist/placements", form, {
+      headers: { "Content-Type": undefined },
+    });
+    return data;
+  },
+
+  deletePlacement: async (id, order_stage_id) => {
+    const { data } = await api.delete(`/portal/graphic-artist/placements/${id}`, {
+      data: { order_stage_id },
+    });
+    return data;
+  },
+
   // ── Sample uploads (reuses shared infrastructure) ────────────────
 
   uploadSample: async ({

@@ -4,16 +4,12 @@ import { graphicArtistPortalApi } from "../../../api/graphicArtistPortalApi";
 import RolePortalLayout from "../../../layouts/RolePortal/RolePortalLayout";
 import StageRejectionBanner from "../../../components/portals/StageRejectionBanner";
 import MyActiveTasksList from "../../../components/portals/MyActiveTasksList";
-import OrderDetailsSection from "../Cutter/sections/OrderDetailsSection";
+import OrderDetailsSectionGA from "./sections/OrderDetailsSectionGA";
 
-import DesignFilesSection from "./sections/DesignFilesSection";
 import SourceReferenceFilesSection from "./sections/SourceReferenceFilesSection";
 import PrintLocationsSection from "./sections/PrintLocationsSection";
-import PantoneColorsSection from "./sections/PantoneColorsSection";
 import LabelsTagsSection from "./sections/LabelsTagsSection";
-import ScreenDetailsReadOnlySection from "./sections/ScreenDetailsReadOnlySection";
 import NotesInstructionsSection from "./sections/NotesInstructionsSection";
-import SampleUploadsSection from "./sections/SampleUploadsSection";
 
 // GA-specific copies of shared sections — same logic, different section
 // numbers so the Graphic Artist page numbering reads cleanly (1–12).
@@ -21,7 +17,6 @@ import SampleUploadsSection from "./sections/SampleUploadsSection";
 // for those portals.
 import StageNotesSectionGA from "./sections/StageNotesSectionGA";
 import StageDoneButton from "../../../components/portals/StageDoneButton";
-import MaterialRequestsSectionGA from "./sections/MaterialRequestsSectionGA";
 import ActivityLogSectionGA from "./sections/ActivityLogSectionGA";
 
 /**
@@ -119,6 +114,7 @@ const GraphicArtistPortalPage = () => {
     return (
       <RolePortalLayout
         roleTitle="Graphic Artist Portal"
+        roleSubtitle={null}
         breadcrumbLinks={[{ name: "Graphic Artist Portal", path: "/portal/graphic-artist" }]}
       >
         <MyActiveTasksList
@@ -139,10 +135,11 @@ const GraphicArtistPortalPage = () => {
   return (
     <RolePortalLayout
       roleTitle="Graphic Artist Portal"
+      roleSubtitle={null}
       breadcrumbLinks={[{ name: "Graphic Artist Portal", path: "/portal/graphic-artist" }]}
       statusFlowStages={STATUS_FLOW}
       currentStageSlug={currentStageSlug}
-      tipText="I-double check ang Pantone codes at print sizes bago i-save ang design files."
+      tipText="I-double check ang Pantone at artwork kada placement bago pindutin ang Tapos na."
     >
       <button
         type="button"
@@ -183,76 +180,83 @@ const GraphicArtistPortalPage = () => {
             onResubmitted={handleRefresh}
           />
 
-          {/* 1. Order Details */}
-          <OrderDetailsSection order={context.order} stage={context.stage} />
+          {/* 1. Order Details (CP6 — enriched with Product Details) */}
+          <OrderDetailsSectionGA order={context.order} stage={context.stage} />
 
-          {/* 2. Design Files (versioned) */}
-          <DesignFilesSection
-            files={context.design_files}
-            orderId={context.order.id}
-            orderStageId={context.stage.id}
-            onChanged={handleRefresh}
-          />
-
-          {/* 2b. Source / Reference Files (read-only — Change 14) */}
+          {/* 2. Source / Reference Files (read-only — Change 14) */}
           <SourceReferenceFilesSection files={context.source_files} />
 
-          {/* 3. Print Locations & Size */}
+          {/* 3. Print Locations & Pantones (CP6 — catalog picker) */}
           <PrintLocationsSection
             placements={context.placements}
+            suggestedPlacements={context.suggested_placements || []}
             placementOptions={context.placement_options}
-            measurementOptions={context.measurement_options}
-          />
-
-          {/* 4. Pantone Colors */}
-          <PantoneColorsSection pantones={context.pantones_used} />
-
-          {/* 5. Screen Details (read-only) */}
-          <ScreenDetailsReadOnlySection screens={context.screen_details} />
-
-          {/* 6. Labels & Tags */}
-          <LabelsTagsSection
-            labelAssets={context.label_assets}
+            pantoneOptions={context.pantone_options || []}
             orderId={context.order.id}
             orderStageId={context.stage.id}
             onChanged={handleRefresh}
           />
 
-          {/* 7. Notes / Instructions */}
+          {/* 4. Labels & Tags (CP8 — aligned: read-only specs +
+              shared Label Design upload) */}
+          <LabelsTagsSection
+            order={context.order}
+            orderId={context.order.id}
+            orderStageId={context.stage.id}
+            onChanged={handleRefresh}
+          />
+
+          {/* 5. Notes / Instructions */}
           <NotesInstructionsSection
             order={context.order}
             design={context.design}
           />
 
-          {/* 8. Sample Uploads */}
-          <SampleUploadsSection
-            samples={context.sample_uploads}
-            orderId={context.order.id}
-            orderStageId={context.stage.id}
-            onChanged={handleRefresh}
-          />
-
-          {/* 9. Stage Notes (writeable) */}
+          {/* 6. Stage Notes (writeable) */}
           <StageNotesSectionGA
             stageId={context.stage.id}
             initialNotes={context.stage.notes}
             onChanged={handleRefresh}
           />
 
-          {/* 11. Material Requests */}
-          <MaterialRequestsSectionGA
-            materialRequests={context.material_requests}
-            orderId={context.order.id}
-            orderStageId={context.stage.id}
-          />
-
-          {/* 12. Activity Log */}
+          {/* 7. Activity Log */}
           <ActivityLogSectionGA activityLog={context.activity_log} />
 
-          {/* Bundle 3 — production "Done": advances the workflow server-side. */}
+          {/* Bundle 3 — production "Done": advances the workflow server-side.
+              CP2 — warn-but-allow: when the backend reports completion
+              warnings, the confirm dialog lists them; the artist can still
+              proceed (soft gate by decision — never a hard block). */}
           <StageDoneButton
             role="graphic-artist"
             orderStageId={currentStageId}
+            confirmTitle={
+              (context.completion_warnings || []).length > 0
+                ? "May kulang pa — ituloy pa rin?"
+                : "Tapos na ba ito?"
+            }
+            confirmMessage={
+              (context.completion_warnings || []).length > 0 ? (
+                <>
+                  <span className="block mb-1">
+                    Bago ipasa, pakitingnan ang mga ito:
+                  </span>
+                  {(context.completion_warnings || []).map((w, i) => (
+                    <span
+                      key={w.code + i}
+                      className="block text-amber-700 text-[13px]"
+                    >
+                      • {w.message}
+                    </span>
+                  ))}
+                  <span className="block mt-2">
+                    Pwede mo pa ring ituloy — awtomatikong magpapatuloy ang
+                    order sa susunod na hakbang.
+                  </span>
+                </>
+              ) : (
+                "Markahan ang task na ito bilang tapos. Awtomatikong magpapatuloy ang order sa susunod na hakbang."
+              )
+            }
             onDone={() => { setCurrentStageId(null); setContext(null); refreshList(); }}
           />
         </div>

@@ -3,8 +3,9 @@ import React from "react";
 /**
  * Phase 5-H — Pantone Colors used in the order.
  *
- * Aggregated from all placements. Read-only — Pantones are edited per
- * placement on the Graphic Design admin page.
+ * Aggregated from all placements. Read-only summary — Pantones are
+ * edited per placement sa "Print Locations & Pantones" section sa taas
+ * (CP2), o sa Graphic Design admin page.
  */
 const PantoneColorsSection = ({ pantones = [] }) => {
   return (
@@ -22,7 +23,8 @@ const PantoneColorsSection = ({ pantones = [] }) => {
 
       {pantones.length === 0 ? (
         <p className="text-[11px] text-gray-400 italic">
-          Wala pang naka-assign na Pantone. I-set sa Graphic Design page.
+          Wala pang naka-assign na Pantone. Ilagay sa "Print Locations &
+          Pantones" section sa taas.
         </p>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
