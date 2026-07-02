@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback, useMemo, useState } from "react";
+import React, { useEffect, useCallback, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import Loader from "../../components/common/Loader";
@@ -17,6 +17,14 @@ import { useEnginePricing } from "../../features/order/addOrder/hooks/useEngineP
 // ── Quotation prefill bridge ──────────────────────────────────────────────────
 import { useQuotationPrefill } from "../../features/order/addOrder/hooks/useQuotationPrefill";
 import { QuotationSummaryPanel } from "../../features/order/addOrder/components/QuotationSummaryPanel";
+
+// ── Draft persistence (refresh / logout recovery) ─────────────────────────────
+import {
+  loadOrderDraft,
+  saveOrderDraft,
+  clearOrderDraft,
+  sanitizeFormDataForDraft,
+} from "../../features/order/addOrder/utils/orderDraftStorage";
 
 // ── Service ───────────────────────────────────────────────────────────────────
 import { orderApi } from "../../api/orderApi";
@@ -65,7 +73,18 @@ export default function AddNewOrder({ editOrder = null }) {
   const isEdit = Boolean(editOrder);
   // In edit mode the order itself drives the prefill plumbing — its OrderResource
   // shape carries the same FK ids + JSON blobs the quotation order_payload does.
-  const rawPrefill = editOrder ?? location.state?.prefill ?? null;
+  //
+  // The payload is LATCHED into state (not re-read from location.state every
+  // render) so a same-route navigation without state (e.g. sidebar "Add
+  // Order") can’t blank a form mid-edit. A sessionStorage draft slot keeps
+  // payload + typed values alive across refresh / session-expiry re-login.
+  const [rawPrefill, setRawPrefill] = useState(
+    () => editOrder ?? location.state?.prefill ?? null
+  );
+  // Offered-but-undecided draft (renders the Resume/Discard banner).
+  const [draftOffer, setDraftOffer] = useState(null);
+  // Typed snapshot to overlay AFTER the quotation prefill re-applies on resume.
+  const resumeSnapshotRef = useRef(null);
 
   // ── Quotation prefill bridge ─────────────────────────────────────────────
   const { hasPrefill, prefillFormData, quotationMeta } =
@@ -181,6 +200,35 @@ export default function AddNewOrder({ editOrder = null }) {
     fetchFabricMaterials();
   }, [fetchClients, fetchDropdownOptions, fetchFabricMaterials]);
 
+  // ── Draft slot boot (new-from-quotation only) ────────────────────────
+  // Fresh conversion landing (location.state carries the payload): seed the
+  // slot immediately so a refresh straight after landing already resumes.
+  // No location.state: offer any existing draft via the Resume/Discard banner.
+  useEffect(() => {
+    if (isEdit) return;
+    if (location.state?.prefill) {
+      saveOrderDraft({ prefill: location.state.prefill, snapshot: null });
+      return;
+    }
+    const draft = loadOrderDraft();
+    if (draft) setDraftOffer(draft);
+    // Mount-only decision — later same-route navigations must not re-offer.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Safety net: adopt a prefill arriving via navigation state after mount
+  // (same-route navigate with a fresh payload) and restart the apply pass.
+  useEffect(() => {
+    const incoming = location.state?.prefill;
+    if (isEdit || !incoming || incoming === rawPrefill) return;
+    setRawPrefill(incoming);
+    setPrefillApplied(false);
+    resumeSnapshotRef.current = null;
+    setDraftOffer(null);
+    saveOrderDraft({ prefill: incoming, snapshot: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state]);
+
   // ── Apply quotation prefill once clients are loaded ──────────────────────
   const [prefillApplied, setPrefillApplied] = useState(false);
   useEffect(() => {
@@ -224,9 +272,45 @@ export default function AddNewOrder({ editOrder = null }) {
       setSelectedOptions?.(mappedOptions);
     }
 
+    // Resume path: overlay the saved user-typed snapshot AFTER the pristine
+    // quotation prefill, so typed values win. File attachments were stripped
+    // at save time (not serialisable) — the resume banner says to re-attach.
+    const snap = resumeSnapshotRef.current;
+    if (snap) {
+      if (snap.formData) setFormData((prev) => ({ ...prev, ...snap.formData }));
+      if (Array.isArray(snap.samples)) setSamples?.(snap.samples);
+      if (Array.isArray(snap.selectedOptions)) setSelectedOptions?.(snap.selectedOptions);
+      resumeSnapshotRef.current = null;
+    }
+
     setPrefillApplied(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasPrefill, clientsLoading, clients.length, prefillApplied, editOverlay]);
+
+  // ── Draft autosave (debounced) ───────────────────────────────────────
+  // Snapshot formData + samples + selectedOptions into the slot while a
+  // new-from-quotation form is being edited. Gated on prefillApplied so a
+  // half-hydrated form is never captured, and paused while a draft offer is
+  // on screen so the offer can’t overwrite itself.
+  useEffect(() => {
+    if (isEdit || !hasPrefill || !prefillApplied || submitSuccess || draftOffer) return;
+    const timer = setTimeout(() => {
+      const { data, strippedFiles } = sanitizeFormDataForDraft(formData);
+      saveOrderDraft({
+        prefill: rawPrefill,
+        snapshot: { formData: data, samples, selectedOptions, strippedFiles },
+      });
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [
+    isEdit, hasPrefill, prefillApplied, submitSuccess, draftOffer,
+    formData, samples, selectedOptions, rawPrefill,
+  ]);
+
+  // Order saved → the draft has served its purpose.
+  useEffect(() => {
+    if (submitSuccess && !isEdit) clearOrderDraft();
+  }, [submitSuccess, isEdit]);
 
   // ── Client change handler ────────────────────────────────────────────────
   const handleClientChange = useCallback(
@@ -333,7 +417,25 @@ export default function AddNewOrder({ editOrder = null }) {
   const handleReset = useCallback(() => {
     resetForm();
     setPrefillApplied(false); // allow re-applying prefill on next mount
-  }, [resetForm]);
+    // Reset = back to the pristine quotation prefill: wipe the typed
+    // snapshot but keep the payload so a refresh still resumes to pristine.
+    resumeSnapshotRef.current = null;
+    if (!isEdit && rawPrefill) saveOrderDraft({ prefill: rawPrefill, snapshot: null });
+  }, [resetForm, isEdit, rawPrefill]);
+
+  // ── Draft banner actions ──────────────────────────────────────────────
+  const handleResumeDraft = useCallback(() => {
+    if (!draftOffer) return;
+    resumeSnapshotRef.current = draftOffer.snapshot ?? null;
+    setRawPrefill(draftOffer.prefill);
+    setPrefillApplied(false); // run the apply pass (prefill first, snapshot on top)
+    setDraftOffer(null);
+  }, [draftOffer]);
+
+  const handleDiscardDraft = useCallback(() => {
+    clearOrderDraft();
+    setDraftOffer(null);
+  }, []);
 
   // ── Submit ───────────────────────────────────────────────────────────────
   // Build the FormData and POST the order. When `override` is provided
@@ -655,12 +757,55 @@ export default function AddNewOrder({ editOrder = null }) {
         </div>
       )}
 
+      {/* ── Draft resume banner (refresh / logout recovery) ─────────────── */}
+      {draftOffer && !isEdit && !submitSuccess && (
+        <div className="mb-4 bg-amber-50 border border-amber-200 rounded-lg p-3 flex flex-wrap items-center gap-3 text-amber-800 text-sm">
+          <i className="fas fa-rotate-left"></i>
+          <span className="flex-1 min-w-[220px]">
+            May naiwang draft mula sa Quotation{" "}
+            <strong>{draftOffer.quotationCode}</strong>
+            {draftOffer.savedAt && (
+              <span className="text-amber-600 text-xs">
+                {" "}
+                (na-save {new Date(draftOffer.savedAt).toLocaleString()})
+              </span>
+            )}
+            . Ituloy ang pag-fill up?
+            {draftOffer.snapshot?.strippedFiles && (
+              <span className="block text-amber-600 text-xs mt-0.5">
+                Tandaan: i-attach ulit ang mga file (design / mockup / payment)
+                — hindi kasama sa draft ang mga upload.
+              </span>
+            )}
+          </span>
+          <span className="flex items-center gap-2 ml-auto">
+            <button
+              type="button"
+              onClick={handleResumeDraft}
+              className="px-3 py-1.5 bg-amber-600 text-white text-xs font-semibold rounded-lg hover:bg-amber-700"
+            >
+              Ituloy
+            </button>
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="px-3 py-1.5 bg-white border border-amber-300 text-amber-700 text-xs font-semibold rounded-lg hover:bg-amber-100"
+            >
+              Burahin
+            </button>
+          </span>
+        </div>
+      )}
+
       {/* ── Prefill origin banner ────────────────────────────────────────── */}
       {hasPrefill && !isEdit && !submitSuccess && (
         <div className="mb-4 bg-blue-50 border border-blue-200 rounded-lg p-3 flex items-center gap-2 text-blue-700 text-sm">
           <i className="fas fa-info-circle"></i>
-          Pre-filled from Quotation&nbsp;<strong>#{quotationMeta?.quotationId}</strong>.
-          Review all sections and fill in any remaining details before saving.
+          Pre-filled from Quotation&nbsp;
+          <strong>
+            {quotationMeta?.quotationCode || `#${quotationMeta?.quotationId}`}
+          </strong>
+          . Review all sections and fill in any remaining details before saving.
         </div>
       )}
 
