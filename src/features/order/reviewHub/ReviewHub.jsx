@@ -2,8 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { OrderStages, isPaymentGate, stageOrdinal, getStatusMeta, findStage, getParallelTiers } from "../../../constants/formOptions/orderStages";
 import { getRoleDisplayName } from "../../../config/roleConfig";
 import { stageReviewApi } from "../../../api/stageReviewApi";
-import { useAuth } from "../../../hooks/useAuth";
-import { hasRequiredPermissions } from "../../../utils/authz";
 
 /**
  * CSR Review Hub
@@ -22,18 +20,41 @@ import { hasRequiredPermissions } from "../../../utils/authz";
  * permission (the backend enforces it too). Non-reviewers see a read-only hub.
  */
 
-const STATE_BADGE = {
-  none: { label: "Not reviewed", cls: "bg-gray-100 text-gray-600" },
-  approved: { label: "Approved", cls: "bg-green-100 text-green-700" },
-  rejected: { label: "Rejected — awaiting rework", cls: "bg-red-100 text-red-700" },
-  resubmitted: { label: "Resubmitted — re-review", cls: "bg-amber-100 text-amber-700" },
-};
-
+// Notes-only hub (owner decision): the Approve/Reject buttons and the
+// review-state badge were removed — staff leave freeform notes instead.
+// Legacy approve/reject/resubmit rows recorded before the change still
+// render in the thread with their original labels.
 const DECISION_META = {
   approve: { label: "Approved", icon: "fa-circle-check", cls: "text-green-600" },
   reject: { label: "Rejected", icon: "fa-circle-xmark", cls: "text-red-600" },
   resubmit: { label: "Resubmitted", icon: "fa-rotate-left", cls: "text-amber-600" },
+  note: { label: "Note", icon: "fa-note-sticky", cls: "text-gray-400" },
 };
+
+// Payment-gate details (Fix: verified payments must stay viewable after the
+// Dashboard queue drops them — the Review Hub is their permanent home).
+const PAYMENT_TYPE_LABELS = {
+  sample: "Sample",
+  down_payment: "Downpayment (60%)",
+  balance: "Balance (40%)",
+  full: "Full Payment",
+};
+
+const PAYMENT_STATUS_BADGE = {
+  waiting: { label: "Waiting", cls: "bg-gray-100 text-gray-600" },
+  for_verification: { label: "For Verification", cls: "bg-amber-100 text-amber-700" },
+  verified: { label: "Verified", cls: "bg-green-100 text-green-700" },
+  rejected: { label: "Rejected", cls: "bg-red-100 text-red-700" },
+};
+
+const fmtWhen = (iso) => {
+  if (!iso) return "\u2014";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? String(iso) : d.toLocaleString();
+};
+
+const fmtPeso = (v) =>
+  `\u20B1${Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}`;
 
 const labelFor = (slug) =>
   OrderStages.find((d) => d.value === slug)?.label || slug;
@@ -44,86 +65,59 @@ const iconFor = (slug) =>
 // stages, mirroring the Workflow Timeline.
 const PARALLEL_TIERS = new Set(getParallelTiers());
 
-const RejectModal = ({ stage, onClose, onSubmit, busy }) => {
-  const [comment, setComment] = useState("");
-  const [image, setImage] = useState(null);
+// Per-card note composer — any staff who can open the hub can post.
+const NoteComposer = ({ stage, onSubmit, busy }) => {
+  const [text, setText] = useState("");
   const [err, setErr] = useState(null);
 
-  const submit = () => {
-    if (!comment.trim()) {
-      setErr("A comment is required when rejecting.");
+  const submit = async () => {
+    const comment = text.trim();
+    if (!comment) {
+      setErr("Type a note first.");
       return;
     }
-    onSubmit(comment.trim(), image);
+    const ok = await onSubmit(stage, comment);
+    if (ok) {
+      setText("");
+      setErr(null);
+    }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-xl bg-white p-5 shadow-xl">
-        <h3 className="mb-1 text-lg font-semibold text-gray-800">
-          Reject: {labelFor(stage.stage)}
-        </h3>
-        <p className="mb-4 text-sm text-gray-500">
-          The owning role will be notified and can resubmit after fixing it.
-        </p>
-
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Comment <span className="text-red-500">*</span>
-        </label>
-        <textarea
-          className="mb-3 w-full rounded-lg border border-gray-300 p-2 text-sm focus:border-blue-500 focus:outline-none"
-          rows={4}
-          value={comment}
-          onChange={(e) => {
-            setComment(e.target.value);
-            setErr(null);
-          }}
-          placeholder="What needs to be corrected?"
-        />
-
-        <label className="mb-1 block text-sm font-medium text-gray-700">
-          Attach image (optional)
-        </label>
-        <input
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          onChange={(e) => setImage(e.target.files?.[0] || null)}
-          className="mb-3 block w-full text-sm text-gray-600"
-        />
-
-        {err && <p className="mb-3 text-sm text-red-600">{err}</p>}
-
-        <div className="flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            disabled={busy}
-            className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={submit}
-            disabled={busy}
-            className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
-          >
-            {busy ? "Rejecting…" : "Confirm reject"}
-          </button>
-        </div>
+    <div className="mt-3 border-t border-gray-100 pt-3">
+      <label className="mb-1 block text-xs font-medium uppercase tracking-wide text-gray-400">
+        Add a note
+      </label>
+      <textarea
+        rows={2}
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          setErr(null);
+        }}
+        disabled={busy}
+        placeholder="Anything worth recording about this stage…"
+        className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      {err && <p className="mt-1 text-xs text-red-600">{err}</p>}
+      <div className="mt-1.5 flex justify-end">
+        <button
+          onClick={submit}
+          disabled={busy}
+          className="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {busy ? "Saving…" : "Add Note"}
+        </button>
       </div>
     </div>
   );
 };
 
-const StageCard = ({ stage, state, history, uploads, canReview, onApprove, onReject, busyId }) => {
-  const badge = STATE_BADGE[state?.review_state || "none"];
+const StageCard = ({ stage, history, uploads, payment, onAddNote, busyId }) => {
   const busy = busyId === stage.id;
   const paymentGate = isPaymentGate(stage.stage);
   const statusMeta = getStatusMeta(stage.status);
   const isParallel = PARALLEL_TIERS.has(stage.sequence);
-  // Whether THIS viewer can act on the stage. For a payment gate the backend
-  // returns can_approve/can_reject false unless the viewer has verify-payment,
-  // so a CSR ends up with no actionable buttons here (read-only).
-  const canAct = canReview && (state?.can_approve || state?.can_reject);
 
   return (
     <div className="rounded-xl border border-gray-200 p-4">
@@ -153,10 +147,94 @@ const StageCard = ({ stage, state, history, uploads, canReview, onApprove, onRej
             </div>
           </div>
         </div>
-        <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-medium ${badge.cls}`}>
-          {badge.label}
-        </span>
       </div>
+
+      {/* Payment gates — the full record of the gate's payment. Stays here
+          permanently, so a verified payment is still viewable after it
+          leaves the Dashboard "Pending Approvals" queue. */}
+      {paymentGate && payment && (
+        <div className="mt-3 border-t border-gray-100 pt-3">
+          <div className="mb-2 flex items-center justify-between">
+            <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+              Payment Details
+            </p>
+            <span
+              className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                (PAYMENT_STATUS_BADGE[payment.status] || PAYMENT_STATUS_BADGE.waiting).cls
+              }`}
+            >
+              {(PAYMENT_STATUS_BADGE[payment.status] || PAYMENT_STATUS_BADGE.waiting).label}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs sm:grid-cols-3">
+            <div>
+              <p className="text-gray-400">Payment Type</p>
+              <p className="font-medium text-gray-700">
+                {PAYMENT_TYPE_LABELS[payment.payment_type] || payment.payment_type}
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-400">Amount</p>
+              <p className="font-semibold text-gray-800">{fmtPeso(payment.amount)}</p>
+            </div>
+            <div>
+              <p className="text-gray-400">Method</p>
+              <p className="font-medium text-gray-700">{payment.method_name || "\u2014"}</p>
+            </div>
+            <div>
+              <p className="text-gray-400">Payer</p>
+              <p className="font-medium text-gray-700">{payment.payer_name || "\u2014"}</p>
+            </div>
+            <div>
+              <p className="text-gray-400">Reference No.</p>
+              <p className="font-medium text-gray-700">{payment.reference_number || "\u2014"}</p>
+            </div>
+            <div>
+              <p className="text-gray-400">Paid At</p>
+              <p className="font-medium text-gray-700">{fmtWhen(payment.paid_at)}</p>
+            </div>
+            <div>
+              <p className="text-gray-400">Recorded By</p>
+              <p className="font-medium text-gray-700">
+                {payment.uploaded_by_name || "\u2014"}
+                <span className="block text-[10px] text-gray-400">{fmtWhen(payment.uploaded_at)}</span>
+              </p>
+            </div>
+            <div>
+              <p className="text-gray-400">Verified By</p>
+              <p className="font-medium text-gray-700">
+                {payment.verified_by_name || "\u2014"}
+                <span className="block text-[10px] text-gray-400">{fmtWhen(payment.verified_at)}</span>
+              </p>
+            </div>
+          </div>
+          {payment.rejection_reason && (
+            <p className="mt-2 text-xs text-red-600">
+              <i className="fa-solid fa-circle-xmark mr-1" />
+              {payment.rejection_reason}
+            </p>
+          )}
+          {payment.notes && (
+            <p className="mt-2 text-xs italic text-gray-500">{payment.notes}</p>
+          )}
+          {payment.proof_url && (
+            <a
+              href={payment.proof_url}
+              target="_blank"
+              rel="noreferrer"
+              title="Open proof of payment"
+              className="mt-2 block w-fit overflow-hidden rounded-lg border border-gray-200"
+            >
+              <img
+                src={payment.proof_url}
+                alt="Proof of payment"
+                className="h-24 object-cover"
+              />
+              <p className="px-1 py-0.5 text-[10px] text-gray-500">Proof of payment</p>
+            </a>
+          )}
+        </div>
+      )}
 
       {/* Artifacts — proof-of-work uploads for this stage (Phase 3). Lets the
           reviewer see what they're approving. */}
@@ -193,7 +271,7 @@ const StageCard = ({ stage, state, history, uploads, canReview, onApprove, onRej
             ))}
           </div>
         </div>
-      ) : (
+      ) : paymentGate && payment ? null : (
         <div className="mt-3 border-t border-gray-100 pt-3">
           <p className="text-xs italic text-gray-400">
             No artifact uploaded for this stage yet.
@@ -201,7 +279,8 @@ const StageCard = ({ stage, state, history, uploads, canReview, onApprove, onRej
         </div>
       )}
 
-      {/* History */}
+      {/* Notes thread — chronological. Legacy approve/reject/resubmit rows
+          from before the notes-only change render with their old labels. */}
       {Array.isArray(history) && history.length > 0 && (
         <ul className="mt-3 space-y-2 border-t border-gray-100 pt-3">
           {history.map((r) => {
@@ -235,56 +314,16 @@ const StageCard = ({ stage, state, history, uploads, canReview, onApprove, onRej
         </ul>
       )}
 
-      {/* Reviewer actions — each button shows only when actionable, so an
-          already-approved or locked stage doesn't expose a spammy Approve. */}
-      {canAct && (
-        <div className="mt-3 flex gap-2 border-t border-gray-100 pt-3">
-          {state?.can_approve && (
-            <button
-              onClick={() => onApprove(stage)}
-              disabled={busy}
-              className="rounded-lg bg-green-600 px-3 py-1.5 text-sm font-semibold text-white hover:bg-green-700 disabled:opacity-50"
-            >
-              {busy ? "…" : "Approve"}
-            </button>
-          )}
-          {state?.can_reject && (
-            <button
-              onClick={() => onReject(stage)}
-              disabled={busy}
-              className="rounded-lg border border-red-300 px-3 py-1.5 text-sm font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-            >
-              Reject
-            </button>
-          )}
-        </div>
-      )}
-
-      {/* Change 17 — payment verification is a Finance action. For anyone who
-          can't verify payment (e.g. CSR) the gate is read-only here, so we show
-          a clear note in place of the (now-hidden) Approve/Reject buttons. */}
-      {paymentGate && !canAct && (
-        <div className="mt-3 flex items-center gap-2 border-t border-gray-100 pt-3 text-xs text-gray-500">
-          <i className="fa-solid fa-money-check-dollar text-gray-400" />
-          Payment verification is handled by Finance — read-only here.
-        </div>
-      )}
+      {/* Notes composer — replaces the old Approve/Reject actions. */}
+      <NoteComposer stage={stage} onSubmit={onAddNote} busy={busy} />
     </div>
   );
 };
 
-const ReviewHub = ({ order, onChanged }) => {
-  const { user } = useAuth();
-  const canReview = hasRequiredPermissions(
-    user,
-    ["access.production-review"],
-    "any"
-  );
-
-  const [data, setData] = useState({ history: {}, states: {}, uploads: {} });
+const ReviewHub = ({ order }) => {
+  const [data, setData] = useState({ history: {}, uploads: {}, payments: {} });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [rejectStage, setRejectStage] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
   // Only stages that have actually started are worth reviewing — pending
@@ -305,7 +344,11 @@ const ReviewHub = ({ order, onChanged }) => {
     setError(null);
     try {
       const res = await stageReviewApi.forOrder(order.id);
-      setData({ history: res.history || {}, states: res.states || {}, uploads: res.uploads || {} });
+      setData({
+        history: res.history || {},
+        uploads: res.uploads || {},
+        payments: res.payments || {},
+      });
     } catch (e) {
       setError(
         e?.response?.data?.message || "Could not load review history."
@@ -319,31 +362,16 @@ const ReviewHub = ({ order, onChanged }) => {
     load();
   }, [load]);
 
-  const approve = async (stage) => {
+  // Append a note. Returns true on success so the composer can clear.
+  const addNote = async (stage, comment) => {
     setBusyId(stage.id);
     try {
-      await stageReviewApi.approve(stage.id);
+      await stageReviewApi.note(stage.id, comment);
       await load();
-      // Approve advances the workflow, so the parent order (timeline, badges,
-      // stage statuses) is now stale — ask it to refetch.
-      onChanged?.();
+      return true;
     } catch (e) {
-      setError(e?.response?.data?.message || "Approve failed.");
-    } finally {
-      setBusyId(null);
-    }
-  };
-
-  const doReject = async (comment, image) => {
-    if (!rejectStage) return;
-    setBusyId(rejectStage.id);
-    try {
-      await stageReviewApi.reject(rejectStage.id, comment, image);
-      setRejectStage(null);
-      await load();
-      onChanged?.();
-    } catch (e) {
-      setError(e?.response?.data?.message || "Reject failed.");
+      setError(e?.response?.data?.message || "Could not save the note.");
+      return false;
     } finally {
       setBusyId(null);
     }
@@ -354,9 +382,8 @@ const ReviewHub = ({ order, onChanged }) => {
       <div>
         <h2 className="text-lg font-semibold text-gray-800">Review Hub</h2>
         <p className="text-sm text-gray-500">
-          {canReview
-            ? "Approve or reject each stage's output. Rejections notify the owning role and don't halt the order."
-            : "Read-only view of each stage's review history."}
+          Each stage keeps a running record — payment details on the gates,
+          uploads, and staff notes. Type a note on any card to add to it.
         </p>
       </div>
 
@@ -372,7 +399,7 @@ const ReviewHub = ({ order, onChanged }) => {
 
       {!loading && stages.length === 0 && (
         <div className="rounded-lg bg-gray-50 p-4 text-sm text-gray-500">
-          No started stages yet — nothing to review.
+          No started stages yet — nothing to show.
         </div>
       )}
 
@@ -381,25 +408,15 @@ const ReviewHub = ({ order, onChanged }) => {
           <StageCard
             key={stage.id}
             stage={stage}
-            state={data.states?.[stage.id]}
             history={data.history?.[stage.id]}
             uploads={data.uploads?.[stage.id]}
-            canReview={canReview}
-            onApprove={approve}
-            onReject={setRejectStage}
+            payment={data.payments?.[stage.id]}
+            onAddNote={addNote}
             busyId={busyId}
           />
         ))}
       </div>
 
-      {rejectStage && (
-        <RejectModal
-          stage={rejectStage}
-          busy={busyId === rejectStage.id}
-          onClose={() => setRejectStage(null)}
-          onSubmit={doReject}
-        />
-      )}
     </div>
   );
 };
