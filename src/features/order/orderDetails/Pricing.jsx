@@ -73,8 +73,16 @@ const Pricing = ({ order }) => {
   const discountPrice = Number(order?.discount_price) || 0;
   const grandTotal = Number(order?.grand_total) || subtotal - discountAmt;
 
-  const downpayment = Number(breakdown?.downpayment) || grandTotal * 0.6;
-  const balance = Number(breakdown?.balance) || grandTotal - downpayment;
+  // Full-Payment plan: 100% collected upfront at the sample gate — no 60/40
+  // split and no balance due. Plan-driven so legacy full-plan orders whose
+  // stored breakdown still says 60/40 display correctly too.
+  const isFullPayment = order?.payment_plan === "full_payment";
+  const downpayment = isFullPayment
+    ? grandTotal
+    : Number(breakdown?.downpayment) || grandTotal * 0.6;
+  const balance = isFullPayment
+    ? 0
+    : Number(breakdown?.balance) || grandTotal - downpayment;
 
   const discountLabel =
     discountType === "percentage"
@@ -116,13 +124,24 @@ const Pricing = ({ order }) => {
         {discountAmt > 0 && <Line label={discountLabel} value={`− ${fmt(discountAmt)}`} danger />}
         <Line label="Grand Total" value={fmt(grandTotal)} highlight />
 
-        {/* Payment terms (60 / 40 of the full grand total) */}
+        {/* Payment terms — Full Payment (100% upfront) or the 60/40 split */}
         <Divider />
-        <Line label="Downpayment (60%)" value={fmt(downpayment)} strong />
-        <Line label="Balance (40%)" value={fmt(balance)} strong />
-        <p className="text-[10px] text-gray-400 text-right mt-1 px-1.5 sm:px-2">
-          <i className="fas fa-clock mr-1"></i>Balance due upon delivery/pickup
-        </p>
+        {isFullPayment ? (
+          <>
+            <Line label="Full Payment (100%)" value={fmt(grandTotal)} strong />
+            <p className="text-[10px] text-gray-400 text-right mt-1 px-1.5 sm:px-2">
+              <i className="fas fa-check-circle mr-1"></i>Paid in full upfront — no balance due
+            </p>
+          </>
+        ) : (
+          <>
+            <Line label="Downpayment (60%)" value={fmt(downpayment)} strong />
+            <Line label="Balance (40%)" value={fmt(balance)} strong />
+            <p className="text-[10px] text-gray-400 text-right mt-1 px-1.5 sm:px-2">
+              <i className="fas fa-clock mr-1"></i>Balance due upon delivery/pickup
+            </p>
+          </>
+        )}
       </div>
     </section>
   );

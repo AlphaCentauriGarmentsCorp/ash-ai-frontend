@@ -77,6 +77,19 @@ export const stageReviewApi = {
   },
 
   /**
+   * Staff note — the Review Hub is a notes-only surface. Any role with
+   * order access can append a note to a stage's record. Notes never touch
+   * the decision state machine (an open rejection stays open).
+   */
+  note: async (orderStageId, comment) => {
+    const { data } = await api.post(
+      `/order-stages/${orderStageId}/review/note`,
+      { comment }
+    );
+    return data;
+  },
+
+  /**
    * Owning role resubmits a previously-rejected stage's output. Comment
    * optional (what was fixed). Only valid when open_rejection === true.
    */
