@@ -194,6 +194,9 @@ export const useQuotationPrefill = (prefill) => {
 
         return {
             quotationId: prefill.quotation_id ?? "",
+            // Human QUO-YYYY-XXXXXX code (Bundle A payload field). Consumers
+            // fall back to #id for drafts captured before the backend sent it.
+            quotationCode: prefill.quotation_code ?? "",
             clientName: prefill.client_name ?? "",
             items,
             addons,

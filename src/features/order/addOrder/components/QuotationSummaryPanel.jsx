@@ -25,7 +25,7 @@ export const QuotationSummaryPanel = ({ meta }) => {
 
     if (!meta) return null;
 
-    const { quotationId, clientName, items, addons, printParts, subtotal, grandTotal, discountAmount, discountType, discountPrice } = meta;
+    const { quotationId, quotationCode, clientName, items, addons, printParts, subtotal, grandTotal, discountAmount, discountType, discountPrice } = meta;
 
     const hasItems = items.length > 0;
     const hasAddons = addons.length > 0;
@@ -42,7 +42,7 @@ export const QuotationSummaryPanel = ({ meta }) => {
                 <div className="flex items-center gap-2">
                     <i className="fas fa-file-invoice-dollar text-blue-500 text-sm"></i>
                     <span className="text-sm font-semibold text-blue-800">
-                        Quotation #{quotationId} — Carried Data
+                        Quotation {quotationCode || `#${quotationId}`} — Carried Data
                         {clientName && (
                             <span className="ml-2 font-normal text-blue-600 text-xs">
                                 ({clientName})
