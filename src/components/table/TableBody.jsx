@@ -187,6 +187,24 @@ const TableBody = ({ data, isLoading, emptyMessage }) => {
                   <i className="fas fa-trash"></i>
                 </button>
               )}
+              {resolveRowActions(config, item).includes("restore") && (
+                <button
+                  onClick={() => onAction("restore", item)}
+                  className="cursor-pointer w-7 h-7 border text-green-600 border-green-600 flex items-center justify-center rounded-lg text-xs hover:bg-green-50 transition"
+                  title="Restore"
+                >
+                  <i className="fas fa-trash-arrow-up"></i>
+                </button>
+              )}
+              {resolveRowActions(config, item).includes("forceDelete") && (
+                <button
+                  onClick={() => onAction("forceDelete", item)}
+                  className="cursor-pointer w-7 h-7 bg-red-600 text-white border border-red-600 flex items-center justify-center rounded-lg text-xs hover:bg-red-700 transition"
+                  title="Delete permanently"
+                >
+                  <i className="fas fa-trash-can"></i>
+                </button>
+              )}
             </div>
           </td>
         </tr>

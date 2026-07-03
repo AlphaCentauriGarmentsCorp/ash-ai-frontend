@@ -6,6 +6,26 @@ export const orderApi = {
     return data;
   },
 
+  // ── Soft-delete recovery (the "Show deleted" toggle on All Orders) ──────
+  // List trashed orders (same shape as index(), scoped to onlyTrashed()).
+  deleted: async () => {
+    const { data } = await api.get("/orders/deleted");
+    return data;
+  },
+
+  // Un-delete a trashed order (clears deleted_at). Numeric id only.
+  restore: async (id) => {
+    const { data } = await api.patch(`/orders/${id}/restore`);
+    return data;
+  },
+
+  // PERMANENTLY delete a trashed order (hard delete, cascades child rows).
+  // Backend refuses this on live orders — the order must already be trashed.
+  forceDelete: async (id) => {
+    const { data } = await api.delete(`/orders/${id}/force`);
+    return data;
+  },
+
   create: async (payload) => {
     const config =
       payload instanceof FormData

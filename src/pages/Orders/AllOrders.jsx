@@ -62,13 +62,18 @@ const AllOrders = () => {
   const [data, setData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [pageSize, setPageSize] = useState(10);
+  // Soft-delete recovery: when on, the list shows trashed orders (from
+  // orderApi.deleted()) with Restore / Delete-Permanently row actions.
+  const [showDeleted, setShowDeleted] = useState(false);
 
   const stateKey = searchParams.get("state");
   const activeStateFilter = stateKey ? STATE_FILTERS[stateKey] : null;
   const displayData = useMemo(() => {
-    if (!activeStateFilter) return data;
+    // Deleted view is never narrowed by the CSR state filters (they describe
+    // live production states, not trash).
+    if (showDeleted || !activeStateFilter) return data;
     return data.filter(activeStateFilter.fn);
-  }, [data, activeStateFilter]);
+  }, [data, activeStateFilter, showDeleted]);
 
   const clearStateFilter = () => {
     const next = new URLSearchParams(searchParams);
@@ -246,9 +251,9 @@ const AllOrders = () => {
     async (perPage = pageSize) => {
       setIsLoading(true);
       try {
-        const response = await orderApi.index(
-          perPage === "all" ? {} : { per_page: perPage }
-        );
+        const response = showDeleted
+          ? await orderApi.deleted()
+          : await orderApi.index(perPage === "all" ? {} : { per_page: perPage });
         const responseData = response.data || response;
         setData(Array.isArray(responseData) ? responseData : []);
       } catch (error) {
@@ -258,7 +263,7 @@ const AllOrders = () => {
         setIsLoading(false);
       }
     },
-    [pageSize]
+    [pageSize, showDeleted]
   );
 
   useEffect(() => { fetchData(); }, [fetchData]);
@@ -285,6 +290,28 @@ const AllOrders = () => {
           }
         }
         break;
+      case "restore":
+        if (await confirm({ title: "Restore order", message: `Restore order ${rowData.po_code}? It will return to All Orders in its previous state.`, confirmLabel: "Restore", tone: "primary" })) {
+          try {
+            await orderApi.restore?.(rowData.id);
+            fetchData();
+          } catch (err) {
+            console.error("Restore failed:", err);
+            await alert({ title: "Restore failed", message: "Failed to restore order. Please try again.", tone: "danger" });
+          }
+        }
+        break;
+      case "forceDelete":
+        if (await confirm({ title: "Delete permanently", message: `Permanently delete order ${rowData.po_code}? This erases the order and all its production history for good. This CANNOT be undone.`, confirmLabel: "Delete permanently", tone: "danger" })) {
+          try {
+            await orderApi.forceDelete?.(rowData.id);
+            fetchData();
+          } catch (err) {
+            console.error("Permanent delete failed:", err);
+            await alert({ title: "Delete failed", message: "Failed to permanently delete order. Please try again.", tone: "danger" });
+          }
+        }
+        break;
     }
   };
 
@@ -294,17 +321,40 @@ const AllOrders = () => {
     search: true,
     filters: true,
     actions: ["view", "edit", "delete"],
-    // Edit only while the order is still editable (pre-production). The
-    // backend enforces this too with ORDER_LOCKED_FOR_EDIT.
+    // Deleted view: Restore / Delete-Permanently only (a trashed order can't
+    // be opened — show() uses plain Eloquent and 404s on trashed rows).
+    // Live view: Edit only while still editable (pre-production; backend
+    // enforces this too with ORDER_LOCKED_FOR_EDIT).
     rowActions: (item) =>
-      item?.is_editable ? ["view", "edit", "delete"] : ["view", "delete"],
-    rowClickAction: "view",
+      showDeleted
+        ? ["restore", "forceDelete"]
+        : item?.is_editable
+        ? ["view", "edit", "delete"]
+        : ["view", "delete"],
+    // No whole-row navigation in the trash view (would 404 on a trashed order).
+    rowClickAction: showDeleted ? null : "view",
     pageSize: pageSize,
     pageSizeOptions: [10, 20, 50, 100, "All"],
     emptyMessage: "No orders found",
     searchPlaceholder: "Search by PO code, client, apparel...",
     showIndex: true,
   };
+
+  // Surface when each order was deleted — only in the trash view.
+  const deletedColumn = {
+    key: "deleted_at",
+    label: "Deleted",
+    sortable: true,
+    render: (item) => (
+      <span
+        className="whitespace-nowrap text-sm text-red-600"
+        title={item.deleted_at ? new Date(String(item.deleted_at).replace(" ", "T")).toLocaleString("en-PH") : ""}
+      >
+        {relativeTime(item.deleted_at)}
+      </span>
+    ),
+  };
+  const displayColumns = showDeleted ? [...columns, deletedColumn] : columns;
 
   return (
     <AdminLayout
@@ -316,32 +366,54 @@ const AllOrders = () => {
         { label: "Orders", href: "/orders" },
       ]}
     >
-      {activeStateFilter && (
-        <div className="mb-3 flex items-center gap-2 text-sm">
-          <span className="text-gray-500">Showing:</span>
-          <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
-            {activeStateFilter.label}
-            <span className="text-primary/60">({displayData.length})</span>
-            <button
-              type="button"
-              onClick={clearStateFilter}
-              className="hover:text-primary/70"
-              title="Clear filter"
-            >
-              <i className="fa-solid fa-xmark" />
-            </button>
-          </span>
+      <div className="mb-3 flex items-center justify-between gap-3 flex-wrap">
+        <div className="flex items-center gap-2 text-sm">
+          {!showDeleted && activeStateFilter && (
+            <>
+              <span className="text-gray-500">Showing:</span>
+              <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-primary/10 text-primary border border-primary/20 text-xs font-medium">
+                {activeStateFilter.label}
+                <span className="text-primary/60">({displayData.length})</span>
+                <button
+                  type="button"
+                  onClick={clearStateFilter}
+                  className="hover:text-primary/70"
+                  title="Clear filter"
+                >
+                  <i className="fa-solid fa-xmark" />
+                </button>
+              </span>
+            </>
+          )}
+          {showDeleted && (
+            <>
+              <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-red-100 text-red-700 border border-red-200 text-xs font-medium">
+                <i className="fa-solid fa-trash-can" />
+                Deleted orders ({displayData.length})
+              </span>
+              <span className="text-gray-500">Restore to bring an order back, or delete it permanently.</span>
+            </>
+          )}
         </div>
-      )}
+        <button
+          type="button"
+          onClick={() => setShowDeleted((v) => !v)}
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-sm font-medium bg-white text-gray-700 border-gray-300 hover:bg-gray-50 transition"
+          title={showDeleted ? "Back to active orders" : "Show deleted orders"}
+        >
+          <i className={showDeleted ? "fas fa-arrow-left" : "fas fa-trash"} />
+          {showDeleted ? "Back to active orders" : "Show deleted"}
+        </button>
+      </div>
       <Table
         data={displayData}
-        columns={columns}
+        columns={displayColumns}
         config={tableConfig}
         onPageSizeChange={handlePageSizeChange}
         onAction={handleAction}
         isLoading={isLoading}
-        url="/orders/new"
-        button="New Order"
+        url={showDeleted ? undefined : "/orders/new"}
+        button={showDeleted ? undefined : "New Order"}
       />
       {dialog}
     </AdminLayout>
