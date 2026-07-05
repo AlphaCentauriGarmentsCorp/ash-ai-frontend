@@ -209,7 +209,7 @@ const GraphicArtistPortalPage = () => {
           {/* 5. Notes / Instructions */}
           <NotesInstructionsSection
             order={context.order}
-            design={context.design}
+            roleNotes={context.role_notes}
           />
 
           {/* 6. Stage Notes (writeable) */}
