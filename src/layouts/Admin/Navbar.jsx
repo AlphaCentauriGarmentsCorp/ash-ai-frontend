@@ -30,6 +30,7 @@ const getNotificationVisual = (type) => {
     "quotation.approved": { icon: "fa-solid fa-thumbs-up", color: "green" },
     "quotation.rejected": { icon: "fa-solid fa-thumbs-down", color: "red" },
     "material_request.created": { icon: "fa-solid fa-boxes-packing", color: "amber" },
+    "role_note.created": { icon: "fa-solid fa-paper-plane", color: "blue" },
   };
   return map[type] || { icon: "fa-solid fa-bell", color: "gray" };
 };

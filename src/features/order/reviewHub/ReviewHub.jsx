@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { OrderStages, isPaymentGate, stageOrdinal, getStatusMeta, findStage, getParallelTiers } from "../../../constants/formOptions/orderStages";
 import { getRoleDisplayName } from "../../../config/roleConfig";
 import { stageReviewApi } from "../../../api/stageReviewApi";
+import { orderRoleNotesApi } from "../../../api/orderRoleNotesApi";
 
 /**
  * CSR Review Hub
@@ -127,7 +128,6 @@ const gaDetailsHasContent = (d) => {
   return (
     (Array.isArray(d.placements) && d.placements.length > 0) ||
     (Array.isArray(d.pantones_used) && d.pantones_used.length > 0) ||
-    Boolean(d.design?.notes) ||
     Boolean(d.stage_notes)
   );
 };
@@ -279,20 +279,19 @@ const GaDetailsBlock = ({ details }) => {
         </div>
       )}
 
-      {/* GA stage notes (CP8) */}
+      {/* GA stage notes (CP8) — the artist's own "Save Notes" blob from the
+          GA Portal, promoted from a one-liner to a labeled block (CP2
+          role-notes) so the reviewer can't miss it. */}
       {details.stage_notes && (
-        <p className="mt-2 text-xs text-gray-600">
-          <i className="fa-solid fa-comment-dots mr-1 text-gray-400" />
-          {details.stage_notes}
-        </p>
-      )}
-
-      {/* Design notes */}
-      {details.design?.notes && (
-        <p className="mt-2 text-xs italic text-gray-500">
-          <i className="fa-solid fa-note-sticky mr-1 text-gray-400" />
-          {details.design.notes}
-        </p>
+        <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
+            <i className="fa-solid fa-comment-dots mr-1" />
+            Notes mula sa Graphic Artist
+          </p>
+          <p className="whitespace-pre-wrap text-xs text-gray-700">
+            {details.stage_notes}
+          </p>
+        </div>
       )}
 
       {/* Soft completion warnings — review context, never blocking */}
@@ -310,7 +309,87 @@ const GaDetailsBlock = ({ details }) => {
   );
 };
 
-const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyId }) => {
+// CP2 — Role-directed instructions (Hub → GA). An ORDER-level thread aimed
+// at the Graphic Artist: entries posted here land in the GA Portal's
+// "Notes / Instructions" section. Separate channel from the per-stage
+// notes thread below (which stays on this card's own record).
+const InstructionsBlock = ({ entries, onPost, busy }) => {
+  const [text, setText] = useState("");
+  const [err, setErr] = useState(null);
+  const list = Array.isArray(entries) ? entries : [];
+
+  const submit = async () => {
+    const body = text.trim();
+    if (!body) {
+      setErr("Type an instruction first.");
+      return;
+    }
+    const ok = await onPost("graphic_artist", body);
+    if (ok) {
+      setText("");
+      setErr(null);
+    }
+  };
+
+  return (
+    <div className="mt-3 rounded-lg border border-indigo-200 bg-indigo-50/60 p-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-indigo-700">
+        <i className="fa-solid fa-paper-plane mr-1" />
+        Instructions para sa Graphic Artist
+      </p>
+      <p className="mb-2 mt-0.5 text-[11px] text-indigo-900/70">
+        Order-level ito at lalabas sa GA Portal — hiwalay sa stage notes sa
+        ibaba.
+      </p>
+
+      {list.length > 0 ? (
+        <ul className="mb-2 space-y-2">
+          {list.map((n) => (
+            <li
+              key={n.id}
+              className="rounded-lg border border-indigo-100 bg-white p-2"
+            >
+              <p className="text-[10px] text-gray-400">
+                {n.author?.name || "\u2014"} · {n.created_at}
+              </p>
+              <p className="whitespace-pre-wrap text-sm text-gray-700">
+                {n.body}
+              </p>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="mb-2 text-xs italic text-indigo-900/50">
+          Wala pang instructions para sa GA.
+        </p>
+      )}
+
+      <textarea
+        rows={2}
+        value={text}
+        onChange={(e) => {
+          setText(e.target.value);
+          setErr(null);
+        }}
+        disabled={busy}
+        placeholder="Halimbawa: Gamitin ang bagong logo sa likod, dalawang kulay lang."
+        className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+      />
+      {err && <p className="mt-1 text-xs text-red-600">{err}</p>}
+      <div className="mt-1.5 flex justify-end">
+        <button
+          onClick={submit}
+          disabled={busy}
+          className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+        >
+          {busy ? "Ipinapadala…" : "Ipadala sa GA"}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyId, roleNotes, onPostInstruction, instructionBusy }) => {
   const busy = busyId === stage.id;
   const paymentGate = isPaymentGate(stage.stage);
   const hasGaDetails = gaDetailsHasContent(details);
@@ -480,6 +559,18 @@ const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyI
         </div>
       )}
 
+      {/* CP2 — Hub → GA instruction thread + composer. Rendered only on
+          the Graphic Artwork card (roleNotes is undefined elsewhere).
+          ORDER-level and role-directed — a different channel from the
+          per-stage notes thread below. */}
+      {Array.isArray(roleNotes) && (
+        <InstructionsBlock
+          entries={roleNotes}
+          onPost={onPostInstruction}
+          busy={instructionBusy}
+        />
+      )}
+
       {/* Notes thread — chronological. Legacy approve/reject/resubmit rows
           from before the notes-only change render with their old labels. */}
       {Array.isArray(history) && history.length > 0 && (
@@ -522,10 +613,11 @@ const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyI
 };
 
 const ReviewHub = ({ order }) => {
-  const [data, setData] = useState({ history: {}, uploads: {}, payments: {}, stage_details: {} });
+  const [data, setData] = useState({ history: {}, uploads: {}, payments: {}, stage_details: {}, role_notes: {} });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  const [instructionBusy, setInstructionBusy] = useState(false);
 
   // Only stages that have actually started are worth reviewing — pending
   // stages have no output yet. Sorted by sequence (already is, defensively).
@@ -550,6 +642,7 @@ const ReviewHub = ({ order }) => {
         uploads: res.uploads || {},
         payments: res.payments || {},
         stage_details: res.stage_details || {},
+        role_notes: res.role_notes || {},
       });
     } catch (e) {
       setError(
@@ -576,6 +669,24 @@ const ReviewHub = ({ order }) => {
       return false;
     } finally {
       setBusyId(null);
+    }
+  };
+
+  // CP2 — post a role-directed instruction (ORDER-level) and reload so the
+  // hub thread and the GA Portal payload stay in sync.
+  const postInstruction = async (audienceRole, body) => {
+    setInstructionBusy(true);
+    try {
+      await orderRoleNotesApi.post(order.id, audienceRole, body);
+      await load();
+      return true;
+    } catch (e) {
+      setError(
+        e?.response?.data?.message || "Could not send the instruction."
+      );
+      return false;
+    } finally {
+      setInstructionBusy(false);
     }
   };
 
@@ -616,6 +727,13 @@ const ReviewHub = ({ order }) => {
             details={data.stage_details?.[stage.id]}
             onAddNote={addNote}
             busyId={busyId}
+            roleNotes={
+              stage.stage === "graphic_artwork"
+                ? data.role_notes?.graphic_artist || []
+                : undefined
+            }
+            onPostInstruction={postInstruction}
+            instructionBusy={instructionBusy}
           />
         ))}
       </div>
