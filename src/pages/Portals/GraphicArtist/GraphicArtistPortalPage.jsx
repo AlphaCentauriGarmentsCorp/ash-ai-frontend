@@ -192,6 +192,7 @@ const GraphicArtistPortalPage = () => {
             suggestedPlacements={context.suggested_placements || []}
             placementOptions={context.placement_options}
             pantoneOptions={context.pantone_options || []}
+            customColorOptions={context.custom_color_options || []}
             orderId={context.order.id}
             orderStageId={context.stage.id}
             onChanged={handleRefresh}

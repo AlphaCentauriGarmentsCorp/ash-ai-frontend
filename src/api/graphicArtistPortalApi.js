@@ -165,6 +165,21 @@ export const graphicArtistPortalApi = {
     return data;
   },
 
+  // ── Custom colors (GA Portal CP-Custom — picker) ─────────────────
+
+  /**
+   * Find-or-create a custom color (deduped on hex server-side). Returns
+   * { source:'custom', id, name, hexcolor, pantone_code, pick_count }.
+   */
+  createCustomColor: async ({ name, hexcolor, pantone_code }) => {
+    const { data } = await api.post("/portal/graphic-artist/custom-colors", {
+      name: name ?? null,
+      hexcolor,
+      pantone_code: pantone_code ?? null,
+    });
+    return data?.data ?? data;
+  },
+
   // ── Sample uploads (reuses shared infrastructure) ────────────────
 
   uploadSample: async ({

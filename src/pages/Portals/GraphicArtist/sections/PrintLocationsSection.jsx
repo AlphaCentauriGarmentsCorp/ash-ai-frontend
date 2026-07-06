@@ -36,6 +36,7 @@ const slotsFromPlacement = (p) => {
     pantone_code: e.pantone_code || null,
     name: e.name || null,
     hexcolor: e.hexcolor || null,
+    source: e.source ?? null,
   }));
   const target = clampSlots(Math.max(p.color_count ?? 0, filled.length));
   while (filled.length < target) {
@@ -51,7 +52,19 @@ const slotsToPayload = (slots) =>
   slots
     .map((s) => {
       if (slotIsEmpty(s)) return null;
-      // Catalog pick → ID reference (swatch hex hydrates everywhere).
+      // Custom color → snapshot + reference so the backend links it to
+      // custom_colors (and find-or-creates when there's no id yet).
+      if (s.source === "custom") {
+        return {
+          source: "custom",
+          ...(s.id ? { id: s.id } : {}),
+          name: s.name,
+          hexcolor: s.hexcolor,
+          pantone_code: s.pantone_code,
+        };
+      }
+      // Official catalog pick → bare ID reference (stored as int; Screen
+      // Maker / Printer read the same shape as before).
       if (s.id) return { id: s.id };
       // Legacy free-typed entry → pass through untouched.
       return {
@@ -65,7 +78,9 @@ const slotsToPayload = (slots) =>
 // ── Pantone slot (CP8: chip + palette button; picking happens in
 // the PantonePickerModal, mirroring Add Order's swatch-picker UX) ──
 
-const PantoneSlotField = ({ slot, onOpenPicker, onClear }) => {
+const PantoneSlotField = ({ slot, onOpenPicker, onClear, onResolve }) => {
+  const [typed, setTyped] = useState("");
+
   if (!slotIsEmpty(slot)) {
     return (
       <div className="flex-1 min-w-0 flex items-center gap-2 border border-gray-300 rounded px-2 py-1.5 bg-white">
@@ -99,9 +114,21 @@ const PantoneSlotField = ({ slot, onOpenPicker, onClear }) => {
 
   return (
     <div className="flex-1 min-w-0 flex items-center gap-2">
-      <span className="flex-1 min-w-0 border border-dashed border-gray-300 rounded px-2 py-1.5 text-sm text-gray-400 italic truncate bg-white">
-        Wala pang napipiling Pantone
-      </span>
+      <input
+        type="text"
+        value={typed}
+        onChange={(e) => setTyped(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const q = typed.trim();
+            if (q) onResolve(q);
+            setTyped("");
+          }
+        }}
+        placeholder="Code, name, o hex — pindutin ang Enter"
+        className="flex-1 min-w-0 border border-gray-300 rounded px-2 py-1.5 text-sm focus:outline-none focus:border-primary bg-white"
+      />
       <button
         type="button"
         onClick={onOpenPicker}
@@ -119,10 +146,12 @@ const PantoneSlotField = ({ slot, onOpenPicker, onClear }) => {
 const PlacementEditorCard = ({
   placement,
   pantoneOptions,
+  customOptions = [],
   usedPantones,
   orderId,
   orderStageId,
   onChanged,
+  onCustomCreated,
   onDeleteRequested,
 }) => {
   const [slots, setSlots] = useState(() => slotsFromPlacement(placement));
@@ -146,10 +175,11 @@ const PlacementEditorCard = ({
       prev.map((s, idx) =>
         idx === i
           ? {
-              id: option.id,
-              pantone_code: option.pantone_code,
-              name: option.name,
-              hexcolor: option.hexcolor,
+              id: option.id ?? null,
+              pantone_code: option.pantone_code ?? null,
+              name: option.name ?? null,
+              hexcolor: option.hexcolor ?? null,
+              source: option.source ?? "official",
             }
           : s,
       ),
@@ -180,6 +210,74 @@ const PlacementEditorCard = ({
   const removeSlot = (i) => {
     setSlots((prev) => prev.filter((_, idx) => idx !== i));
     setDirty(true);
+  };
+
+  const [pendingSearch, setPendingSearch] = useState("");
+
+  const isHex = (v) => /^#?(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(String(v).trim());
+  const normHex = (v) => {
+    let h = String(v).trim().replace(/^#/, "");
+    if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+    return "#" + h.toUpperCase();
+  };
+
+  // Enter in the slot box → resolve; anything unresolved opens the picker
+  // pre-filtered with the query (per the agreed UX).
+  const resolveSlot = async (i, q) => {
+    const query = String(q).trim();
+    if (!query) return;
+    const lc = query.toLowerCase();
+
+    const off =
+      pantoneOptions.find((o) => (o.pantone_code || "").toLowerCase() === lc) ||
+      pantoneOptions.find((o) => (o.name || "").toLowerCase() === lc);
+    if (off) {
+      pickSlot(i, { ...off, source: "official" });
+      return;
+    }
+
+    const cust = customOptions.find(
+      (c) =>
+        (c.pantone_code || "").toLowerCase() === lc ||
+        (c.name || "").toLowerCase() === lc,
+    );
+    if (cust) {
+      pickSlot(i, { ...cust, source: "custom" });
+      return;
+    }
+
+    if (isHex(query)) {
+      const hex = normHex(query);
+      const existing = customOptions.find(
+        (c) => (c.hexcolor || "").toUpperCase() === hex,
+      );
+      if (existing) {
+        pickSlot(i, { ...existing, source: "custom" });
+        return;
+      }
+      try {
+        const created = await graphicArtistPortalApi.createCustomColor({
+          hexcolor: hex,
+        });
+        pickSlot(i, { ...created, source: "custom" });
+        onCustomCreated?.(created);
+        return;
+      } catch (err) {
+        // fall through to the picker on failure
+      }
+    }
+
+    setPendingSearch(query);
+    setPickerSlot(i);
+  };
+
+  const handleCreateCustomFromModal = async (payload) => {
+    const created = await graphicArtistPortalApi.createCustomColor(payload);
+    if (pickerSlot !== null) {
+      pickSlot(pickerSlot, { ...created, source: "custom" });
+    }
+    onCustomCreated?.(created);
+    setPickerSlot(null);
   };
 
   const handleSave = async () => {
@@ -301,6 +399,7 @@ const PlacementEditorCard = ({
                     slot={s}
                     onOpenPicker={() => setPickerSlot(i)}
                     onClear={() => clearSlot(i)}
+                    onResolve={(q) => resolveSlot(i, q)}
                   />
                   <button
                     type="button"
@@ -332,13 +431,20 @@ const PlacementEditorCard = ({
       <PantonePickerModal
         open={pickerSlot !== null}
         options={pantoneOptions}
+        customOptions={customOptions}
         usedPantones={usedPantones}
         currentValue={pickerSlot !== null ? slots[pickerSlot] : null}
-        onClose={() => setPickerSlot(null)}
+        initialSearch={pendingSearch}
+        onClose={() => {
+          setPickerSlot(null);
+          setPendingSearch("");
+        }}
         onSelect={(o) => {
           if (pickerSlot !== null) pickSlot(pickerSlot, o);
           setPickerSlot(null);
+          setPendingSearch("");
         }}
+        onCreateCustom={handleCreateCustomFromModal}
       />
 
       <div className="mt-3 flex justify-end">
@@ -448,6 +554,7 @@ const PrintLocationsSection = ({
   suggestedPlacements = [],
   placementOptions = [],
   pantoneOptions = [],
+  customColorOptions = [],
   orderId,
   orderStageId,
   onChanged,
@@ -470,6 +577,29 @@ const PrintLocationsSection = ({
       String(a.pantone_code || "").localeCompare(String(b.pantone_code || "")),
     );
   }, [pantoneOptions]);
+
+  // Custom colors from context + any created this session (optimistic),
+  // deduped by hex so a fresh save shows in the picker right away.
+  const [localCustoms, setLocalCustoms] = useState([]);
+  const customOptions = useMemo(() => {
+    const seen = new Map();
+    for (const o of [...localCustoms, ...customColorOptions]) {
+      const key = (o.hexcolor || "").toLowerCase();
+      if (key && !seen.has(key)) seen.set(key, o);
+    }
+    return Array.from(seen.values());
+  }, [localCustoms, customColorOptions]);
+
+  const handleCustomCreated = (c) => {
+    if (!c || !c.hexcolor) return;
+    setLocalCustoms((prev) => {
+      const exists = prev.some(
+        (p) =>
+          (p.hexcolor || "").toLowerCase() === (c.hexcolor || "").toLowerCase(),
+      );
+      return exists ? prev : [c, ...prev];
+    });
+  };
 
   const existingTypes = new Set(
     placements.map((p) => (p.type || "").toLowerCase()),
@@ -580,10 +710,12 @@ const PrintLocationsSection = ({
               key={p.id}
               placement={p}
               pantoneOptions={dedupedPantones}
+              customOptions={customOptions}
               usedPantones={usedPantones}
               orderId={orderId}
               orderStageId={orderStageId}
               onChanged={onChanged}
+              onCustomCreated={handleCustomCreated}
               onDeleteRequested={handleDelete}
             />
           ))}
