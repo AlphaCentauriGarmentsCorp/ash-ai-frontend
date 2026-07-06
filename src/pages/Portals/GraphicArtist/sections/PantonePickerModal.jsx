@@ -1,31 +1,32 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 /**
  * GA Portal CP9 — detailed Pantone picker modal.
  *
- * Full parity with the Add Order SwatchPickerModal the CSR already
- * knows: search (name / code / hex), an organizing filter dropdown, a
- * favorites shelf, and rich tiles — the code overlaid on the colour
- * block, a selection dot, the name, and the hex value.
+ * CP-Custom (this rev) adds artist control over colours the canonical
+ * catalog doesn't have:
+ *   - a "Custom colors" group (context.custom_color_options, ordered by
+ *     pick_count) rendered alongside the official Pantones
+ *   - a creator footer: native colour widget + a TYPEABLE HEX field +
+ *     optional name → "Save & use" find-or-creates the colour in the
+ *     custom catalog (deduped on hex) and selects it
+ *   - onSelect now carries `source` ('official' | 'custom') so the caller
+ *     stores a snapshot+reference for customs and a bare id for officials
  *
- * Two adaptations, because pantone rows carry no fabric/GSM/pick-count
- * data:
- *   - the filter is a COLOR FAMILY dropdown, derived from each
- *     pantone's hue (Red…White) — no backend column needed
- *   - the shelf is "Ginamit sa order na ito": pantones already used
- *     across THIS order's placements (passed in via usedPantones), the
- *     most useful shortlist for an artist repeating colours across
- *     locations. A global most-used (pick counts) would need a small
- *     backend addition — parked.
+ * Existing behaviour is unchanged: search (name / code / hex), a COLOR
+ * FAMILY dropdown derived from each pantone's hue, and a "Ginamit sa
+ * order na ito" shelf of pantones already used on this order.
  *
  * Props:
- *   open          boolean
- *   options       [{id, name, hexcolor, pantone_code}] (deduped)
- *   usedPantones  same shape — already used on this order's placements
- *   currentValue  the slot's current pick ({id?, pantone_code?}) — dots
- *                 the matching tile
+ *   open           boolean
+ *   options        [{id, name, hexcolor, pantone_code}] official (deduped)
+ *   customOptions  [{id, name, hexcolor, pantone_code, pick_count}] custom
+ *   usedPantones   same shape — already used on this order's placements
+ *   currentValue   the slot's current pick ({id?, pantone_code?, source?})
+ *   initialSearch  seeds the search box (Enter-to-resolve → pre-filtered)
  *   onClose()
- *   onSelect(option)
+ *   onSelect(option)        option carries `source`
+ *   onCreateCustom(payload) async — {name, hexcolor, pantone_code}
  */
 
 // ── Colour-family derivation (hex → HSL → bucket) ────────────────
@@ -117,13 +118,50 @@ const PantoneTile = ({ option, selected, onClick }) => (
 const PantonePickerModal = ({
   open,
   options = [],
+  customOptions = [],
   usedPantones = [],
   currentValue = null,
+  initialSearch = "",
   onClose,
   onSelect,
+  onCreateCustom,
 }) => {
   const [search, setSearch] = useState("");
   const [family, setFamily] = useState("");
+
+  // Seed the search when opened from the slot box (Enter → pre-filtered).
+  useEffect(() => {
+    if (open) {
+      setSearch(initialSearch || "");
+      setFamily("");
+    }
+  }, [open, initialSearch]);
+
+  // Custom-color creator state.
+  const [customName, setCustomName] = useState("");
+  const [customHex, setCustomHex] = useState("#888888");
+  const [savingCustom, setSavingCustom] = useState(false);
+  const [customErr, setCustomErr] = useState(null);
+
+  const hexValid = /^#?(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(customHex.trim());
+
+  const handleSaveCustom = async () => {
+    if (!hexValid || savingCustom) return;
+    setSavingCustom(true);
+    setCustomErr(null);
+    try {
+      await onCreateCustom?.({
+        name: customName.trim() || null,
+        hexcolor: customHex.trim(),
+        pantone_code: null,
+      });
+      setCustomName("");
+    } catch (err) {
+      setCustomErr("Hindi na-save ang custom color. Subukan ulit.");
+    } finally {
+      setSavingCustom(false);
+    }
+  };
 
   // Family index computed once per catalog.
   const withFamily = useMemo(
@@ -151,8 +189,26 @@ const PantonePickerModal = ({
     return list;
   }, [withFamily, family, search]);
 
-  const isSelected = (o) => {
+  // Custom colors filtered by the same search (no family bucket — customs
+  // are shown only when no family filter is active).
+  const filteredCustom = useMemo(() => {
+    let list = customOptions;
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (o) =>
+          (o.pantone_code || "").toLowerCase().includes(q) ||
+          (o.name || "").toLowerCase().includes(q) ||
+          (o.hexcolor || "").toLowerCase().includes(q),
+      );
+    }
+    return list;
+  }, [customOptions, search]);
+
+  const isSelected = (o, src) => {
     if (!currentValue) return false;
+    const csrc = currentValue.source || null;
+    if (src && csrc && src !== csrc) return false;
     if (currentValue.id && o.id === currentValue.id) return true;
     return (
       !!currentValue.pantone_code &&
@@ -161,9 +217,8 @@ const PantonePickerModal = ({
     );
   };
 
-  // "Ginamit sa order na ito" shelf — shown on the unfiltered view only
-  // (same rule as the swatch picker's Most Used), deduped against the
-  // grid so a tile never appears twice.
+  // "Ginamit sa order na ito" shelf — shown on the unfiltered view only,
+  // deduped against the grid so a tile never appears twice.
   const noFilter = !family && search.trim() === "";
   const usedShelf = useMemo(() => {
     if (!noFilter) return [];
@@ -173,7 +228,6 @@ const PantonePickerModal = ({
       const key = `${(u.pantone_code || "").toLowerCase()}|${(u.hexcolor || "").toLowerCase()}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      // Prefer the catalog row (has a stable id for the payload).
       const match = withFamily.find(
         (o) =>
           (u.id && o.id === u.id) ||
@@ -192,6 +246,8 @@ const PantonePickerModal = ({
   const gridItems = noFilter
     ? filtered.filter((o) => !shelfIds.has(o.id))
     : filtered;
+
+  const hasCustomGroup = !family && filteredCustom.length > 0;
 
   if (!open) return null;
 
@@ -260,14 +316,14 @@ const PantonePickerModal = ({
 
         {/* Body */}
         <div className="px-4 py-3 overflow-y-auto flex-1">
-          {options.length === 0 ? (
+          {options.length === 0 && customOptions.length === 0 ? (
             <p className="text-xs text-gray-400 py-8 text-center">
-              Walang laman ang Pantone catalog.
+              Walang laman ang Pantone catalog. Gumawa ng custom color sa ibaba.
             </p>
-          ) : filtered.length === 0 ? (
+          ) : filtered.length === 0 && filteredCustom.length === 0 ? (
             <p className="text-xs text-gray-400 py-8 text-center">
               Walang tugma. Subukan ang ibang code, pangalan, o hex — o
-              i-clear ang filter.
+              i-clear ang filter. Pwede ka ring gumawa ng custom color sa ibaba.
             </p>
           ) : (
             <>
@@ -282,9 +338,9 @@ const PantonePickerModal = ({
                       <PantoneTile
                         key={`used-${o.id}`}
                         option={o}
-                        selected={isSelected(o)}
+                        selected={isSelected(o, "official")}
                         onClick={(opt) => {
-                          onSelect(opt);
+                          onSelect({ ...opt, source: "official" });
                           setSearch("");
                           setFamily("");
                         }}
@@ -294,26 +350,122 @@ const PantonePickerModal = ({
                 </div>
               )}
 
-              {noFilter && usedShelf.length > 0 && (
-                <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  All Colors
+              {hasCustomGroup && (
+                <div className="mb-4">
+                  <div className="text-[11px] font-semibold text-primary uppercase tracking-wide mb-2">
+                    <i className="fas fa-eye-dropper mr-1"></i>
+                    Custom colors
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {filteredCustom.map((o) => (
+                      <PantoneTile
+                        key={`custom-${o.id}`}
+                        option={o}
+                        selected={isSelected(o, "custom")}
+                        onClick={(opt) => {
+                          onSelect({ ...opt, source: "custom" });
+                          setSearch("");
+                          setFamily("");
+                        }}
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                {gridItems.map((o) => (
-                  <PantoneTile
-                    key={o.id}
-                    option={o}
-                    selected={isSelected(o)}
-                    onClick={(opt) => {
-                      onSelect(opt);
-                      setSearch("");
-                      setFamily("");
-                    }}
-                  />
-                ))}
-              </div>
+
+              {filtered.length > 0 && (
+                <>
+                  {(usedShelf.length > 0 || hasCustomGroup) && (
+                    <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                      Official Pantones
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                    {gridItems.map((o) => (
+                      <PantoneTile
+                        key={o.id}
+                        option={o}
+                        selected={isSelected(o, "official")}
+                        onClick={(opt) => {
+                          onSelect({ ...opt, source: "official" });
+                          setSearch("");
+                          setFamily("");
+                        }}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
             </>
+          )}
+        </div>
+
+        {/* Custom color creator */}
+        <div className="px-4 py-3 border-t border-gray-200 bg-light/20">
+          <label className="block text-[11px] font-medium text-gray-600 mb-1">
+            Gumawa ng custom color (wala sa Pantone catalog)
+          </label>
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="color"
+              value={
+                /^#(?:[0-9a-fA-F]{6})$/.test(customHex) ? customHex : "#888888"
+              }
+              onChange={(e) => setCustomHex(e.target.value)}
+              disabled={savingCustom}
+              title="Pumili ng kulay"
+              aria-label="Custom color swatch"
+              className="h-8 w-9 flex-none p-0.5 border border-gray-200 rounded cursor-pointer disabled:cursor-not-allowed"
+            />
+            <input
+              type="text"
+              value={customHex}
+              onChange={(e) => setCustomHex(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveCustom();
+              }}
+              placeholder="#RRGGBB"
+              spellCheck={false}
+              disabled={savingCustom}
+              className={`w-28 px-2 py-1.5 text-xs font-mono border rounded focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary disabled:opacity-60 ${
+                hexValid ? "border-gray-200" : "border-amber-300"
+              }`}
+            />
+            <input
+              type="text"
+              value={customName}
+              onChange={(e) => setCustomName(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveCustom();
+              }}
+              placeholder="Pangalan ng kulay (optional)…"
+              disabled={savingCustom}
+              className="flex-1 min-w-0 px-2 py-1.5 text-xs border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-primary/20 focus:border-primary disabled:opacity-60"
+            />
+            <button
+              type="button"
+              onClick={handleSaveCustom}
+              disabled={!hexValid || savingCustom}
+              className="px-3 py-1.5 text-xs rounded-lg bg-primary text-white hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
+            >
+              {savingCustom ? (
+                <>
+                  <i className="fas fa-spinner fa-spin mr-1"></i>Sine-save…
+                </>
+              ) : (
+                <>
+                  <i className="fas fa-plus mr-1"></i>Save &amp; use
+                </>
+              )}
+            </button>
+          </div>
+          {customErr ? (
+            <p className="text-[10px] text-amber-600 mt-1">{customErr}</p>
+          ) : (
+            <p className="text-[10px] text-gray-400 mt-1">
+              I-save sa custom catalog at gamitin sa slot na ito. Naka-dedupe
+              base sa hex.
+            </p>
           )}
         </div>
       </div>
