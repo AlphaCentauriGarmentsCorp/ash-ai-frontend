@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import AdminLayout from "../../layouts/Admin/AdminLayout";
 import { materialRequestsApi } from "../../api/materialRequestsApi";
 import { orderApi } from "../../api/orderApi";
@@ -13,6 +13,18 @@ import { materialsApi } from "../../api/materialsApi";
  *  - Add 1+ line items: material + quantity + optional notes
  *  - Optional reason field
  *  - Submit → POST /material-requests
+ *
+ * SM Rework CP3 — portal hand-off:
+ *  - Production portals link here as
+ *    /material-requests/new?order_id=…&stage_id=…
+ *  - order_id pre-selects the order (still editable — the user can pick
+ *    a different one)
+ *  - stage_id pins the request to the exact stage the portal launched
+ *    from, so parallel forks (screen_making ‖ material_prep_sample)
+ *    attach correctly and the MR reflects back in that portal's own
+ *    Material Requests list. The pin is sent ONLY while the selection
+ *    still matches the portal's order; switching orders drops it and
+ *    the backend falls back to that order's current stage.
  *
  * Permission gating:
  *  - The sidebar entry is hidden for users without
@@ -32,18 +44,34 @@ const emptyItem = () => ({
 const CreateMaterialRequest = () => {
   const navigate = useNavigate();
 
+  // SM Rework CP3 — portal hand-off params (empty strings when the page
+  // is opened from the sidebar instead of a portal button).
+  const [searchParams] = useSearchParams();
+  const prefillOrderId = searchParams.get("order_id") || "";
+  const prefillStageId = searchParams.get("stage_id") || "";
+
   const [orders, setOrders] = useState([]);
   const [materials, setMaterials] = useState([]);
   const [bootLoading, setBootLoading] = useState(true);
   const [bootError, setBootError] = useState(null);
 
-  const [orderId, setOrderId] = useState("");
+  const [orderId, setOrderId] = useState(prefillOrderId);
   const [reason, setReason] = useState("");
   const [items, setItems] = useState([emptyItem()]);
 
   const [submitting, setSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
   const [generalError, setGeneralError] = useState(null);
+
+  // The stage pin applies only while the selection still matches the
+  // portal's order — switching orders makes the portal's stage foreign
+  // (the backend would 422 on it), so we drop it and let the server
+  // resolve that order's current stage instead.
+  const pinnedToPortalStage = Boolean(
+    prefillOrderId &&
+      prefillStageId &&
+      String(orderId) === String(prefillOrderId),
+  );
 
   // Bootstrap pickers in parallel.
   useEffect(() => {
@@ -118,11 +146,18 @@ const CreateMaterialRequest = () => {
     }
 
     try {
-      const created = await materialRequestsApi.create({
+      const payload = {
         order_id: Number(orderId),
         reason: reason || undefined,
         items: cleanedItems,
-      });
+      };
+      // Pin to the portal's stage only while the selection still matches
+      // (see pinnedToPortalStage above).
+      if (pinnedToPortalStage) {
+        payload.stage_id = Number(prefillStageId);
+      }
+
+      const created = await materialRequestsApi.create(payload);
 
       // Navigate to the detail page of the new MR.
       const newId = created?.data?.id;
@@ -225,15 +260,26 @@ const CreateMaterialRequest = () => {
               {errors.order_id && (
                 <p className="mt-1 text-xs text-red-600">{errors.order_id}</p>
               )}
-              {selectedOrder?.current_stage?.stage && (
-                <p className="mt-2 text-xs text-gray-500">
-                  Current stage:{" "}
-                  <span className="font-medium text-gray-700">
-                    {selectedOrder.current_stage.stage.replace(/_/g, " ")}
-                  </span>
-                  {" — "}
-                  status: <span className="font-medium">{selectedOrder.current_stage.status}</span>
+              {errors.stage_id && (
+                <p className="mt-1 text-xs text-red-600">{errors.stage_id}</p>
+              )}
+              {pinnedToPortalStage ? (
+                <p className="mt-2 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-2 py-1.5">
+                  <i className="fa-solid fa-thumbtack mr-1" />
+                  Pre-selected from your portal — this request is pinned to the
+                  stage you came from. You can still pick a different order.
                 </p>
+              ) : (
+                selectedOrder?.current_stage?.stage && (
+                  <p className="mt-2 text-xs text-gray-500">
+                    Current stage:{" "}
+                    <span className="font-medium text-gray-700">
+                      {selectedOrder.current_stage.stage.replace(/_/g, " ")}
+                    </span>
+                    {" — "}
+                    status: <span className="font-medium">{selectedOrder.current_stage.status}</span>
+                  </p>
+                )
               )}
               {orders.length === 0 && (
                 <p className="mt-2 text-xs text-amber-600">
