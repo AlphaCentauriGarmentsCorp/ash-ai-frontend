@@ -48,6 +48,28 @@ const PAYMENT_STATUS_BADGE = {
   rejected: { label: "Rejected", cls: "bg-red-100 text-red-700" },
 };
 
+// SM Rework CP3 — the Hub → role instruction channels, keyed by stage slug.
+// A stage listed here gets the order-level instruction composer on its card,
+// posting to `role` (the order_role_notes audience_role); the matching
+// portal surfaces the thread in its "Notes / Instructions" section. Adding
+// a new both-ways channel = one entry here + the portal-side thread.
+const INSTRUCTION_AUDIENCES = {
+  graphic_artwork: {
+    role: "graphic_artist",
+    label: "Graphic Artist",
+    short: "GA",
+    portalName: "GA Portal",
+    placeholder: "Halimbawa: Gamitin ang bagong logo sa likod, dalawang kulay lang.",
+  },
+  screen_making: {
+    role: "screen_maker",
+    label: "Screen Maker",
+    short: "Screen Maker",
+    portalName: "Screen Maker Portal",
+    placeholder: "Halimbawa: Unahin ang Front screen — kailangan bago ang sample.",
+  },
+};
+
 const fmtWhen = (iso) => {
   if (!iso) return "\u2014";
   const d = new Date(iso);
@@ -128,6 +150,18 @@ const gaDetailsHasContent = (d) => {
   return (
     (Array.isArray(d.placements) && d.placements.length > 0) ||
     (Array.isArray(d.pantones_used) && d.pantones_used.length > 0) ||
+    Boolean(d.stage_notes)
+  );
+};
+
+// SM Rework CP3 — Screen Making detail block gate. SM-AUTHORED output
+// only: the design/placements on the payload are GA context (already on
+// the Graphic Artwork card above), so only the physical screen mapping
+// and the maker's own Save Notes count as "worked".
+const smDetailsHasContent = (d) => {
+  if (!d || d.kind !== "screen_making") return false;
+  return (
+    (Array.isArray(d.screens) && d.screens.length > 0) ||
     Boolean(d.stage_notes)
   );
 };
@@ -309,11 +343,87 @@ const GaDetailsBlock = ({ details }) => {
   );
 };
 
-// CP2 — Role-directed instructions (Hub → GA). An ORDER-level thread aimed
-// at the Graphic Artist: entries posted here land in the GA Portal's
-// "Notes / Instructions" section. Separate channel from the per-stage
-// notes thread below (which stays on this card's own record).
-const InstructionsBlock = ({ entries, onPost, busy }) => {
+// SM Rework CP3 — rich Screen Making detail block.
+// Renders the screen maker's output from the hub payload's stage_details
+// map: the physical screen mapping (screen_assignments → screens) and the
+// maker's own "Save Notes" blob. The design/placements are NOT repeated
+// here — they live on the Graphic Artwork card above; placement ids are
+// resolved to their type names for readability.
+const SmDetailsBlock = ({ details }) => {
+  const screens = Array.isArray(details.screens) ? details.screens : [];
+
+  // placement_id → type (e.g. 8 → "Front") for the table's first column.
+  const placementNames = {};
+  (Array.isArray(details.placements) ? details.placements : []).forEach((p) => {
+    placementNames[p.id] = p.type;
+  });
+
+  return (
+    <div className="mt-3 border-t border-gray-100 pt-3">
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+        Screen Making Output
+      </p>
+
+      {/* Physical screens mapped to the order's placements */}
+      {screens.length > 0 && (
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 p-2">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-200 text-left text-[10px] uppercase tracking-wide text-gray-500">
+                <th className="py-1.5 pr-3">Placement</th>
+                <th className="py-1.5 pr-3">Color #</th>
+                <th className="py-1.5 pr-3">Screen</th>
+                <th className="py-1.5 pr-3">Size</th>
+                <th className="py-1.5 pr-3">Mesh</th>
+                <th className="py-1.5">Location</th>
+              </tr>
+            </thead>
+            <tbody>
+              {screens.map((s) => (
+                <tr key={s.id} className="border-b border-gray-100 last:border-0">
+                  <td className="py-1.5 pr-3 capitalize text-gray-700">
+                    {placementNames[s.placement_id] || `#${s.placement_id}`}
+                  </td>
+                  <td className="py-1.5 pr-3 text-gray-700">{s.color_index}</td>
+                  <td className="py-1.5 pr-3 font-medium text-gray-900">
+                    {s.screen?.name || "\u2014"}
+                  </td>
+                  <td className="py-1.5 pr-3 text-gray-700">{s.screen?.size || "\u2014"}</td>
+                  <td className="py-1.5 pr-3 text-gray-700">{s.screen?.mesh_count || "\u2014"}</td>
+                  <td className="py-1.5 text-gray-500">{s.screen?.address || "\u2014"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* SM stage notes — the maker's own "Save Notes" blob from the
+          Screen Maker Portal (the reason this block exists: the notes
+          must reflect here in the hub). */}
+      {details.stage_notes && (
+        <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
+            <i className="fa-solid fa-comment-dots mr-1" />
+            Notes mula sa Screen Maker
+          </p>
+          <p className="whitespace-pre-wrap text-xs text-gray-700">
+            {details.stage_notes}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// CP2 — Role-directed instructions (Hub → role). An ORDER-level thread
+// aimed at one production role: entries posted here land in that role's
+// portal "Notes / Instructions" section. Separate channel from the
+// per-stage notes thread below (which stays on this card's own record).
+// SM Rework CP3 — parameterized by `audience` (see INSTRUCTION_AUDIENCES)
+// so the Graphic Artwork and Screen Making cards each address their own
+// role with the same component.
+const InstructionsBlock = ({ audience, entries, onPost, busy }) => {
   const [text, setText] = useState("");
   const [err, setErr] = useState(null);
   const list = Array.isArray(entries) ? entries : [];
@@ -324,7 +434,7 @@ const InstructionsBlock = ({ entries, onPost, busy }) => {
       setErr("Type an instruction first.");
       return;
     }
-    const ok = await onPost("graphic_artist", body);
+    const ok = await onPost(audience.role, body);
     if (ok) {
       setText("");
       setErr(null);
@@ -335,11 +445,11 @@ const InstructionsBlock = ({ entries, onPost, busy }) => {
     <div className="mt-3 rounded-lg border border-indigo-200 bg-indigo-50/60 p-3">
       <p className="text-xs font-medium uppercase tracking-wide text-indigo-700">
         <i className="fa-solid fa-paper-plane mr-1" />
-        Instructions para sa Graphic Artist
+        Instructions para sa {audience.label}
       </p>
       <p className="mb-2 mt-0.5 text-[11px] text-indigo-900/70">
-        Order-level ito at lalabas sa GA Portal — hiwalay sa stage notes sa
-        ibaba.
+        Order-level ito at lalabas sa {audience.portalName} — hiwalay sa stage
+        notes sa ibaba.
       </p>
 
       {list.length > 0 ? (
@@ -360,7 +470,7 @@ const InstructionsBlock = ({ entries, onPost, busy }) => {
         </ul>
       ) : (
         <p className="mb-2 text-xs italic text-indigo-900/50">
-          Wala pang instructions para sa GA.
+          Wala pang instructions para sa {audience.short}.
         </p>
       )}
 
@@ -372,7 +482,7 @@ const InstructionsBlock = ({ entries, onPost, busy }) => {
           setErr(null);
         }}
         disabled={busy}
-        placeholder="Halimbawa: Gamitin ang bagong logo sa likod, dalawang kulay lang."
+        placeholder={audience.placeholder}
         className="w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
       />
       {err && <p className="mt-1 text-xs text-red-600">{err}</p>}
@@ -382,17 +492,18 @@ const InstructionsBlock = ({ entries, onPost, busy }) => {
           disabled={busy}
           className="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
         >
-          {busy ? "Ipinapadala…" : "Ipadala sa GA"}
+          {busy ? "Ipinapadala…" : `Ipadala sa ${audience.short}`}
         </button>
       </div>
     </div>
   );
 };
 
-const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyId, roleNotes, onPostInstruction, instructionBusy }) => {
+const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyId, roleNotes, instructionAudience, onPostInstruction, instructionBusy }) => {
   const busy = busyId === stage.id;
   const paymentGate = isPaymentGate(stage.stage);
   const hasGaDetails = gaDetailsHasContent(details);
+  const hasSmDetails = smDetailsHasContent(details);
   const statusMeta = getStatusMeta(stage.status);
   const isParallel = PARALLEL_TIERS.has(stage.sequence);
 
@@ -516,6 +627,9 @@ const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyI
       {/* GA Portal CP4 — the Graphic Artist's saved output in full. */}
       {hasGaDetails && <GaDetailsBlock details={details} />}
 
+      {/* SM Rework CP3 — the Screen Maker's output (screens + notes). */}
+      {hasSmDetails && <SmDetailsBlock details={details} />}
+
       {/* Artifacts — proof-of-work uploads for this stage (Phase 3). Lets the
           reviewer see what they're approving. */}
       {Array.isArray(uploads) && uploads.length > 0 ? (
@@ -551,7 +665,7 @@ const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyI
             ))}
           </div>
         </div>
-      ) : paymentGate && payment ? null : hasGaDetails ? null : (
+      ) : paymentGate && payment ? null : hasGaDetails || hasSmDetails ? null : (
         <div className="mt-3 border-t border-gray-100 pt-3">
           <p className="text-xs italic text-gray-400">
             No artifact uploaded for this stage yet.
@@ -559,12 +673,13 @@ const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyI
         </div>
       )}
 
-      {/* CP2 — Hub → GA instruction thread + composer. Rendered only on
-          the Graphic Artwork card (roleNotes is undefined elsewhere).
-          ORDER-level and role-directed — a different channel from the
-          per-stage notes thread below. */}
-      {Array.isArray(roleNotes) && (
+      {/* CP2 — Hub → role instruction thread + composer. Rendered only on
+          cards whose stage has an entry in INSTRUCTION_AUDIENCES (GA +
+          Screen Making). ORDER-level and role-directed — a different
+          channel from the per-stage notes thread below. */}
+      {instructionAudience && Array.isArray(roleNotes) && (
         <InstructionsBlock
+          audience={instructionAudience}
           entries={roleNotes}
           onPost={onPostInstruction}
           busy={instructionBusy}
@@ -673,7 +788,7 @@ const ReviewHub = ({ order }) => {
   };
 
   // CP2 — post a role-directed instruction (ORDER-level) and reload so the
-  // hub thread and the GA Portal payload stay in sync.
+  // hub thread and the target portal's payload stay in sync.
   const postInstruction = async (audienceRole, body) => {
     setInstructionBusy(true);
     try {
@@ -717,25 +832,28 @@ const ReviewHub = ({ order }) => {
       )}
 
       <div className="flex flex-col gap-3">
-        {stages.map((stage) => (
-          <StageCard
-            key={stage.id}
-            stage={stage}
-            history={data.history?.[stage.id]}
-            uploads={data.uploads?.[stage.id]}
-            payment={data.payments?.[stage.id]}
-            details={data.stage_details?.[stage.id]}
-            onAddNote={addNote}
-            busyId={busyId}
-            roleNotes={
-              stage.stage === "graphic_artwork"
-                ? data.role_notes?.graphic_artist || []
-                : undefined
-            }
-            onPostInstruction={postInstruction}
-            instructionBusy={instructionBusy}
-          />
-        ))}
+        {stages.map((stage) => {
+          // SM Rework CP3 — instruction channel for this card (if any).
+          const audience = INSTRUCTION_AUDIENCES[stage.stage];
+          return (
+            <StageCard
+              key={stage.id}
+              stage={stage}
+              history={data.history?.[stage.id]}
+              uploads={data.uploads?.[stage.id]}
+              payment={data.payments?.[stage.id]}
+              details={data.stage_details?.[stage.id]}
+              onAddNote={addNote}
+              busyId={busyId}
+              roleNotes={
+                audience ? data.role_notes?.[audience.role] || [] : undefined
+              }
+              instructionAudience={audience}
+              onPostInstruction={postInstruction}
+              instructionBusy={instructionBusy}
+            />
+          );
+        })}
       </div>
 
     </div>
