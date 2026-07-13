@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { portalApi } from "../../api/portalApi";
 import useConfirm from "../../hooks/useConfirm";
+import { useBadges } from "../../hooks/useBadges";
 
 /**
  * Bundle 3 — the shared "Done" action for production portals.
@@ -36,6 +37,7 @@ export default function StageDoneButton({
   disabled = false,
 }) {
   const { confirm, alert, dialog } = useConfirm();
+  const { bumpPortal } = useBadges();
   const [submitting, setSubmitting] = useState(false);
 
   const handleClick = async () => {
@@ -55,6 +57,14 @@ export default function StageDoneButton({
       } else {
         await portalApi.markDone(role, orderStageId);
       }
+
+      // Optimistic: this task just left the station, so drop the nav badge
+      // now rather than at the next fetch. The POST also fires the
+      // data-changed bus, so BadgeProvider reconciles against the server
+      // ~300ms later — including whichever downstream portal just gained a
+      // task from the auto-advance. A wrong guess self-corrects.
+      if (role) bumpPortal(role, -1);
+
       onDone?.();
     } catch (err) {
       await alert({

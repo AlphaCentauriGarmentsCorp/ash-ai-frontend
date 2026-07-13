@@ -1,8 +1,7 @@
-import { useState, useContext, useEffect, useCallback, useRef, useLayoutEffect } from "react";
+import { useContext, useEffect, useCallback, useRef, useLayoutEffect } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { getMenuByPermissions } from "../../config/menuConfig";
-import { portalApi } from "../../api/portalApi";
-import { csrPortalApi } from "../../api/csrPortalApi";
+import { useBadges } from "../../hooks/useBadges";
 import { SidebarContext } from "../../context/SidebarContext";
 import Logo from "../../assets/images/logo/Logo.png";
 
@@ -39,59 +38,16 @@ export default function Sidebar({
   const { activeLink, setActiveLink, openSubMenu, setOpenSubMenu } =
     useContext(SidebarContext);
 
-  // Change 3 — per-portal active-task counts for the nav badges. The endpoint
-  // self-scopes (oversight roles see every station; others see only their own),
-  // so we render whatever it returns. Polled ~45s (no WebSockets on Hostinger).
-  const [badgeCounts, setBadgeCounts] = useState({});
-  const [awaitingCount, setAwaitingCount] = useState(0);
-
-  // Awaiting-Payment nav badge — how many orders the client still owes on.
-  // Only fetched when the menu actually surfaces the item (CSR / oversight),
-  // so non-CSR sidebars never call the CSR-scoped endpoint. Polled ~45s, same
-  // cadence as the portal badge counts (no WebSockets on Hostinger).
-  const showsAwaitingPayment = menu.some((s) =>
-    s.items.some((it) => it.path === "/payments/awaiting"),
-  );
-
-  useEffect(() => {
-    if (!showsAwaitingPayment) {
-      setAwaitingCount(0);
-      return;
-    }
-    let active = true;
-    const load = async () => {
-      try {
-        const res = await csrPortalApi.getAwaiting();
-        if (active) setAwaitingCount(res?.count ?? 0);
-      } catch {
-        /* badge is non-critical — ignore transient failures */
-      }
-    };
-    load();
-    const id = setInterval(load, 45000);
-    return () => {
-      active = false;
-      clearInterval(id);
-    };
-  }, [showsAwaitingPayment]);
-
-  useEffect(() => {
-    let active = true;
-    const load = async () => {
-      try {
-        const { counts } = await portalApi.badgeCounts();
-        if (active) setBadgeCounts(counts || {});
-      } catch {
-        /* badges are non-critical — ignore transient failures */
-      }
-    };
-    load();
-    const id = setInterval(load, 45000);
-    return () => {
-      active = false;
-      clearInterval(id);
-    };
-  }, []);
+  // Badge counts come from BadgeProvider (mounted above the router in App.jsx).
+  // This component used to own two 45s pollers, which meant the numbers reset
+  // and refetched on every navigation — and never moved when something changed
+  // on the page you were already on. Both problems belong to the provider now:
+  // it holds the single timer, refreshes on tab focus, and refreshes the
+  // instant any mutation lands. Sidebar just renders what it is handed.
+  //
+  // `portals` self-scopes server-side (oversight roles see every station's
+  // total; everyone else sees only their own queue), so we render it as-is.
+  const { portals: badgeCounts, awaiting: awaitingCount } = useBadges();
 
   const findBestMatch = useCallback(() => {
     let bestMatch = null;

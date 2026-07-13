@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useNotifications } from "../../hooks/useNotifications";
+import { useBadges } from "../../hooks/useBadges";
 import { authApi } from "../../api/authApi";
 import {
   roleColors,
@@ -77,13 +78,24 @@ const Navbar = ({
   const notificationRef = useRef(null);
   const navigate = useNavigate();
 
-  // Phase 2: real notifications via the new hook (polls every 30s).
+  // The bell no longer runs its own 30s timer. BadgeProvider is the app's
+  // single clock: it ticks on the poll, on tab focus, and immediately after
+  // any mutation. Passing `tick` as the refresh signal keeps the bell and the
+  // sidebar badges on the exact same server snapshot — previously they ran on
+  // 30s and 45s timers started at different moments and visibly disagreed.
+  const { tick } = useBadges();
+
   const {
     items: notifications,
     unreadCount,
     markRead,
     markAllRead,
-  } = useNotifications({ mode: "recent", limit: 10, pollInterval: 30000 });
+  } = useNotifications({
+    mode: "recent",
+    limit: 10,
+    pollInterval: 0,
+    refreshSignal: tick,
+  });
 
   const getAccessiblePages = () => {
     const filteredMenu = getMenuByPermissions(user);
