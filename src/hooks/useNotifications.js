@@ -28,13 +28,22 @@ import { notificationsApi } from "../api/notificationsApi";
  * @param {"recent" | "list"} opts.mode  – data shape we want
  * @param {number} opts.limit            – `recent` mode page size (default 10)
  * @param {number} opts.perPage          – `list` mode page size (default 20)
- * @param {number} opts.pollInterval     – ms between background polls (default 30000)
+ * @param {number} opts.pollInterval     – ms between background polls (default 30000).
+ *                                          Pass 0 to disable the internal timer and
+ *                                          drive refreshes from `refreshSignal` instead.
+ * @param {number} opts.refreshSignal    – any number that changes when the caller wants
+ *                                          a quiet refetch. The Navbar bell passes
+ *                                          BadgeContext's `tick`, so the bell, the
+ *                                          sidebar badges and the Dashboard widget all
+ *                                          read the same server snapshot instead of
+ *                                          each running its own drifting timer.
  */
 export const useNotifications = ({
     mode = "recent",
     limit = 10,
     perPage = 20,
     pollInterval = 30000,
+    refreshSignal = 0,
 } = {}) => {
     const [items, setItems] = useState([]);
     const [total, setTotal] = useState(0);
@@ -107,6 +116,19 @@ export const useNotifications = ({
     useEffect(() => {
         fetchData(true);
     }, [fetchData]);
+
+    // ---- External refresh signal ---------------------------------------
+    // Held in a ref so a change to fetchData (e.g. the inbox paging) cannot
+    // by itself trigger a refetch here — only refreshSignal does.
+    const fetchRef = useRef(fetchData);
+    useEffect(() => {
+        fetchRef.current = fetchData;
+    }, [fetchData]);
+
+    useEffect(() => {
+        if (!refreshSignal) return; // 0 = first render, the initial load has it
+        fetchRef.current(false);    // quiet: no loader flash on a background tick
+    }, [refreshSignal]);
 
     // ---- Polling -------------------------------------------------------
     useEffect(() => {

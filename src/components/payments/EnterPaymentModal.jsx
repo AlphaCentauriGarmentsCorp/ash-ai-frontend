@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { csrPortalApi } from "../../api/csrPortalApi";
 import { paymentMethodsApi } from "../../api/paymentMethodsApi";
+import { useBadges } from "../../hooks/useBadges";
 
 /**
  * EnterPaymentModal — Phase 2.
@@ -37,6 +38,7 @@ const GATE_TYPE = {
 
 const EnterPaymentModal = ({ order, onClose, onSaved, paymentsApi = csrPortalApi, defaultType = null, defaultAmount = null }) => {
   const initialType = defaultType || GATE_TYPE[order?.workflow_status] || "down_payment";
+  const { bumpAwaiting, bumpPendingApprovals } = useBadges();
 
   const [methods, setMethods] = useState([]);
   const [loadingMethods, setLoadingMethods] = useState(true);
@@ -115,6 +117,16 @@ const EnterPaymentModal = ({ order, onClose, onSaved, paymentsApi = csrPortalApi
       if (proof) payload.proof = proof;
 
       const res = await paymentsApi.uploadPayment(payload);
+
+      // With a proof file the backend flips the row waiting -> for_verification,
+      // so it leaves the Awaiting Payment list and joins Finance's Pending
+      // Approvals queue. Move both badges on the click; the bus reconciles.
+      // Without a proof the row stays `waiting` and nothing moves.
+      if (proof) {
+        bumpAwaiting(-1);
+        bumpPendingApprovals(1);
+      }
+
       onSaved?.(res?.data ?? res);
     } catch (err) {
       const status = err?.response?.status;

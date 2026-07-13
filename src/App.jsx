@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useAuth } from "./hooks/useAuth";
+import { BadgeProvider } from "./context/BadgeContext";
 import "./index.css";
 import Login from "./pages/Auth/Login";
 import Dashboard from "./pages/Dashboard/Dashboard";
@@ -151,8 +152,12 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
-      <Routes>
+    // BadgeProvider sits ABOVE the router on purpose: every page wraps its
+    // own <AdminLayout>, so Sidebar/Navbar remount on each navigation. Badge
+    // state and the single poll timer live here so they survive that.
+    <BadgeProvider>
+      <BrowserRouter>
+        <Routes>
         {/* Public routes */}
         <Route
           path="/login"
@@ -1176,8 +1181,9 @@ function App() {
             </ProtectedRoute>
           }
         />
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+      </BrowserRouter>
+    </BadgeProvider>
   );
 }
 
