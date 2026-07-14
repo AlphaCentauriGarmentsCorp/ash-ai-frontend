@@ -499,7 +499,95 @@ const InstructionsBlock = ({ audience, entries, onPost, busy }) => {
   );
 };
 
-const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyId, roleNotes, instructionAudience, onPostInstruction, instructionBusy }) => {
+// Read-only per-stage waste / material usage. Auto-computed on the backend
+// from what the production portals already log (fabric / ink / reject) — the
+// Review Hub only displays it; nobody types waste here. Rendered only when the
+// stage actually has data (the `waste` map omits empty stages).
+const wasteHasContent = (w) =>
+  !!w && (w.fabric || w.ink || w.rejects || w.other);
+
+const fmtKg = (n) => `${Number(n ?? 0)} kg`;
+
+const WasteBlock = ({ waste }) => {
+  if (!wasteHasContent(waste)) return null;
+
+  const rows = [];
+  if (waste.fabric) {
+    rows.push({
+      key: "fabric",
+      icon: "fa-scissors",
+      label: "Fabric",
+      value: `used ${fmtKg(waste.fabric.used_kg)} · waste ${fmtKg(waste.fabric.waste_kg)}`,
+      entries: waste.fabric.entries,
+    });
+  }
+  if (waste.ink) {
+    rows.push({
+      key: "ink",
+      icon: "fa-fill-drip",
+      label: "Ink",
+      value: `used ${fmtKg(waste.ink.used_kg)} · waste ${fmtKg(waste.ink.waste_kg)}`,
+      entries: waste.ink.entries,
+    });
+  }
+  if (waste.rejects) {
+    rows.push({
+      key: "rejects",
+      icon: "fa-ban",
+      label: "Rejects",
+      value: `${waste.rejects.reject_pcs} pcs rejected · ${waste.rejects.repair_pcs} pcs for repair`,
+      entries: waste.rejects.entries,
+    });
+  }
+  if (waste.other) {
+    rows.push({
+      key: "other",
+      icon: "fa-trash-can",
+      label: "Other waste",
+      value: `${waste.other.pcs} pcs`,
+      entries: waste.other.entries,
+    });
+  }
+
+  return (
+    <div className="mt-3 border-t border-gray-100 pt-3">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+          Waste &amp; material usage
+        </p>
+        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-medium text-amber-700">
+          <i className="fa-solid fa-wand-magic-sparkles" /> Auto-computed
+        </span>
+      </div>
+      <div className="flex flex-col gap-1.5">
+        {rows.map((r) => (
+          <div
+            key={r.key}
+            className="flex items-center justify-between rounded-md bg-gray-50 px-3 py-1.5 text-xs"
+          >
+            <span className="inline-flex items-center gap-2 text-gray-600">
+              <i className={`fa-solid ${r.icon} w-4 text-center text-gray-400`} />
+              <span className="font-medium text-gray-700">{r.label}</span>
+            </span>
+            <span className="text-right text-gray-700">
+              {r.value}
+              {r.entries != null && (
+                <span className="ml-2 text-[10px] text-gray-400">
+                  ({r.entries} {r.entries === 1 ? "log" : "logs"})
+                </span>
+              )}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-1.5 text-[10px] italic text-gray-400">
+        Recorded by the production portals — not editable here.
+      </p>
+    </div>
+  );
+};
+
+const StageCard = ({ stage, history, uploads, payment, details, waste, onAddNote, busyId, roleNotes, instructionAudience, onPostInstruction, instructionBusy }) => {
   const busy = busyId === stage.id;
   const paymentGate = isPaymentGate(stage.stage);
   const hasGaDetails = gaDetailsHasContent(details);
@@ -630,6 +718,9 @@ const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyI
       {/* SM Rework CP3 — the Screen Maker's output (screens + notes). */}
       {hasSmDetails && <SmDetailsBlock details={details} />}
 
+      {/* Auto-computed waste / material usage for this stage (read-only). */}
+      <WasteBlock waste={waste} />
+
       {/* Artifacts — proof-of-work uploads for this stage (Phase 3). Lets the
           reviewer see what they're approving. */}
       {Array.isArray(uploads) && uploads.length > 0 ? (
@@ -728,7 +819,7 @@ const StageCard = ({ stage, history, uploads, payment, details, onAddNote, busyI
 };
 
 const ReviewHub = ({ order }) => {
-  const [data, setData] = useState({ history: {}, uploads: {}, payments: {}, stage_details: {}, role_notes: {} });
+  const [data, setData] = useState({ history: {}, uploads: {}, payments: {}, stage_details: {}, waste: {}, role_notes: {} });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
@@ -757,6 +848,7 @@ const ReviewHub = ({ order }) => {
         uploads: res.uploads || {},
         payments: res.payments || {},
         stage_details: res.stage_details || {},
+        waste: res.waste || {},
         role_notes: res.role_notes || {},
       });
     } catch (e) {
@@ -843,6 +935,7 @@ const ReviewHub = ({ order }) => {
               uploads={data.uploads?.[stage.id]}
               payment={data.payments?.[stage.id]}
               details={data.stage_details?.[stage.id]}
+              waste={data.waste?.[stage.id]}
               onAddNote={addNote}
               busyId={busyId}
               roleNotes={
