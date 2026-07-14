@@ -12,7 +12,6 @@ import { getRoleDisplayName } from "../../config/roleConfig";
 import { useOrderStages } from "./hooks/useOrderStages";
 import { useAuth } from "../../hooks/useAuth";
 import { hasRequiredPermissions } from "../../utils/authz";
-import LogWasteModal from "../stageInputs/LogWasteModal";
 import MaterialRequirementsPanel from "../../pages/Portals/MaterialPrep/MaterialRequirementsPanel";
 import LogRejectModal from "../stageInputs/LogRejectModal";
 import SendToSubcontractorModal from "../stageInputs/SendToSubcontractorModal";
@@ -62,8 +61,6 @@ const OrderStage = ({ order, onStagesUpdated }) => {
     lastMessage,
     advance,
     markForApproval,
-    markDelayed,
-    markOnHold,
     resume,
     resetState,
   } = useOrderStages(order, onStagesUpdated);
@@ -72,13 +69,14 @@ const OrderStage = ({ order, onStagesUpdated }) => {
   const [actionType, setActionType] = useState(null); // 'delay' | 'hold' | 'approval' | 'complete'
   const [actionInput, setActionInput] = useState("");
 
-  // Phase 4 — modals for waste / reject / subcontract actions.
+  // Phase 4 — modals for reject / subcontract actions.
   // Each holds the OrderStage being acted upon (or null when closed).
-  const [wasteModalStage, setWasteModalStage] = useState(null);
+  // Waste is no longer logged from this order tab — it is auto-computed from
+  // the production portals (fabric / ink / reject logs) and surfaced read-only
+  // in the Review Hub.
   const [rejectModalStage, setRejectModalStage] = useState(null);
   const [subcontractModalStage, setSubcontractModalStage] = useState(null);
 
-  const canLogWaste = hasRequiredPermissions(user, ["stage_inputs.log_waste"]);
   const canLogReject = hasRequiredPermissions(user, ["stage_inputs.log_reject"]);
   const canSubcontract = hasRequiredPermissions(user, ["stage_inputs.log_subcontract"]);
   // Payment-verification gates are passed by Finance only. Non-Finance users
@@ -137,13 +135,6 @@ const OrderStage = ({ order, onStagesUpdated }) => {
         break;
       case "approval":
         result = await markForApproval(actionStageId, actionInput || null);
-        break;
-      case "delay":
-        if (!actionInput.trim()) return; // reason required
-        result = await markDelayed(actionStageId, actionInput);
-        break;
-      case "hold":
-        result = await markOnHold(actionStageId, actionInput || null);
         break;
       default:
         return;
@@ -306,36 +297,14 @@ const OrderStage = ({ order, onStagesUpdated }) => {
                             </button>
                           </>
                         )}
-                        <button
-                          type="button"
-                          onClick={() => openAction(stage.id, "delay")}
-                          disabled={isLoading}
-                          className="text-xs px-3 py-1.5 rounded bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 disabled:opacity-50 transition-colors inline-flex items-center"
-                        >
-                          <i className="fas fa-triangle-exclamation mr-1"></i> Delay
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => openAction(stage.id, "hold")}
-                          disabled={isLoading}
-                          className="text-xs px-3 py-1.5 rounded bg-gray-100 text-gray-700 border border-gray-200 hover:bg-gray-200 disabled:opacity-50 transition-colors inline-flex items-center"
-                        >
-                          <i className="fas fa-pause mr-1"></i> Hold
-                        </button>
                       </>
                     )}
 
                     {/* ── Phase 4 inputs ─────────────────────────────────── */}
-                    {!isPaymentGate(stage.stage) && stage.stage !== "sample_approval" && canLogWaste && (
-                      <button
-                        type="button"
-                        onClick={() => setWasteModalStage(stage)}
-                        disabled={isLoading}
-                        className="text-xs px-3 py-1.5 rounded bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 disabled:opacity-50 transition-colors inline-flex items-center"
-                      >
-                        <i className="fas fa-trash-can mr-1"></i> Log Waste
-                      </button>
-                    )}
+                    {/* Waste is no longer entered here — it is auto-computed
+                        from the production portals and shown read-only in the
+                        Review Hub. Delay / Hold likewise moved off the CSR/Admin
+                        order tab (production ownership belongs to the floor). */}
                     {canLogReject &&
                       REJECT_ELIGIBLE_STAGES.includes(stage.stage) && (
                         <button
@@ -424,20 +393,15 @@ const OrderStage = ({ order, onStagesUpdated }) => {
     const titles = {
       complete: "Mark stage as completed?",
       approval: "Send stage for approval?",
-      delay: "Why is this stage delayed?",
-      hold: "Put this stage on hold?",
     };
 
     const placeholders = {
       complete: "Optional notes (e.g. quality observations)",
       approval: "Optional notes for the approver",
-      delay: "Reason for delay (required)",
-      hold: "Optional reason for putting on hold",
     };
 
-    const isReasonRequired = actionType === "delay";
-    const canSubmit =
-      !isReasonRequired || (actionInput && actionInput.trim().length > 0);
+    const isReasonRequired = false;
+    const canSubmit = true;
 
     return (
       <div className="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center p-4">
@@ -628,19 +592,7 @@ const OrderStage = ({ order, onStagesUpdated }) => {
 
       {renderActionDialog()}
 
-      {/* Phase 4 — modals for waste / reject / subcontract */}
-      {wasteModalStage && (
-        <LogWasteModal
-          orderId={order?.id}
-          stageId={wasteModalStage.id}
-          stageLabel={wasteModalStage.label || wasteModalStage.stage}
-          onClose={() => setWasteModalStage(null)}
-          onSaved={() => {
-            setWasteModalStage(null);
-            onStagesUpdated?.();
-          }}
-        />
-      )}
+      {/* Phase 4 — modals for reject / subcontract */}
       {rejectModalStage && (
         <LogRejectModal
           orderId={order?.id}
