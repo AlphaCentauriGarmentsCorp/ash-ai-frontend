@@ -89,6 +89,7 @@ const OrdersNeedingPrepSection = () => {
           {orders.map((o) => {
             const id = o.order?.id;
             const isOpen = selected === id;
+            const isSample = o.phase === "sample";
             return (
               <li key={id} className="border border-gray-200 rounded-md">
                 <button
@@ -105,7 +106,11 @@ const OrdersNeedingPrepSection = () => {
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {o.requirement_set ? (
+                    {isSample ? (
+                      <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">
+                        Sample prep
+                      </span>
+                    ) : o.requirement_set ? (
                       o.purchase_needed ? (
                         <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
                           PR {o.pr_status || ""}
@@ -127,17 +132,41 @@ const OrdersNeedingPrepSection = () => {
                 </button>
                 {isOpen && (
                   <div className="border-t border-gray-100 p-3 space-y-3">
-                    {o.requirement_set && !o.purchase_needed && (
-                      <StageDoneButton
-                        label="Prep Done"
-                        confirmTitle="Tapos na ang prep?"
-                        confirmMessage="Walang bibilhin para sa order na ito (nasa stock na ang materials). Markahan ang Material Prep bilang tapos para magpatuloy ang order."
-                        hint="Nasa stock na ang materials — walang PR na hihintayin. Pindutin ang Prep Done para ipasa sa susunod."
-                        action={() => materialPrepPortalApi.markPrepDone(id)}
-                        onDone={refetch}
-                      />
+                    {isSample ? (
+                      // Sample prep: pull-from-stock acknowledgment. No MR/PR flow —
+                      // just confirm the sample materials are on hand and tap Prep
+                      // Done to release the fork's join into Sample Cutting.
+                      <>
+                        <div className="rounded-md bg-indigo-50 border border-indigo-200 p-2.5 text-xs text-indigo-800">
+                          <i className="fa-solid fa-box-open mr-1.5" />
+                          Para sa sample, kunin lang ang materials mula sa existing
+                          stock — walang bibilhin. Pindutin ang Prep Done kapag
+                          nakahanda na para magpatuloy sa Sample Cutting.
+                        </div>
+                        <StageDoneButton
+                          label="Prep Done"
+                          confirmTitle="Tapos na ang prep ng sample?"
+                          confirmMessage="Kukunin ang materials para sa sample mula sa existing stock. Markahan ang Material Prep (Sample) bilang tapos para magpatuloy sa Sample Cutting."
+                          hint="Nasa stock na ang materials para sa sample — walang PR na hihintayin. Pindutin ang Prep Done para ipasa sa susunod."
+                          action={() => materialPrepPortalApi.markPrepDone(id)}
+                          onDone={refetch}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        {o.requirement_set && !o.purchase_needed && (
+                          <StageDoneButton
+                            label="Prep Done"
+                            confirmTitle="Tapos na ang prep?"
+                            confirmMessage="Walang bibilhin para sa order na ito (nasa stock na ang materials). Markahan ang Material Prep bilang tapos para magpatuloy ang order."
+                            hint="Nasa stock na ang materials — walang PR na hihintayin. Pindutin ang Prep Done para ipasa sa susunod."
+                            action={() => materialPrepPortalApi.markPrepDone(id)}
+                            onDone={refetch}
+                          />
+                        )}
+                        <MaterialRequirementsPanel orderId={id} onSaved={refetch} />
+                      </>
                     )}
-                    <MaterialRequirementsPanel orderId={id} onSaved={refetch} />
                   </div>
                 )}
               </li>
