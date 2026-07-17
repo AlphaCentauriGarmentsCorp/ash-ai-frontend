@@ -68,6 +68,23 @@ const INSTRUCTION_AUDIENCES = {
     portalName: "Screen Maker Portal",
     placeholder: "Halimbawa: Unahin ang Front screen — kailangan bago ang sample.",
   },
+  // Cutter Rework CP3 — the cutter owns TWO stages; both post to the one
+  // order-level 'cutter' instruction thread (audience_role = 'cutter'), so
+  // an instruction from either card reaches the Cutter Portal.
+  sample_cutting: {
+    role: "cutter",
+    label: "Cutter",
+    short: "Cutter",
+    portalName: "Cutter Portal",
+    placeholder: "Halimbawa: I-double check ang grain line bago mag-cut.",
+  },
+  mass_cutting: {
+    role: "cutter",
+    label: "Cutter",
+    short: "Cutter",
+    portalName: "Cutter Portal",
+    placeholder: "Halimbawa: Sundin ang sample cutting layout para pantay ang yield.",
+  },
 };
 
 const fmtWhen = (iso) => {
@@ -162,6 +179,18 @@ const smDetailsHasContent = (d) => {
   if (!d || d.kind !== "screen_making") return false;
   return (
     (Array.isArray(d.screens) && d.screens.length > 0) ||
+    Boolean(d.stage_notes)
+  );
+};
+
+// Cutter Rework CP3 — Cutting detail block gate. CUTTER-AUTHORED output
+// only: the per-roll/batch fabric entries the cutter logged and the
+// cutter's own Save Notes. Aggregate totals live in the auto-computed
+// Waste block, so they must not make an untouched stage look worked.
+const cuttingDetailsHasContent = (d) => {
+  if (!d || d.kind !== "cutting") return false;
+  return (
+    (Array.isArray(d.fabric_logs) && d.fabric_logs.length > 0) ||
     Boolean(d.stage_notes)
   );
 };
@@ -416,6 +445,75 @@ const SmDetailsBlock = ({ details }) => {
   );
 };
 
+// Cutter Rework CP3 — Cutting detail block. Renders the cutter's
+// per-entry fabric usage (each roll/batch the cutter logged) and the
+// cutter's own "Save Notes" blob. The aggregate fabric used/waste totals
+// are NOT repeated here — the auto-computed Waste & material usage block
+// already shows them; this block adds the per-roll/batch breakdown the
+// reviewer can't see there. The cutter owns two stages, so each cutting
+// card renders its own stage's logs + notes (keyed by stage id upstream).
+const CutterDetailsBlock = ({ details }) => {
+  const logs = Array.isArray(details.fabric_logs) ? details.fabric_logs : [];
+
+  return (
+    <div className="mt-3 border-t border-gray-100 pt-3">
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+        Cutting Output
+      </p>
+
+      {/* Per-roll / per-batch fabric usage the cutter logged. Aggregate
+          totals live in the Waste & material usage block above. */}
+      {logs.length > 0 && (
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 p-2">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-200 text-left text-[10px] uppercase tracking-wide text-gray-500">
+                <th className="py-1.5 pr-3">Roll / Batch</th>
+                <th className="py-1.5 pr-3">Used</th>
+                <th className="py-1.5 pr-3">Waste</th>
+                <th className="py-1.5 pr-3">Remaining</th>
+                <th className="py-1.5">Logged by</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((l) => (
+                <tr
+                  key={l.id}
+                  className="border-b border-gray-100 last:border-0"
+                  title={l.notes || ""}
+                >
+                  <td className="py-1.5 pr-3 font-medium text-gray-900">
+                    {l.fabric_roll_id || "\u2014"}
+                  </td>
+                  <td className="py-1.5 pr-3 text-gray-700">{fmtKg(l.fabric_used_kg)}</td>
+                  <td className="py-1.5 pr-3 text-gray-700">{fmtKg(l.waste_kg)}</td>
+                  <td className="py-1.5 pr-3 text-gray-700">{fmtKg(l.usable_remaining_kg)}</td>
+                  <td className="py-1.5 text-gray-500">{l.logged_by?.name || "\u2014"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Cutter stage notes — the cutter's own "Save Notes" blob from the
+          Cutter Portal (the reason this block exists: the notes must
+          reflect here in the hub). */}
+      {details.stage_notes && (
+        <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
+            <i className="fa-solid fa-comment-dots mr-1" />
+            Notes mula sa Cutter
+          </p>
+          <p className="whitespace-pre-wrap text-xs text-gray-700">
+            {details.stage_notes}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // CP2 — Role-directed instructions (Hub → role). An ORDER-level thread
 // aimed at one production role: entries posted here land in that role's
 // portal "Notes / Instructions" section. Separate channel from the
@@ -592,6 +690,7 @@ const StageCard = ({ stage, history, uploads, payment, details, waste, onAddNote
   const paymentGate = isPaymentGate(stage.stage);
   const hasGaDetails = gaDetailsHasContent(details);
   const hasSmDetails = smDetailsHasContent(details);
+  const hasCuttingDetails = cuttingDetailsHasContent(details);
   const statusMeta = getStatusMeta(stage.status);
   const isParallel = PARALLEL_TIERS.has(stage.sequence);
 
@@ -718,6 +817,9 @@ const StageCard = ({ stage, history, uploads, payment, details, waste, onAddNote
       {/* SM Rework CP3 — the Screen Maker's output (screens + notes). */}
       {hasSmDetails && <SmDetailsBlock details={details} />}
 
+      {/* Cutter Rework CP3 — the Cutter's output (fabric entries + notes). */}
+      {hasCuttingDetails && <CutterDetailsBlock details={details} />}
+
       {/* Auto-computed waste / material usage for this stage (read-only). */}
       <WasteBlock waste={waste} />
 
@@ -756,7 +858,7 @@ const StageCard = ({ stage, history, uploads, payment, details, waste, onAddNote
             ))}
           </div>
         </div>
-      ) : paymentGate && payment ? null : hasGaDetails || hasSmDetails ? null : (
+      ) : paymentGate && payment ? null : hasGaDetails || hasSmDetails || hasCuttingDetails ? null : (
         <div className="mt-3 border-t border-gray-100 pt-3">
           <p className="text-xs italic text-gray-400">
             No artifact uploaded for this stage yet.
