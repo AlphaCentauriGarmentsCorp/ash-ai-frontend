@@ -8,7 +8,14 @@ import StageDoneButton from "../../../components/portals/StageDoneButton";
 import StageUploadSection from "../../../components/portals/StageUploadSection";
 import ServiceTypeToggle from "../../../components/portals/ServiceTypeToggle";
 import SubcontractModeView from "../../../components/portals/SubcontractModeView";
-import OrderDetailsSection from "./sections/OrderDetailsSection";
+// Cutter Rework CP2 — the Order Details, Design Details and Notes/
+// Instructions sections are the GA / Screen Maker portals' presentational
+// components, reused directly (same pattern the SM page uses). All are
+// pure props-in / markup-out and consume the enriched CP1 context shape.
+import OrderDetailsSectionGA from "../GraphicArtist/sections/OrderDetailsSectionGA";
+import DesignDetailsSection from "../ScreenMaker/sections/DesignDetailsSection";
+import NotesInstructionsSection from "../GraphicArtist/sections/NotesInstructionsSection";
+import StageNotesSection from "./sections/StageNotesSection";
 import SizeChartSection from "./sections/SizeChartSection";
 import FabricTrackingSection from "./sections/FabricTrackingSection";
 import SampleUploadSection from "./sections/SampleUploadSection";
@@ -18,18 +25,30 @@ import ActivityLogSection from "./sections/ActivityLogSection";
 /**
  * Phase 5-B — Cutter Portal landing page.
  *
+ * Cutter Rework CP2 — page rebuilt to mirror the Graphic Artist / Screen
+ * Maker portal layout, so all three production portals read the same way:
+ *
+ *   1. Order Details        (enriched — GA section, CP1 backend fields)
+ *   2. Design Details       (READ-ONLY GA output: placements + Pantones
+ *                            + labels — reused SM section)
+ *   3. Cutting Proof        (upload — kept; moved below Order/Design per
+ *                            the SM pattern, both service modes)
+ *   4. Service Type Toggle  (managers only)
+ *   5a. in_house  → Size Chart + Fabric Tracking + Sample Output/Upload
+ *   5b. subcontract → SubcontractModeView
+ *   6. Notes / Instructions (order notes + Hub → cutter thread)
+ *   7. Notes (Save Notes)   (writes stage.notes → shows sa Review Hub)
+ *   8. Material Requests     (Request Material carries order+stage na)
+ *   9. Activity Log
+ *
  * Flow:
- *   1. Mount → call /portal/cutter/my-active
+ *   1. Mount → call /portal/my-active?role=cutter
  *   2. status='single' → fetch /portal/cutter/context/{stageId} → render
  *   3. status='multiple' → show picker → user picks → fetch context → render
  *   4. status='none' → show empty state with explanation
  *
- * The 6-step status flow shown at top is the standard Phase 5 flow:
- *   Payment Verified → Graphic Artwork → Screen Making →
- *   Sample Creation → Sample Approval → Mass Production
- *
- * Reusable status flow definition (also used by Printer, Sewer, Screen
- * Maker portals).
+ * The cutter owns TWO stages per order (sample_cutting + mass_cutting);
+ * context.stage.phase ('sample' | 'mass') drives the portal title.
  */
 
 const STATUS_FLOW = [
@@ -197,14 +216,23 @@ const CutterPortalPage = () => {
             onResubmitted={handleRefresh}
           />
 
+          {/* 1. Order Details (Cutter Rework CP2 — enriched GA layout) */}
+          <OrderDetailsSectionGA order={context.order} stage={context.stage} />
+
+          {/* 2. Design Details — READ-ONLY view of the GA output */}
+          <DesignDetailsSection
+            placements={context.placements}
+            pantonesUsed={context.pantones_used}
+            order={context.order}
+          />
+
+          {/* 3. Cutting Proof (kept — both service modes; placed below
+              Order/Design per the SM pattern) */}
           <StageUploadSection
             orderStageId={currentStageId}
             category="cutting"
             title="Cutting Proof"
           />
-
-          {/* Section 1: Order Details */}
-          <OrderDetailsSection order={context.order} stage={context.stage} />
 
           {/* Phase 5-D — Service Type Toggle (managers only) */}
           <ServiceTypeToggle
@@ -232,7 +260,7 @@ const CutterPortalPage = () => {
                 />
               </div>
 
-              {/* Section 5: Sample Output & Upload */}
+              {/* Sample Output & Upload */}
               <SampleUploadSection
                 sampleUploads={context.sample_uploads}
                 orderId={context.order.id}
@@ -242,14 +270,29 @@ const CutterPortalPage = () => {
             </>
           )}
 
-          {/* Section 4: Material Requests — shown in both modes */}
+          {/* 6. Notes / Instructions — order notes + Hub → cutter thread
+              (both modes; posted from the order's Review Hub) */}
+          <NotesInstructionsSection
+            order={context.order}
+            roleNotes={context.role_notes}
+          />
+
+          {/* 7. Notes (Save Notes) — writes stage.notes; the Review Hub's
+              Cutting card shows this (both modes) */}
+          <StageNotesSection
+            stageId={context.stage.id}
+            initialNotes={context.stage.notes}
+            onChanged={handleRefresh}
+          />
+
+          {/* 8. Material Requests — shown in both modes */}
           <MaterialRequestsSection
             materialRequests={context.material_requests}
             orderId={context.order.id}
             orderStageId={context.stage.id}
           />
 
-          {/* Section 6: Activity Log — shown in both modes */}
+          {/* 9. Activity Log — shown in both modes */}
           <ActivityLogSection activityLog={context.activity_log} />
 
           {/* Bundle 3 — production "Done": advances the workflow server-side. */}
