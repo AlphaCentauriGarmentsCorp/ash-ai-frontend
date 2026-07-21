@@ -33,7 +33,7 @@ const MaterialsPage = () => {
       label: "Supplier Name",
       sortable: true,
       render: (item) => {
-        return <div>{item.supplier.name}</div>;
+        return <div>{item.supplier?.name ?? "—"}</div>;
       },
     },
     {

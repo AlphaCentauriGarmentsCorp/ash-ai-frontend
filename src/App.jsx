@@ -82,6 +82,7 @@ import EditSupplier from "./pages/Supplier/EditSupplier";
 import ViewSupplier from "./pages/Supplier/ViewSupplier";
 import AllMaterials from "./pages/Materials/AllMaterials";
 import AddMaterials from "./pages/Materials/AddMaterials";
+import EditMaterials from "./pages/Materials/EditMaterials";
 import AddScreen from "./pages/ScreenInventory/AddScreen";
 import AllScreen from "./pages/ScreenInventory/AllScreen";
 import EditScreen from "./pages/ScreenInventory/EditScreen";
@@ -780,6 +781,14 @@ function App() {
           element={
             <ProtectedRoute>
               <AddMaterials />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin/settings/materials/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditMaterials />
             </ProtectedRoute>
           }
         />
