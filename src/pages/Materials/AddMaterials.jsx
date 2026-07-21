@@ -9,7 +9,6 @@ import { materialsSchema } from "../../validations/materialsSchema";
 import { validateForm, hasErrors } from "../../utils/validation";
 import { materialsApi } from "../../api/materialsApi";
 import { supplierApi } from "../../api/supplierApi";
-import { MaterialOptions } from "../../constants/formOptions/materialOptions";
 const AddMaterials = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState({});
@@ -136,16 +135,14 @@ const AddMaterials = () => {
             />
           </div>
 
-          <Select
+          <Input
             label="Material Type"
             name="material_type"
-            options={MaterialOptions}
             value={formData.material_type}
             onChange={handleChange}
             error={errors.material_type}
-            placeholder="Select a Supplier"
-            searchable
-            required
+            type="text"
+            placeholder="Enter material type"
           />
 
           <Select
@@ -157,7 +154,6 @@ const AddMaterials = () => {
             error={errors.supplier_id}
             placeholder="Select a Supplier"
             searchable
-            required
           />
 
           <Input
@@ -168,7 +164,6 @@ const AddMaterials = () => {
             error={errors.price}
             type="number"
             placeholder="Enter material price"
-            required
           />
 
           <Input
@@ -179,11 +174,10 @@ const AddMaterials = () => {
             error={errors.unit}
             type="text"
             placeholder="Enter material units"
-            required
           />
 
           <Input
-            label="Minimun Units"
+            label="Minimum Units"
             name="minimum"
             value={formData.minimum}
             onChange={handleChange}

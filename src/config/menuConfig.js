@@ -285,7 +285,7 @@ export const getMenuByPermissions = (user = null) => {
           ],
         },
         {
-          name: "Material Suppliers",
+          name: "Materials & Suppliers",
           icon: "fa-solid fa-user-shield",
           subItems: [
             {
