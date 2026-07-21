@@ -40,7 +40,7 @@ const getContrastColor = (hex) => {
   return lum > 0.55 ? "#1f2937" : "#ffffff";
 };
 
-const SwatchTile = ({ swatch, onClick, selected = false }) => {
+const SwatchTile = ({ swatch, onClick, selected = false, showStock = true }) => {
   const bgColor = swatch.hex_color || "#e5e7eb";
   const textColor = getContrastColor(swatch.hex_color);
   const stockMeta = STOCK_DOT[swatch.stock_status] || null;
@@ -73,7 +73,7 @@ const SwatchTile = ({ swatch, onClick, selected = false }) => {
         )}
 
         {/* Stock dot — top-left */}
-        {stockMeta && (
+        {showStock && stockMeta && (
           <span
             className={`absolute top-2 left-2 w-2.5 h-2.5 rounded-full ${stockMeta.color} ring-2 ring-white/40`}
             title={stockMeta.label}
