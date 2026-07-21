@@ -179,7 +179,7 @@ const SwatchPickerModal = ({ open, currentValue = "", onClose, onSelect }) => {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-black/40 p-4"
       onClick={onClose}
     >
       <div
@@ -235,6 +235,7 @@ const SwatchPickerModal = ({ open, currentValue = "", onClose, onSelect }) => {
                         swatch={swatch}
                         selected={isSelected(swatch)}
                         onClick={chooseSwatch}
+                        showStock={false}
                       />
                     ))}
                   </div>
@@ -254,6 +255,7 @@ const SwatchPickerModal = ({ open, currentValue = "", onClose, onSelect }) => {
                         swatch={swatch}
                         selected={isSelected(swatch)}
                         onClick={chooseSwatch}
+                        showStock={false}
                       />
                     ))}
                   </div>
