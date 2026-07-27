@@ -130,7 +130,7 @@ const AddMaterials = () => {
               onChange={handleChange}
               error={errors.name}
               type="text"
-              placeholder="Enter materials code name"
+              placeholder="Enter material name"
               required
             />
           </div>
@@ -174,6 +174,16 @@ const AddMaterials = () => {
             error={errors.unit}
             type="text"
             placeholder="Enter material units"
+          />
+
+          <Input
+            label="Stock on Hand"
+            name="stock_on_hand"
+            value={formData.stock_on_hand}
+            onChange={handleChange}
+            error={errors.stock_on_hand}
+            type="number"
+            placeholder="Enter current stock on hand"
           />
 
           <Input

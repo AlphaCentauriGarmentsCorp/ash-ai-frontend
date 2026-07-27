@@ -6,6 +6,18 @@ import DeleteConfirmationDialog from "../../components/common/DeleteConfirmation
 import { useNavigate } from "react-router-dom";
 import useConfirm from "../../hooks/useConfirm";
 
+// Formats a numeric value as Philippine peso, e.g. 1320 -> "₱1,320.00".
+const formatPeso = (value) => {
+  const num = Number(value);
+  if (value === null || value === undefined || value === "" || Number.isNaN(num)) {
+    return null;
+  }
+  return `₱${num.toLocaleString("en-PH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
+};
+
 const MaterialsPage = () => {
   const { alert, dialog } = useConfirm();
   const navigate = useNavigate();
@@ -32,6 +44,7 @@ const MaterialsPage = () => {
       key: "supplier_id",
       label: "Supplier Name",
       sortable: true,
+      searchableValue: (item) => item.supplier?.name ?? "",
       render: (item) => {
         return <div>{item.supplier?.name ?? "—"}</div>;
       },
@@ -41,23 +54,41 @@ const MaterialsPage = () => {
       label: "Price/Unit",
       sortable: true,
       searchableValue: (item) => {
-        const price = item.price ?? "-";
+        const price = formatPeso(item.price) ?? "-";
         const unit = item.unit ?? "-";
         const minimum = item.minimum ?? "N/A";
         return `${price} / ${unit} Min: ${minimum}`;
       },
       render: (item) => {
-        const price = item.price ?? "-";
+        const price = formatPeso(item.price);
         const unit = item.unit ?? "-";
         const minimum = item.minimum ?? "N/A";
 
         return (
           <div className="flex flex-col text-xs">
-            <span className="font-medium ">
-              {price} / {unit}
+            <span className="font-medium">
+              {price ?? "—"} / {unit}
             </span>
             <span className="text-xs text-gray-500">Min: {minimum}</span>
           </div>
+        );
+      },
+    },
+    {
+      key: "stock_on_hand",
+      label: "Stock on Hand",
+      sortable: true,
+      searchableValue: (item) => `${item.stock_on_hand ?? ""}`,
+      render: (item) => {
+        const stock = Number(item.stock_on_hand ?? 0);
+        return (
+          <span
+            className={`text-xs font-medium ${
+              stock > 0 ? "text-gray-800" : "text-amber-600"
+            }`}
+          >
+            {stock.toLocaleString("en-PH", { maximumFractionDigits: 2 })}
+          </span>
         );
       },
     },
@@ -125,7 +156,7 @@ const MaterialsPage = () => {
   const handleAction = (action, rowData) => {
     switch (action) {
       case "view":
-        navigate(`/supplier/${rowData.supplier_id}/view`);
+        navigate(`/supplier/materials/${rowData.id}/view`);
         break;
       case "edit":
         navigate(`/admin/settings/materials/edit/${rowData.id}`);
