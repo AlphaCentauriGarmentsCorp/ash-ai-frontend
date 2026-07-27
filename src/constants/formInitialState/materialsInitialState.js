@@ -4,6 +4,7 @@ export const materialsInitialState = {
   material_type: "",
   unit: "",
   price: "",
+  stock_on_hand: "",
   minimum: "",
   lead: "",
   notes: "",

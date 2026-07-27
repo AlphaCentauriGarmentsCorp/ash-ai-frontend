@@ -48,6 +48,7 @@ const EditMaterials = () => {
         material_type: material.material_type ?? "",
         unit: material.unit ?? "",
         price: material.price ?? "",
+        stock_on_hand: material.stock_on_hand ?? "",
         minimum: material.minimum ?? "",
         lead: material.lead ?? "",
         notes: material.notes ?? "",
@@ -172,7 +173,7 @@ const EditMaterials = () => {
               onChange={handleChange}
               error={errors.name}
               type="text"
-              placeholder="Enter materials code name"
+              placeholder="Enter material name"
               required
             />
           </div>
@@ -216,6 +217,16 @@ const EditMaterials = () => {
             error={errors.unit}
             type="text"
             placeholder="Enter material units"
+          />
+
+          <Input
+            label="Stock on Hand"
+            name="stock_on_hand"
+            value={formData.stock_on_hand}
+            onChange={handleChange}
+            error={errors.stock_on_hand}
+            type="number"
+            placeholder="Enter current stock on hand"
           />
 
           <Input
