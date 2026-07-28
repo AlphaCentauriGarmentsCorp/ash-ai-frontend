@@ -3,6 +3,7 @@ import { OrderStages, isPaymentGate, stageOrdinal, getStatusMeta, findStage, get
 import { getRoleDisplayName } from "../../../config/roleConfig";
 import { stageReviewApi } from "../../../api/stageReviewApi";
 import { orderRoleNotesApi } from "../../../api/orderRoleNotesApi";
+import MaterialRequirementSummaryTable from "../../../pages/Portals/MaterialPrep/MaterialRequirementSummaryTable";
 
 /**
  * CSR Review Hub
@@ -193,6 +194,16 @@ const cuttingDetailsHasContent = (d) => {
     (Array.isArray(d.fabric_logs) && d.fabric_logs.length > 0) ||
     Boolean(d.stage_notes)
   );
+};
+
+// Owner decision (2026-07-28) — Material Prep detail block gate. Only
+// shows once a requirement has actually been saved (materials picked +
+// quantities confirmed, possibly with a resulting Purchase Request) or the
+// role left a stage note — an untouched stage still falls through to the
+// generic "No artifact uploaded" card, same convention as the blocks above.
+const materialPrepDetailsHasContent = (d) => {
+  if (!d || d.kind !== "material_prep") return false;
+  return Boolean(d.requirement) || Boolean(d.stage_notes);
 };
 
 // CP8 — one read-only label spec line for the hub card.
@@ -514,6 +525,51 @@ const CutterDetailsBlock = ({ details }) => {
   );
 };
 
+// Owner decision (2026-07-28) — Material Prep detail block. Shows exactly
+// what was picked for THIS Material Prep stage (sample or mass): the
+// catalog items + quantities + resulting Purchase Request, reusing the
+// same read-only table Material Prep's own portal and every downstream
+// portal (Cutter/Printer/Sewer/QA-Packer) already show as "Material
+// Details" — one visual language for "what was picked" everywhere it
+// appears.
+const MaterialPrepDetailsBlock = ({ details }) => {
+  const req = details.requirement;
+  const phaseLabel =
+    details.phase === "sample" ? "Sample" : details.phase === "mass" ? "Mass production" : null;
+
+  return (
+    <div className="mt-3 border-t border-gray-100 pt-3">
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+        Material Prep{phaseLabel ? ` — ${phaseLabel}` : ""}
+      </p>
+
+      {req ? (
+        <MaterialRequirementSummaryTable
+          mr={req.mr}
+          purchase_needed={req.purchase_needed}
+          pr={req.pr}
+        />
+      ) : (
+        <p className="text-xs italic text-gray-400">
+          No materials picked yet for this stage.
+        </p>
+      )}
+
+      {details.stage_notes && (
+        <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
+            <i className="fa-solid fa-comment-dots mr-1" />
+            Notes mula sa Material Prep
+          </p>
+          <p className="whitespace-pre-wrap text-xs text-gray-700">
+            {details.stage_notes}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // CP2 — Role-directed instructions (Hub → role). An ORDER-level thread
 // aimed at one production role: entries posted here land in that role's
 // portal "Notes / Instructions" section. Separate channel from the
@@ -691,6 +747,7 @@ const StageCard = ({ stage, history, uploads, payment, details, waste, onAddNote
   const hasGaDetails = gaDetailsHasContent(details);
   const hasSmDetails = smDetailsHasContent(details);
   const hasCuttingDetails = cuttingDetailsHasContent(details);
+  const hasMaterialPrepDetails = materialPrepDetailsHasContent(details);
   const statusMeta = getStatusMeta(stage.status);
   const isParallel = PARALLEL_TIERS.has(stage.sequence);
 
@@ -820,6 +877,10 @@ const StageCard = ({ stage, history, uploads, payment, details, waste, onAddNote
       {/* Cutter Rework CP3 — the Cutter's output (fabric entries + notes). */}
       {hasCuttingDetails && <CutterDetailsBlock details={details} />}
 
+      {/* Owner decision (2026-07-28) — the materials Material Prep picked
+          for this stage (sample or mass), + resulting Purchase Request. */}
+      {hasMaterialPrepDetails && <MaterialPrepDetailsBlock details={details} />}
+
       {/* Auto-computed waste / material usage for this stage (read-only). */}
       <WasteBlock waste={waste} />
 
@@ -858,7 +919,7 @@ const StageCard = ({ stage, history, uploads, payment, details, waste, onAddNote
             ))}
           </div>
         </div>
-      ) : paymentGate && payment ? null : hasGaDetails || hasSmDetails || hasCuttingDetails ? null : (
+      ) : paymentGate && payment ? null : hasGaDetails || hasSmDetails || hasCuttingDetails || hasMaterialPrepDetails ? null : (
         <div className="mt-3 border-t border-gray-100 pt-3">
           <p className="text-xs italic text-gray-400">
             No artifact uploaded for this stage yet.

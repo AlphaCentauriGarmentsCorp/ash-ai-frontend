@@ -10,6 +10,7 @@ import ServiceTypeToggle from "../../../components/portals/ServiceTypeToggle";
 import SubcontractModeView from "../../../components/portals/SubcontractModeView";
 import OrderDetailsSection from "../Cutter/sections/OrderDetailsSection";
 import MaterialRequestsSection from "../Cutter/sections/MaterialRequestsSection";
+import MaterialDetailsSection from "../../../components/portals/MaterialDetailsSection";
 import ActivityLogSection from "../Cutter/sections/ActivityLogSection";
 import SampleDetailsSection from "./sections/SampleDetailsSection";
 import MeasurementsSection from "./sections/MeasurementsSection";
@@ -211,6 +212,9 @@ const SewerPortalPage = () => {
             orderId={context.order.id}
             orderStageId={context.stage.id}
           />
+
+          {/* Material Details — what Material Prep confirmed for this order */}
+          <MaterialDetailsSection materialDetails={context.material_details} />
 
           <ActivityLogSection activityLog={context.activity_log} />
 
