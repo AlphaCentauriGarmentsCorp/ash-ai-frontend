@@ -8,7 +8,15 @@ import StageDoneButton from "../../../../components/portals/StageDoneButton";
  *
  * Lists orders whose material requirement still needs to be prepared (or
  * already has been), and expands to the shared requirements panel so the
- * role can map sample-usage suggestions to materials and save → Auto-PR.
+ * role can pick materials from the catalog and save → Auto-PR.
+ *
+ * Owner decision (2026-07-28) — sample and mass phases now share the exact
+ * same pick-list flow (MaterialRequirementsPanel + MaterialPickList): the
+ * role checks materials from the catalog and confirms quantities for
+ * EITHER phase; a shortfall spawns a Purchase Request the same way for
+ * both. "Prep Done" is a manual fallback shown only when a requirement is
+ * saved and nothing needs buying — otherwise the stage auto-completes once
+ * every spawned Purchase Request is received.
  */
 const OrdersNeedingPrepSection = () => {
   const [orders, setOrders] = useState([]);
@@ -101,16 +109,17 @@ const OrdersNeedingPrepSection = () => {
                     <p className="text-sm font-semibold text-gray-900">
                       {o.order?.po_code || `Order #${id}`}
                     </p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-xs text-gray-500 inline-flex items-center gap-1.5">
                       {o.order?.client_brand || o.order?.client_name || "—"}
+                      {isSample && (
+                        <span className="text-[9px] uppercase font-bold px-1 py-0.5 rounded bg-indigo-100 text-indigo-700">
+                          Sample
+                        </span>
+                      )}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
-                    {isSample ? (
-                      <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700">
-                        Sample prep
-                      </span>
-                    ) : o.requirement_set ? (
+                    {o.requirement_set ? (
                       o.purchase_needed ? (
                         <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800">
                           PR {o.pr_status || ""}
@@ -132,41 +141,25 @@ const OrdersNeedingPrepSection = () => {
                 </button>
                 {isOpen && (
                   <div className="border-t border-gray-100 p-3 space-y-3">
-                    {isSample ? (
-                      // Sample prep: pull-from-stock acknowledgment. No MR/PR flow —
-                      // just confirm the sample materials are on hand and tap Prep
-                      // Done to release the fork's join into Sample Cutting.
-                      <>
-                        <div className="rounded-md bg-indigo-50 border border-indigo-200 p-2.5 text-xs text-indigo-800">
-                          <i className="fa-solid fa-box-open mr-1.5" />
-                          Para sa sample, kunin lang ang materials mula sa existing
-                          stock — walang bibilhin. Pindutin ang Prep Done kapag
-                          nakahanda na para magpatuloy sa Sample Cutting.
-                        </div>
-                        <StageDoneButton
-                          label="Prep Done"
-                          confirmTitle="Tapos na ang prep ng sample?"
-                          confirmMessage="Kukunin ang materials para sa sample mula sa existing stock. Markahan ang Material Prep (Sample) bilang tapos para magpatuloy sa Sample Cutting."
-                          hint="Nasa stock na ang materials para sa sample — walang PR na hihintayin. Pindutin ang Prep Done para ipasa sa susunod."
-                          action={() => materialPrepPortalApi.markPrepDone(id)}
-                          onDone={refetch}
-                        />
-                      </>
-                    ) : (
-                      <>
-                        {o.requirement_set && !o.purchase_needed && (
-                          <StageDoneButton
-                            label="Prep Done"
-                            confirmTitle="Tapos na ang prep?"
-                            confirmMessage="Walang bibilhin para sa order na ito (nasa stock na ang materials). Markahan ang Material Prep bilang tapos para magpatuloy ang order."
-                            hint="Nasa stock na ang materials — walang PR na hihintayin. Pindutin ang Prep Done para ipasa sa susunod."
-                            action={() => materialPrepPortalApi.markPrepDone(id)}
-                            onDone={refetch}
-                          />
-                        )}
-                        <MaterialRequirementsPanel orderId={id} onSaved={refetch} />
-                      </>
+                    {isSample && (
+                      <div className="rounded-md bg-indigo-50 border border-indigo-200 p-2.5 text-xs text-indigo-800">
+                        <i className="fa-solid fa-box-open mr-1.5" />
+                        Para sa sample — piliin ang materials na kailangan.
+                        Kung sapat ang stock, walang bibilhin; kung kulang,
+                        awtomatikong gagawan ng Purchase Request.
+                      </div>
                     )}
+                    {o.requirement_set && !o.purchase_needed && (
+                      <StageDoneButton
+                        label="Prep Done"
+                        confirmTitle="Tapos na ang prep?"
+                        confirmMessage="Walang bibilhin para sa order na ito (nasa stock na ang materials). Markahan ang Material Prep bilang tapos para magpatuloy ang order."
+                        hint="Nasa stock na ang materials — walang PR na hihintayin. Pindutin ang Prep Done para ipasa sa susunod."
+                        action={() => materialPrepPortalApi.markPrepDone(id)}
+                        onDone={refetch}
+                      />
+                    )}
+                    <MaterialRequirementsPanel orderId={id} onSaved={refetch} />
                   </div>
                 )}
               </li>

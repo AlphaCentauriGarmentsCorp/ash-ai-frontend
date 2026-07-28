@@ -7,6 +7,7 @@ import StageRejectionBanner from "../../../components/portals/StageRejectionBann
 import MyActiveTasksList from "../../../components/portals/MyActiveTasksList";
 import StageUploadSection from "../../../components/portals/StageUploadSection";
 import TaskOverviewSection from "./sections/TaskOverviewSection";
+import MaterialDetailsSection from "../../../components/portals/MaterialDetailsSection";
 import ReferenceImagesSection from "./sections/ReferenceImagesSection";
 import QaChecklistSection from "./sections/QaChecklistSection";
 import RejectRepairLogSection from "./sections/RejectRepairLogSection";
@@ -210,6 +211,9 @@ const QaPackerPortalPage = () => {
 
           {/* Section 1: Task Overview */}
           <TaskOverviewSection task={context.task} />
+
+          {/* Material Details — what Material Prep confirmed for this order */}
+          <MaterialDetailsSection materialDetails={context.material_details} />
 
           {/* Section 2: Reference Images */}
           <ReferenceImagesSection referenceImages={context.reference_images} />

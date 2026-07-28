@@ -18,8 +18,8 @@ import NotesInstructionsSection from "../GraphicArtist/sections/NotesInstruction
 import StageNotesSection from "./sections/StageNotesSection";
 import SizeChartSection from "./sections/SizeChartSection";
 import FabricTrackingSection from "./sections/FabricTrackingSection";
-import SampleUploadSection from "./sections/SampleUploadSection";
 import MaterialRequestsSection from "./sections/MaterialRequestsSection";
+import MaterialDetailsSection from "../../../components/portals/MaterialDetailsSection";
 import ActivityLogSection from "./sections/ActivityLogSection";
 
 /**
@@ -29,17 +29,23 @@ import ActivityLogSection from "./sections/ActivityLogSection";
  * Maker portal layout, so all three production portals read the same way:
  *
  *   1. Order Details        (enriched — GA section, CP1 backend fields)
+ *   1b. Material Details    (what Material Prep confirmed — moved directly
+ *                            below Order Details per owner request)
  *   2. Design Details       (READ-ONLY GA output: placements + Pantones
  *                            + labels — reused SM section)
  *   3. Cutting Proof        (upload — kept; moved below Order/Design per
  *                            the SM pattern, both service modes)
  *   4. Service Type Toggle  (managers only)
- *   5a. in_house  → Size Chart + Fabric Tracking + Sample Output/Upload
+ *   5a. in_house  → Size Chart + Fabric Tracking
  *   5b. subcontract → SubcontractModeView
  *   6. Notes / Instructions (order notes + Hub → cutter thread)
  *   7. Notes (Save Notes)   (writes stage.notes → shows sa Review Hub)
  *   8. Material Requests     (Request Material carries order+stage na)
  *   9. Activity Log
+ *
+ * Owner decision (2026-07-28) — "Sample Output & Upload" was removed: it
+ * duplicated the Cutting Proof upload above it, so only one proof-of-work
+ * upload block remains per stage.
  *
  * Flow:
  *   1. Mount → call /portal/my-active?role=cutter
@@ -219,6 +225,10 @@ const CutterPortalPage = () => {
           {/* 1. Order Details (Cutter Rework CP2 — enriched GA layout) */}
           <OrderDetailsSectionGA order={context.order} stage={context.stage} />
 
+          {/* Material Details — what Material Prep confirmed for this
+              order, moved directly below Order Details per owner request. */}
+          <MaterialDetailsSection materialDetails={context.material_details} />
+
           {/* 2. Design Details — READ-ONLY view of the GA output */}
           <DesignDetailsSection
             placements={context.placements}
@@ -248,26 +258,16 @@ const CutterPortalPage = () => {
           {context.stage?.service_type === "subcontract" ? (
             <SubcontractModeView subcontract={context.subcontract} />
           ) : (
-            <>
-              {/* Two-column on lg: Size chart + Fabric tracking */}
-              <div className="grid lg:grid-cols-2 gap-4">
-                <SizeChartSection sizeChart={context.size_chart} order={context.order} />
-                <FabricTrackingSection
-                  fabricTracking={context.fabric_tracking}
-                  orderId={context.order.id}
-                  orderStageId={context.stage.id}
-                  onChanged={handleRefresh}
-                />
-              </div>
-
-              {/* Sample Output & Upload */}
-              <SampleUploadSection
-                sampleUploads={context.sample_uploads}
+            /* Two-column on lg: Size chart + Fabric tracking */
+            <div className="grid lg:grid-cols-2 gap-4">
+              <SizeChartSection sizeChart={context.size_chart} order={context.order} />
+              <FabricTrackingSection
+                fabricTracking={context.fabric_tracking}
                 orderId={context.order.id}
                 orderStageId={context.stage.id}
                 onChanged={handleRefresh}
               />
-            </>
+            </div>
           )}
 
           {/* 6. Notes / Instructions — order notes + Hub → cutter thread
