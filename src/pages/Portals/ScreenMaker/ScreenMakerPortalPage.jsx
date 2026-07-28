@@ -15,7 +15,7 @@ import ActivityLogSection from "../Cutter/sections/ActivityLogSection";
 import OrderDetailsSectionGA from "../GraphicArtist/sections/OrderDetailsSectionGA";
 import NotesInstructionsSection from "../GraphicArtist/sections/NotesInstructionsSection";
 import DesignDetailsSection from "./sections/DesignDetailsSection";
-import DesignsToMakeSection from "./sections/DesignsToMakeSection";
+import ScreensUsedSection from "./sections/ScreensUsedSection";
 import StageNotesSection from "./sections/StageNotesSection";
 import StageDoneButton from "../../../components/portals/StageDoneButton";
 
@@ -24,15 +24,29 @@ import StageDoneButton from "../../../components/portals/StageDoneButton";
  * SM Rework CP2 — page rebuilt to mirror the GA portal layout:
  *
  *   1. Order Details        (enriched — GA section, CP1 backend fields)
- *   2. Design Details       (READ-ONLY GA output: placements + Pantones
- *                            + labels — new section)
- *   3. Screen Photos        (kept, both service modes)
- *   4. Designs to Make Screen (kept — physical screen mapping,
- *                            in-house mode)
- *   5. Notes / Instructions (order notes + Hub → screen_maker thread)
- *   6. Notes (Save Notes)   (writes stage.notes → shows sa Review Hub)
- *   7. Material Requests    (Request Material carries order+stage na)
- *   8. Activity Log
+ *   2. Service Type         (managers only — in-house / subcontract)
+ *   3. Design Details       (READ-ONLY GA output: placements + Pantones
+ *                            + labels)
+ *   4. Screen Photos        (kept, both service modes)
+ *   5. Screens Used         (CP3 — write path, see below)
+ *   6. Notes / Instructions (order notes + Hub → screen_maker thread)
+ *   7. Notes (Save Notes)   (writes stage.notes → shows sa Review Hub)
+ *   8. Material Requests    (Request Material carries order+stage na)
+ *   9. Activity Log
+ *
+ * SM Rework CP1 (layout) — the Service Type toggle moved directly under
+ * Order Details, and the old read-only "Designs to Make Screen" section
+ * was removed.
+ *
+ * SM Rework CP3 — "Screens Used" (ScreensUsedSection) replaces it with an
+ * actual write path: a dropdown per (placement, colour) slot, sourced
+ * from context.available_screens, auto-saving through
+ * ScreenAssignmentService (CP2 backend). This is the first thing that
+ * actually populates screen_assignments from the frontend — the table
+ * the Printer Portal and CSR Review Hub read from. The legacy
+ * POST /screen-making endpoint has since been removed entirely (SM
+ * Rework CP5) — this page was its only real caller and had already
+ * moved off it by CP3.
  *
  * Flow:
  *   1. Mount → call /portal/my-active?role=screen-maker
@@ -40,8 +54,10 @@ import StageDoneButton from "../../../components/portals/StageDoneButton";
  *   3. status='multiple' → show picker
  *   4. status='none' → empty state
  *
- * Screen Maker is mostly read-only. Notes + mark-as-done route through
- * the existing OrderStagesController endpoints, not portal-specific ones.
+ * Notes + mark-as-done route through the existing OrderStagesController
+ * endpoints (not portal-specific). Screens Used is the one portal-specific
+ * write this role has — see screenMakerPortalApi.assignScreen /
+ * deleteScreenAssignment.
  */
 
 const STATUS_FLOW = [
@@ -202,42 +218,49 @@ const ScreenMakerPortalPage = () => {
           {/* 1. Order Details (SM Rework CP2 — enriched GA layout) */}
           <OrderDetailsSectionGA order={context.order} stage={context.stage} />
 
-          {/* 2. Design Details — READ-ONLY view of the GA output */}
+          {/* 2. Service Type (Phase 5-D toggle — managers only; the
+              component self-hides without action.switch-service-type) */}
+          <ServiceTypeToggle
+            stage={context.stage}
+            onChanged={handleRefresh}
+          />
+
+          {/* Subcontract vendor card — only when this stage is
+              outsourced. In-house mode renders nothing here. */}
+          {context.stage?.service_type === "subcontract" && (
+            <SubcontractModeView subcontract={context.subcontract} />
+          )}
+
+          {/* 3. Design Details — READ-ONLY view of the GA output */}
           <DesignDetailsSection
             placements={context.placements}
             pantonesUsed={context.pantones_used}
             order={context.order}
           />
 
-          {/* 3. Screen Photos (kept — both service modes) */}
+          {/* 4. Screen Photos (kept — both service modes) */}
           <StageUploadSection
             orderStageId={currentStageId}
             category="screen"
             title="Screen Photos"
           />
 
-          {/* Phase 5-D — Service Type Toggle (managers only) */}
-          <ServiceTypeToggle
-            stage={context.stage}
+          {/* 5. Screens Used (SM Rework CP3 — write path) */}
+          <ScreensUsedSection
+            screenSlots={context.screen_slots}
+            availableScreens={context.available_screens}
+            orderStageId={context.stage.id}
             onChanged={handleRefresh}
           />
 
-          {/* Branch on service_type */}
-          {context.stage?.service_type === "subcontract" ? (
-            <SubcontractModeView subcontract={context.subcontract} />
-          ) : (
-            /* 4. Designs to Make Screen (kept — physical screen mapping) */
-            <DesignsToMakeSection designs={context.designs} />
-          )}
-
-          {/* 5. Notes / Instructions — order notes + Hub → screen_maker
+          {/* 6. Notes / Instructions — order notes + Hub → screen_maker
               thread (both modes; posted from the order's Review Hub) */}
           <NotesInstructionsSection
             order={context.order}
             roleNotes={context.role_notes}
           />
 
-          {/* 6. Notes (Save Notes) — writes stage.notes; the Review Hub's
+          {/* 7. Notes (Save Notes) — writes stage.notes; the Review Hub's
               Screen Making card shows this (both modes) */}
           <StageNotesSection
             stageId={context.stage.id}
@@ -245,7 +268,7 @@ const ScreenMakerPortalPage = () => {
             onChanged={handleRefresh}
           />
 
-          {/* 7. Material Requests — Request Material already carries
+          {/* 8. Material Requests — Request Material already carries
               order_id + stage_id; the list shows each MR's status */}
           <MaterialRequestsSection
             materialRequests={context.material_requests}
@@ -253,7 +276,7 @@ const ScreenMakerPortalPage = () => {
             orderStageId={context.stage.id}
           />
 
-          {/* 8. Activity Log */}
+          {/* 9. Activity Log */}
           <ActivityLogSection activityLog={context.activity_log} />
 
           {/* Bundle 3 — production "Done": advances the workflow server-side. */}
