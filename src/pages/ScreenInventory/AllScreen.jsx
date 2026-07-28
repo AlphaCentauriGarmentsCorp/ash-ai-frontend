@@ -6,6 +6,7 @@ import DeleteConfirmationDialog from "../../components/common/DeleteConfirmation
 import { useNavigate } from "react-router-dom";
 import { filter } from "jszip";
 import useConfirm from "../../hooks/useConfirm";
+import { screenStatusMeta } from "../../constants/screenStatus";
 
 const MaterialsPage = () => {
   const { alert, dialog } = useConfirm();
@@ -79,6 +80,19 @@ const MaterialsPage = () => {
       sortable: true,
       filterable: true,
       position: "center",
+      // SM Rework CP4 — color-coded badge instead of raw text, so
+      // "needs washing" / "damaged" stand out at a glance on the floor.
+      render: (item) => {
+        const meta = screenStatusMeta(item.status);
+        return (
+          <span
+            className={`inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded border ${meta.badgeClass}`}
+          >
+            <i className={`fa-solid ${meta.icon}`} />
+            {meta.label}
+          </span>
+        );
+      },
     },
   ];
 

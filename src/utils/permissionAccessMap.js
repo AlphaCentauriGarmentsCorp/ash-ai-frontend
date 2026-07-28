@@ -76,7 +76,6 @@ const RULES = [
   { test: /^\/downloads?(\/|$)/, permissions: ["access.download"] },
   { test: /^\/order-stages(\/|$)/, permissions: ["access.order-stages"] },
   { test: /^\/graphic-design(\/|$)/, permissions: ["access.graphic-design"] },
-  { test: /^\/screen-making(\/|$)/, permissions: ["access.screen-making"] },
   { test: /^\/screen-checking(\/|$)/, permissions: ["access.screen-checking"] },
   { test: /^\/screen-maintenance(\/|$)/, permissions: ["access.screen-maintenance"] },
 ];
