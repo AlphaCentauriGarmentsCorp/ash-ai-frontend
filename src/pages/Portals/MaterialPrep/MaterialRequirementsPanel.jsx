@@ -4,6 +4,12 @@ import { materialPrepPortalApi } from "../../../api/materialPrepPortalApi";
 import { materialsApi } from "../../../api/materialsApi";
 import MaterialPickList from "./MaterialPickList";
 import MaterialRequirementSummaryTable from "./MaterialRequirementSummaryTable";
+// 2026-07-29 — reused directly from the GA portal (same component Cutter and
+// Screen Maker already reuse) rather than a Material-Prep-specific copy, so
+// "what does this order need" reads identically across every production
+// portal. Backend now feeds it the same enriched order/stage shape via
+// stateForOrder() (see MaterialPrepRequirementService::orderDetails()).
+import OrderDetailsSectionGA from "../GraphicArtist/sections/OrderDetailsSectionGA";
 
 /**
  * Change 18 — Material Prep requirement panel (shared).
@@ -21,6 +27,59 @@ import MaterialRequirementSummaryTable from "./MaterialRequirementSummaryTable";
  *   - the pick-list the role checks materials on and saves (which
  *     auto-creates a Purchase Request for shortfalls).
  */
+
+const PRIORITY_STYLES = {
+  low:    "bg-gray-100 text-gray-600",
+  normal: "bg-blue-50 text-blue-700",
+  high:   "bg-amber-100 text-amber-800",
+  rush:   "bg-red-100 text-red-700",
+};
+
+/**
+ * Sourcing-urgency strip — deadline / priority / rush flag / sales channel.
+ * These matter for deciding WHAT to prep first but aren't part of the
+ * shared OrderDetailsSectionGA grid (GA/Cutter/Screen Maker don't carry
+ * them), so they render as a compact strip alongside it here instead of
+ * changing that shared component's shape for every portal that reuses it.
+ */
+const OrderUrgencyStrip = ({ order }) => {
+  if (!order) return null;
+  const { deadline, priority, rush_order: rush, sales_channel: channel } = order;
+  if (!deadline && !priority && !rush && !channel) return null;
+
+  const deadlineLabel = deadline
+    ? new Date(deadline).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
+    : null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {rush && (
+        <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase px-2 py-0.5 rounded bg-red-100 text-red-700">
+          <i className="fa-solid fa-bolt" />
+          Rush
+        </span>
+      )}
+      {priority && (
+        <span
+          className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded ${PRIORITY_STYLES[priority] || PRIORITY_STYLES.normal}`}
+        >
+          {priority} priority
+        </span>
+      )}
+      {deadlineLabel && (
+        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded bg-gray-100 text-gray-700">
+          <i className="fa-regular fa-calendar" />
+          Deadline: {deadlineLabel}
+        </span>
+      )}
+      {channel && (
+        <span className="text-[10px] font-medium px-2 py-0.5 rounded bg-gray-100 text-gray-500">
+          {channel}
+        </span>
+      )}
+    </div>
+  );
+};
 
 const MaterialRequirementsPanel = ({ orderId, readOnly = false, onSaved }) => {
   const [state, setState] = useState(null);
@@ -162,7 +221,17 @@ const MaterialRequirementsPanel = ({ orderId, readOnly = false, onSaved }) => {
   // ── Saved requirement view ───────────────────────────────────────────
   if (state?.existing) {
     const { mr, purchase_needed, pr } = state.existing;
-    return <MaterialRequirementSummaryTable mr={mr} purchase_needed={purchase_needed} pr={pr} />;
+    return (
+      <div className="space-y-3">
+        {!readOnly && (
+          <>
+            <OrderDetailsSectionGA order={state?.order} stage={state?.stage} />
+            <OrderUrgencyStrip order={state?.order} />
+          </>
+        )}
+        <MaterialRequirementSummaryTable mr={mr} purchase_needed={purchase_needed} pr={pr} />
+      </div>
+    );
   }
 
   // ── Read-only, not yet prepared (timeline) ───────────────────────────
@@ -203,6 +272,9 @@ const MaterialRequirementsPanel = ({ orderId, readOnly = false, onSaved }) => {
   const isSample = state?.phase === "sample";
   return (
     <div className="space-y-3">
+      <OrderDetailsSectionGA order={state?.order} stage={state?.stage} />
+      <OrderUrgencyStrip order={state?.order} />
+
       <p className="text-xs text-gray-500">
         {isSample ? (
           <>
