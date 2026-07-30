@@ -8,28 +8,58 @@ import StageDoneButton from "../../../components/portals/StageDoneButton";
 import StageUploadSection from "../../../components/portals/StageUploadSection";
 import ServiceTypeToggle from "../../../components/portals/ServiceTypeToggle";
 import SubcontractModeView from "../../../components/portals/SubcontractModeView";
-import OrderDetailsSection from "../Cutter/sections/OrderDetailsSection";
-import MaterialRequestsSection from "../Cutter/sections/MaterialRequestsSection";
+// Printer Rework CP2 — the Order Details, Design Details and Notes/
+// Instructions sections are the GA / Screen Maker portals' presentational
+// components, reused directly (same pattern the Cutter page uses). All
+// are pure props-in / markup-out and consume the enriched CP1 context
+// shape.
+import OrderDetailsSectionGA from "../GraphicArtist/sections/OrderDetailsSectionGA";
+import DesignDetailsSection from "../ScreenMaker/sections/DesignDetailsSection";
+import NotesInstructionsSection from "../GraphicArtist/sections/NotesInstructionsSection";
 import MaterialDetailsSection from "../../../components/portals/MaterialDetailsSection";
-import ActivityLogSection from "../Cutter/sections/ActivityLogSection";
 import ScreenDetailsSection from "./sections/ScreenDetailsSection";
 import PrintPlacementSection from "./sections/PrintPlacementSection";
 import InkTrackingSection from "./sections/InkTrackingSection";
-import PrinterSampleUploadSection from "./sections/PrinterSampleUploadSection";
+import StageNotesSection from "./sections/StageNotesSection";
+import MaterialRequestsSection from "../Cutter/sections/MaterialRequestsSection";
+import ActivityLogSection from "../Cutter/sections/ActivityLogSection";
 
 /**
- * Phase 5-C — Printer Portal landing page.
+ * Printer Rework CP2 — Printer Portal landing page.
  *
- * Reuses sections that are pure presentation from Cutter:
- *   - OrderDetailsSection
- *   - MaterialRequestsSection
- *   - ActivityLogSection
+ * Rebuilt to mirror the Graphic Artist / Screen Maker / Cutter portal
+ * layout, so all four production portals read the same way:
  *
- * Printer-specific sections:
- *   - ScreenDetailsSection (screens to use)
- *   - PrintPlacementSection (front/back mockups w/ measurements)
- *   - InkTrackingSection (replaces FabricTrackingSection)
- *   - PrinterSampleUploadSection (uses printerPortalApi)
+ *   1. Order Details        (enriched — GA section, CP1 backend fields)
+ *   1b. Material Details    (what Material Prep confirmed — directly
+ *                            below Order Details, same as Cutter)
+ *   2. Design Details       (READ-ONLY GA output: placements + Pantones
+ *                            + labels — reused SM section)
+ *   3. Printing Proof       (upload — kept; the only proof-of-work
+ *                            upload block for this stage)
+ *   4. Service Type Toggle  (managers only)
+ *   5a. in_house  → Screen Details + Print Placement + Ink Tracking
+ *                   (owner decision: full parity — kept both the
+ *                   printer's own screen/placement sections AND the
+ *                   shared Design Details block above)
+ *   5b. subcontract → SubcontractModeView
+ *   6. Notes / Instructions (order notes + Hub → printer thread)
+ *   7. Notes (Save Notes)   (writes stage.notes → shows sa Review Hub)
+ *   8. Material Requests     (Request Material carries order+stage na)
+ *   9. Activity Log
+ *
+ * Owner decision (2026-07-30) — "Sample Output & Upload" was removed: it
+ * duplicated the Printing Proof upload above it, so only one proof-of-work
+ * upload block remains per stage (same reasoning as the Cutter rework).
+ *
+ * Flow:
+ *   1. Mount → call /portal/my-active?role=printer
+ *   2. status='single' → fetch /portal/printer/context/{stageId} → render
+ *   3. status='multiple' → show picker → user picks → fetch context → render
+ *   4. status='none' → show empty state with explanation
+ *
+ * The printer owns TWO stages per order (sample_printing + mass_printing);
+ * context.stage.phase ('sample' | 'mass') drives the portal title.
  */
 
 const STATUS_FLOW = [
@@ -185,13 +215,27 @@ const PrinterPortalPage = () => {
             onResubmitted={handleRefresh}
           />
 
+          {/* 1. Order Details (Printer Rework CP2 — enriched GA layout) */}
+          <OrderDetailsSectionGA order={context.order} stage={context.stage} />
+
+          {/* Material Details — what Material Prep confirmed for this
+              order, directly below Order Details per the Cutter pattern. */}
+          <MaterialDetailsSection materialDetails={context.material_details} />
+
+          {/* 2. Design Details — READ-ONLY view of the GA output */}
+          <DesignDetailsSection
+            placements={context.placements}
+            pantonesUsed={context.pantones_used}
+            order={context.order}
+          />
+
+          {/* 3. Printing Proof (kept — both service modes; placed below
+              Order/Design per the shared pattern) */}
           <StageUploadSection
             orderStageId={currentStageId}
             category="printing"
             title="Printing Proof"
           />
-
-          <OrderDetailsSection order={context.order} stage={context.stage} />
 
           {/* Phase 5-D — Service Type Toggle (managers only) */}
           <ServiceTypeToggle
@@ -218,26 +262,32 @@ const PrinterPortalPage = () => {
                 orderStageId={context.stage.id}
                 onChanged={handleRefresh}
               />
-
-              <PrinterSampleUploadSection
-                sampleUploads={context.sample_uploads}
-                orderId={context.order.id}
-                orderStageId={context.stage.id}
-                onChanged={handleRefresh}
-              />
             </>
           )}
 
-          {/* Material Requests + Activity Log shown in both modes */}
+          {/* 6. Notes / Instructions — order notes + Hub → printer thread
+              (both modes; posted from the order's Review Hub) */}
+          <NotesInstructionsSection
+            order={context.order}
+            roleNotes={context.role_notes}
+          />
+
+          {/* 7. Notes (Save Notes) — writes stage.notes; the Review Hub's
+              Printing card shows this (both modes) */}
+          <StageNotesSection
+            stageId={context.stage.id}
+            initialNotes={context.stage.notes}
+            onChanged={handleRefresh}
+          />
+
+          {/* 8. Material Requests — shown in both modes */}
           <MaterialRequestsSection
             materialRequests={context.material_requests}
             orderId={context.order.id}
             orderStageId={context.stage.id}
           />
 
-          {/* Material Details — what Material Prep confirmed for this order */}
-          <MaterialDetailsSection materialDetails={context.material_details} />
-
+          {/* 9. Activity Log — shown in both modes */}
           <ActivityLogSection activityLog={context.activity_log} />
 
           {/* Bundle 3 — production "Done": advances the workflow server-side. */}
