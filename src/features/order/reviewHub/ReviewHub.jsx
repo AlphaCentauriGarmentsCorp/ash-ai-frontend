@@ -86,6 +86,23 @@ const INSTRUCTION_AUDIENCES = {
     portalName: "Cutter Portal",
     placeholder: "Halimbawa: Sundin ang sample cutting layout para pantay ang yield.",
   },
+  // Printer Rework CP2 — the printer owns TWO stages, same pattern as
+  // the cutter above; both post to the one order-level 'printer'
+  // instruction thread (audience_role = 'printer').
+  sample_printing: {
+    role: "printer",
+    label: "Printer",
+    short: "Printer",
+    portalName: "Printer Portal",
+    placeholder: "Halimbawa: Doblehin ang pass sa likod, medyo light ang print.",
+  },
+  mass_printing: {
+    role: "printer",
+    label: "Printer",
+    short: "Printer",
+    portalName: "Printer Portal",
+    placeholder: "Halimbawa: Sundin ang sample print registration para pantay lahat.",
+  },
 };
 
 const fmtWhen = (iso) => {
@@ -192,6 +209,20 @@ const cuttingDetailsHasContent = (d) => {
   if (!d || d.kind !== "cutting") return false;
   return (
     (Array.isArray(d.fabric_logs) && d.fabric_logs.length > 0) ||
+    Boolean(d.stage_notes)
+  );
+};
+
+// Printer Rework CP1 — Printing detail block gate. PRINTER-AUTHORED
+// output only: the per-colour ink entries the printer logged and the
+// printer's own Save Notes. The screens and placements are Screen
+// Maker / Graphic Artist context and already render on THEIR cards, so
+// they must not make an untouched printing stage look "worked" —
+// same rule cuttingDetailsHasContent follows above.
+const printingDetailsHasContent = (d) => {
+  if (!d || d.kind !== "printing") return false;
+  return (
+    (Array.isArray(d.ink_logs) && d.ink_logs.length > 0) ||
     Boolean(d.stage_notes)
   );
 };
@@ -525,6 +556,76 @@ const CutterDetailsBlock = ({ details }) => {
   );
 };
 
+// Printer Rework CP1 — Printing detail block. Renders the per-colour ink
+// usage entries the printer logged (each pass's used/waste/remaining) and
+// the printer's own "Save Notes" blob. Aggregate ink used/waste totals are
+// NOT repeated here — the auto-computed Waste & material usage block
+// already shows them; this block adds the per-colour breakdown the
+// reviewer can't see there. The printer owns two stages, so each printing
+// card renders its own stage's logs + notes (keyed by stage id upstream)
+// — same pattern as CutterDetailsBlock above.
+const PrinterDetailsBlock = ({ details }) => {
+  const logs = Array.isArray(details.ink_logs) ? details.ink_logs : [];
+
+  return (
+    <div className="mt-3 border-t border-gray-100 pt-3">
+      <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gray-400">
+        Printing Output
+      </p>
+
+      {/* Per-colour ink usage the printer logged. Aggregate totals live
+          in the Waste & material usage block above. */}
+      {logs.length > 0 && (
+        <div className="overflow-x-auto rounded-lg border border-gray-200 bg-gray-50 p-2">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-200 text-left text-[10px] uppercase tracking-wide text-gray-500">
+                <th className="py-1.5 pr-3">Colour</th>
+                <th className="py-1.5 pr-3">Used</th>
+                <th className="py-1.5 pr-3">Waste</th>
+                <th className="py-1.5 pr-3">Remaining</th>
+                <th className="py-1.5">Logged by</th>
+              </tr>
+            </thead>
+            <tbody>
+              {logs.map((l) => (
+                <tr
+                  key={l.id}
+                  className="border-b border-gray-100 last:border-0"
+                  title={l.notes || ""}
+                >
+                  <td className="py-1.5 pr-3 font-medium text-gray-900">
+                    {l.ink_color || "—"}
+                  </td>
+                  <td className="py-1.5 pr-3 text-gray-700">{fmtKg(l.ink_used_kg)}</td>
+                  <td className="py-1.5 pr-3 text-gray-700">{fmtKg(l.ink_waste_kg)}</td>
+                  <td className="py-1.5 pr-3 text-gray-700">{fmtKg(l.usable_remaining_kg)}</td>
+                  <td className="py-1.5 text-gray-500">{l.logged_by?.name || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Printer stage notes — the printer's own "Save Notes" blob from
+          the Printer Portal (the reason this block exists: the notes
+          must reflect here in the hub). */}
+      {details.stage_notes && (
+        <div className="mt-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+          <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-gray-400">
+            <i className="fa-solid fa-comment-dots mr-1" />
+            Notes mula sa Printer
+          </p>
+          <p className="whitespace-pre-wrap text-xs text-gray-700">
+            {details.stage_notes}
+          </p>
+        </div>
+      )}
+    </div>
+  );
+};
+
 // Owner decision (2026-07-28) — Material Prep detail block. Shows exactly
 // what was picked for THIS Material Prep stage (sample or mass): the
 // catalog items + quantities + resulting Purchase Request, reusing the
@@ -747,6 +848,7 @@ const StageCard = ({ stage, history, uploads, payment, details, waste, onAddNote
   const hasGaDetails = gaDetailsHasContent(details);
   const hasSmDetails = smDetailsHasContent(details);
   const hasCuttingDetails = cuttingDetailsHasContent(details);
+  const hasPrintingDetails = printingDetailsHasContent(details);
   const hasMaterialPrepDetails = materialPrepDetailsHasContent(details);
   const statusMeta = getStatusMeta(stage.status);
   const isParallel = PARALLEL_TIERS.has(stage.sequence);
@@ -877,6 +979,9 @@ const StageCard = ({ stage, history, uploads, payment, details, waste, onAddNote
       {/* Cutter Rework CP3 — the Cutter's output (fabric entries + notes). */}
       {hasCuttingDetails && <CutterDetailsBlock details={details} />}
 
+      {/* Printer Rework CP1 — the Printer's output (ink entries + notes). */}
+      {hasPrintingDetails && <PrinterDetailsBlock details={details} />}
+
       {/* Owner decision (2026-07-28) — the materials Material Prep picked
           for this stage (sample or mass), + resulting Purchase Request. */}
       {hasMaterialPrepDetails && <MaterialPrepDetailsBlock details={details} />}
@@ -919,7 +1024,7 @@ const StageCard = ({ stage, history, uploads, payment, details, waste, onAddNote
             ))}
           </div>
         </div>
-      ) : paymentGate && payment ? null : hasGaDetails || hasSmDetails || hasCuttingDetails || hasMaterialPrepDetails ? null : (
+      ) : paymentGate && payment ? null : hasGaDetails || hasSmDetails || hasCuttingDetails || hasPrintingDetails || hasMaterialPrepDetails ? null : (
         <div className="mt-3 border-t border-gray-100 pt-3">
           <p className="text-xs italic text-gray-400">
             No artifact uploaded for this stage yet.
